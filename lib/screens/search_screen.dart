@@ -8,6 +8,7 @@ import '../widgets/music_card.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
 import '../widgets/state_views.dart';
+import 'radio_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   final String title;
@@ -183,6 +184,33 @@ class _SearchScreenState extends State<SearchScreen> {
             for (final s in _suggestions)
               ActionChip(label: Text(s), onPressed: () => _useSuggestion(s)),
           ],
+        ),
+        const SizedBox(height: 22),
+        Material(
+          color: AppColors.surface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: AppColors.outline),
+          ),
+          child: InkWell(
+            customBorder: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18)),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const RadioScreen())),
+            child: const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+              child: Row(children: [
+                Icon(Icons.sensors_rounded, color: AppColors.amber),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text('Radio en vivo',
+                      style: TextStyle(
+                          fontSize: 14.5, fontWeight: FontWeight.w800)),
+                ),
+                Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+              ]),
+            ),
+          ),
         ),
       ],
     );
