@@ -75,6 +75,7 @@ Reglas:
     final t = text.toLowerCase();
     final y = DateTime.now().year;
     return t.contains('lanzamiento') ||
+        RegExp(r'(últimos|ultimos|pasados)\s+(\d+|dos|tres)\s+años').hasMatch(t) ||
         t.contains('estreno') ||
         t.contains('recién salid') ||
         t.contains('recien salid') ||
@@ -87,10 +88,22 @@ Reglas:
     try {
       final now = DateTime.now();
       var year = now.year;
+      var last = now.year;
       final m = RegExp(r'20\d\d').firstMatch(text);
-      if (m != null) year = int.parse(m.group(0)!);
+      if (m != null) {
+        year = int.parse(m.group(0)!);
+        last = year;
+      }
+      final r2 = RegExp(r'(\d+|dos|tres)\s+años').firstMatch(text.toLowerCase());
+      if (r2 != null) {
+        final w = r2.group(1)!;
+        final n = w == 'dos' ? 2 : w == 'tres' ? 3 : (int.tryParse(w) ?? 1);
+        if (n >= 2 && n <= 5) {
+          year = now.year - (n - 1);
+          last = now.year;
+        }
+      }
       final from = DateTime(year, 1, 1);
-      final to = DateTime(year, 12, 31);
       final days = now.difference(from).inDays + 1;
       if (days < 1) return null;
 
@@ -110,16 +123,12 @@ Reglas:
           .recentReleases(names.toList(), days: days, max: 60);
       rel = [
         for (final r in rel)
-          if (r.album.year == year) r
+          if (r.album.year != null &&
+              r.album.year! >= year &&
+              r.album.year! <= last)
+            r
       ];
-      if (year < now.year) {
-        // Año pasado: el filtro de fechas de recentReleases ya cubre desde
-        // enero, pero deja pasar lo posterior; se recorta arriba por año.
-        rel = [
-          for (final r in rel)
-            if (r.album.year != null && r.album.year! <= to.year) r
-        ];
-      }
+      rel.shuffle();
       if (rel.length < 3) return null;
 
       final songs = <Song>[];
@@ -140,8 +149,8 @@ Reglas:
       }
       if (songs.length < 5) return null;
       return AssistantResult(
-        'Estos son lanzamientos reales de $year de bandas que te pueden gustar.',
-        'Lanzamientos $year',
+        'Estos son lanzamientos reales de ${year == last ? '$year' : '$year a $last'} de bandas que te pueden gustar.',
+        year == last ? 'Lanzamientos $year' : 'Lanzamientos $year-$last',
         songs,
         'Deezer',
       );
