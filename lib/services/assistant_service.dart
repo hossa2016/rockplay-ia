@@ -119,8 +119,21 @@ Reglas:
         ..shuffle();
       names.addAll(pool.take(60));
 
-      var rel = await ArtistInfoService.instance
-          .recentReleases(names.toList(), days: days, max: 60);
+      // Por tandas: Deezer limita las peticiones y, si se piden todas a la
+      // vez, muchas fallan en silencio.
+      final all = names.toList();
+      var rel = <ReleaseItem>[];
+      for (var i = 0; i < all.length && rel.length < 40; i += 10) {
+        final part = await ArtistInfoService.instance
+            .recentReleases(all.skip(i).take(10).toList(), days: days, max: 60);
+        final have = {for (final r in rel) '${r.artist}|${r.album.title}'};
+        for (final r in part) {
+          if (have.add('${r.artist}|${r.album.title}')) rel.add(r);
+        }
+        if (i + 10 < all.length) {
+          await Future<void>.delayed(const Duration(milliseconds: 900));
+        }
+      }
       rel = [
         for (final r in rel)
           if (r.album.year != null &&
@@ -174,9 +187,11 @@ Reglas:
   }
 
   Future<AssistantResult> ask(String text, List<AiMessage> history) async {
+    var releaseFailed = false;
     if (_wantsNew(text)) {
       final r = await _releases(text);
       if (r != null) return r;
+      releaseFailed = true;
     }
     await AiSettings.instance.load();
     final ctx = await _context();
@@ -186,7 +201,10 @@ Reglas:
       AiMessage(true, text),
     ];
 
-    final notes = <String>[];
+    final notes = <String>[
+      if (releaseFailed)
+        'No pude consultar lanzamientos reales; esta lista es de la IA y puede no ser tan reciente. Vuelve a pedirla en un momento.',
+    ];
     final tries = <MapEntry<String, Future<String> Function()>>[
       MapEntry('Gemini', () => AiClient.instance.gemini(system, msgs)),
       MapEntry('Groq', () => AiClient.instance.groq(system, msgs)),
