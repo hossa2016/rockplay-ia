@@ -108,26 +108,38 @@ class _AssistantScreenState extends State<AssistantScreen> {
     }
   }
 
-  /// Busca las portadas reales de las primeras canciones de la lista.
+  final Set<AssistantResult> _covering = {};
+
+  /// Busca las portadas reales de toda la lista, una por una (Deezer limita
+  /// el ritmo de peticiones).
   Future<void> _loadCovers(AssistantResult r) async {
+    if (!_covering.add(r)) return;
     final dz = DeezerService();
-    for (var i = 0; i < r.songs.length && i < 8; i++) {
-      final s = r.songs[i];
-      if (s.image.isNotEmpty) continue;
-      try {
-        final c = await dz.coverFor('${s.artist} ${s.title}');
-        if (c.isEmpty) continue;
-        r.songs[i] = Song(
-          title: s.title,
-          artist: s.artist,
-          album: s.album,
-          image: c,
-          url: s.url,
-          videoId: s.videoId,
-          query: s.query,
-        );
-        if (mounted) setState(() {});
-      } catch (_) {}
+    try {
+      for (var i = 0; i < r.songs.length; i++) {
+        if (!mounted) return;
+        final s = r.songs[i];
+        if (s.image.isNotEmpty) continue;
+        try {
+          final c = await dz.coverFor('${s.artist} ${s.title}');
+          if (c.isNotEmpty) {
+            r.songs[i] = Song(
+              title: s.title,
+              artist: s.artist,
+              album: s.album,
+              image: c,
+              url: s.url,
+              videoId: s.videoId,
+              query: s.query,
+            );
+            if (mounted && (i < 8 || i % 5 == 0)) setState(() {});
+          }
+        } catch (_) {}
+        await Future<void>.delayed(const Duration(milliseconds: 150));
+      }
+      if (mounted) setState(() {});
+    } finally {
+      _covering.remove(r);
     }
   }
 
