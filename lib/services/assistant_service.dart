@@ -79,8 +79,8 @@ Reglas:
 
     final notes = <String>[];
     final tries = <MapEntry<String, Future<String> Function()>>[
-      MapEntry('Groq', () => AiClient.instance.groq(system, msgs)),
       MapEntry('Gemini', () => AiClient.instance.gemini(system, msgs)),
+      MapEntry('Groq', () => AiClient.instance.groq(system, msgs)),
     ];
     for (final t in tries) {
       try {
