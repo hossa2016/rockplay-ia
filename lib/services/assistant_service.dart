@@ -117,13 +117,13 @@ Reglas:
         for (final e in kMixArtistPools.values) ...e,
       }.toList()
         ..shuffle();
-      names.addAll(pool.take(60));
+      names.addAll(pool.take(130));
 
       // Por tandas: Deezer limita las peticiones y, si se piden todas a la
       // vez, muchas fallan en silencio.
       final all = names.toList();
       var rel = <ReleaseItem>[];
-      for (var i = 0; i < all.length && rel.length < 40; i += 10) {
+      for (var i = 0; i < all.length && rel.length < 70; i += 10) {
         final part = await ArtistInfoService.instance
             .recentReleases(all.skip(i).take(10).toList(), days: days, max: 60);
         final have = {for (final r in rel) '${r.artist}|${r.album.title}'};
@@ -143,16 +143,16 @@ Reglas:
       ];
       // Sin reediciones, en vivo ni recopilatorios; máximo 2 discos por banda.
       final bad = RegExp(
-          r'live|en vivo|reissue|remaster|anniversary|aniversario|deluxe|'
-          r'greatest|best of|collection|box set|expanded|demos?\b|karaoke|'
-          r'tribute|instrumental',
+          r'\blive\b|en vivo|reissue|remaster|anniversary|aniversario|deluxe|'
+          r'greatest|best of|collection|box set|expanded|\bdemos?\b|karaoke|'
+          r'tribute|instrumental|director|\bversion\b|\bremix',
           caseSensitive: false);
       final perArtist = <String, int>{};
       rel.shuffle();
       rel = [
         for (final r in rel)
           if (!bad.hasMatch(r.album.title) &&
-              (perArtist[r.artist] = (perArtist[r.artist] ?? 0) + 1) <= 2)
+              (perArtist[r.artist] = (perArtist[r.artist] ?? 0) + 1) <= 3)
             r
       ];
       if (rel.length < 3) return null;
@@ -168,7 +168,7 @@ Reglas:
                 .catchError((Object _) => <Song>[]),
         ]);
         for (final l in lists) {
-          for (final s in l.take(3)) {
+          for (final s in l.take(4)) {
             if (!bad.hasMatch(s.title) &&
                 seen.add('${s.artist}|${s.title}'.toLowerCase())) songs.add(s);
           }
