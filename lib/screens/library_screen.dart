@@ -5,6 +5,7 @@ import '../services/library_service.dart';
 import '../services/playlist_service.dart';
 import '../widgets/add_to_playlist.dart';
 import '../widgets/cover_art.dart';
+import 'data_settings_screen.dart';
 import 'song_list_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
@@ -223,12 +224,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
             children: [
               PageHeader(
                 title: 'Mi música',
-                trailing: IconButton(
-                  tooltip: 'Tus estadísticas',
-                  icon: const Icon(Icons.insights_rounded),
-                  onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                          builder: (_) => const StatsScreen())),
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: 'Datos y caché',
+                      icon: const Icon(Icons.data_saver_on_rounded),
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const DataSettingsScreen())),
+                    ),
+                    IconButton(
+                      tooltip: 'Tus estadísticas',
+                      icon: const Icon(Icons.insights_rounded),
+                      onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                              builder: (_) => const StatsScreen())),
+                    ),
+                  ],
                 ),
               ),
               Container(

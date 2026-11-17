@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
+import 'services/data_saver.dart';
 import 'services/playback_service.dart';
 import 'widgets/playback_ui.dart';
 
@@ -13,6 +14,9 @@ Future<void> main() async {
     systemNavigationBarColor: Color(0xFF14141A),
     systemNavigationBarIconBrightness: Brightness.light,
   ));
+  try {
+    await DataSaver.instance.load();
+  } catch (_) {}
   try {
     await PlaybackService.instance.init();
     PlaybackUi.instance.start();

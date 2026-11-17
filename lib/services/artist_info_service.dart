@@ -1,3 +1,4 @@
+import 'data_saver.dart';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -38,13 +39,8 @@ class ArtistInfoService {
   final Map<String, ArtistInfo?> _artistCache = <String, ArtistInfo?>{};
   final Map<String, String?> _bioCache = <String, String?>{};
 
-  Future<dynamic> _json(String url) async {
-    final r = await http
-        .get(Uri.parse(url), headers: const {'User-Agent': 'RockPlay personal app'})
-        .timeout(const Duration(seconds: 8));
-    if (r.statusCode != 200) throw Exception('HTTP ${r.statusCode}');
-    return jsonDecode(utf8.decode(r.bodyBytes));
-  }
+  Future<dynamic> _json(String url) => DataSaver.instance.getJson(url,
+      headers: const {'User-Agent': 'RockPlay personal app'});
 
   static String _norm(String s) => s
       .toLowerCase()

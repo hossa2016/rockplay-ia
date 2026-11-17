@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/data_saver.dart';
 import '../theme/app_theme.dart';
 
 /// Portada con esquinas redondeadas y placeholder elegante.
@@ -48,18 +49,7 @@ class CoverArt extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget image = url.isEmpty
         ? _placeholder()
-        : Image.network(
-            url,
-            width: double.infinity,
-            height: double.infinity,
-            fit: BoxFit.cover,
-            gaplessPlayback: true,
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) return child;
-              return _placeholder();
-            },
-            errorBuilder: (context, error, stack) => _placeholder(),
-          );
+        : _CoverImage(url: url, placeholder: _placeholder());
 
     return Container(
       width: size,
@@ -81,6 +71,53 @@ class CoverArt extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         child: image,
       ),
+    );
+  }
+}
+
+/// Imagen con caché en disco (ver DataSaver).
+class _CoverImage extends StatefulWidget {
+  final String url;
+  final Widget placeholder;
+  const _CoverImage({required this.url, required this.placeholder});
+
+  @override
+  State<_CoverImage> createState() => _CoverImageState();
+}
+
+class _CoverImageState extends State<_CoverImage> {
+  late Future<ImageProvider?> _f;
+
+  @override
+  void initState() {
+    super.initState();
+    _f = DataSaver.instance.image(widget.url);
+  }
+
+  @override
+  void didUpdateWidget(covariant _CoverImage old) {
+    super.didUpdateWidget(old);
+    if (old.url != widget.url) {
+      _f = DataSaver.instance.image(widget.url);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<ImageProvider?>(
+      future: _f,
+      builder: (context, snap) {
+        final p = snap.data;
+        if (p == null) return widget.placeholder;
+        return Image(
+          image: p,
+          width: double.infinity,
+          height: double.infinity,
+          fit: BoxFit.cover,
+          gaplessPlayback: true,
+          errorBuilder: (context, error, stack) => widget.placeholder,
+        );
+      },
     );
   }
 }

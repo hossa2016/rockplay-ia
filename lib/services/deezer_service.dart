@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
+import 'data_saver.dart';
 
 class RadioResult {
   final String artistName;
@@ -19,13 +20,11 @@ class RadioResult {
 class DeezerService {
   static const String _base = 'https://api.deezer.com';
 
-  Future<Map<String, dynamic>> _get(String path, Map<String, String> q) async {
+  Future<Map<String, dynamic>> _get(String path, Map<String, String> q,
+      {Duration ttl = const Duration(hours: 12)}) async {
     final uri = Uri.parse('$_base$path').replace(queryParameters: q);
-    final r = await http.get(uri).timeout(const Duration(seconds: 8));
-    if (r.statusCode != 200) {
-      throw Exception('Deezer HTTP ${r.statusCode}');
-    }
-    return jsonDecode(utf8.decode(r.bodyBytes)) as Map<String, dynamic>;
+    final j = await DataSaver.instance.getJson(uri.toString(), ttl: ttl);
+    return j as Map<String, dynamic>;
   }
 
   /// URL de la vista previa (30 s, mp3) de la mejor coincidencia en Deezer.
@@ -35,7 +34,8 @@ class DeezerService {
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
     if (q.isEmpty) return null;
-    final j = await _get('/search', {'q': q, 'limit': '5'});
+    final j = await _get('/search', {'q': q, 'limit': '5'},
+        ttl: const Duration(minutes: 20));
     final data = (j['data'] as List?) ?? <dynamic>[];
     for (final t in data) {
       if (t is Map) {

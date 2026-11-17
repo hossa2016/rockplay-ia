@@ -30,6 +30,7 @@ FREE = [
     "rxdart",
     "permission_handler:^11.3.1",
     "shared_preferences",
+    "path_provider",
     "http",
     "youtube_player_iframe",
     "webview_flutter",
