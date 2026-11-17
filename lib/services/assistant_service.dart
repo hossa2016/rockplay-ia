@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../models/song.dart';
 import 'ai_client.dart';
 import 'ai_settings.dart';
+import 'artist_info_service.dart';
 import 'artist_pools.dart';
 import 'mix_service.dart';
 import 'stats_service.dart';
@@ -68,7 +69,92 @@ Reglas:
     return b.toString();
   }
 
+  /// ¿Pide música nueva? La IA no conoce lo reciente, así que se resuelve
+  /// con datos reales de Deezer.
+  static bool _wantsNew(String text) {
+    final t = text.toLowerCase();
+    final y = DateTime.now().year;
+    return t.contains('lanzamiento') ||
+        t.contains('estreno') ||
+        t.contains('recién salid') ||
+        t.contains('recien salid') ||
+        t.contains('reciente') ||
+        t.contains('$y') ||
+        t.contains('${y - 1}');
+  }
+
+  Future<AssistantResult?> _releases(String text) async {
+    try {
+      final now = DateTime.now();
+      var year = now.year;
+      final m = RegExp(r'20\d\d').firstMatch(text);
+      if (m != null) year = int.parse(m.group(0)!);
+      final from = DateTime(year, 1, 1);
+      final to = DateTime(year, 12, 31);
+      final days = now.difference(from).inDays + 1;
+      if (days < 1) return null;
+
+      final names = <String>{};
+      try {
+        names.addAll(await MixService.personalArtists());
+      } catch (_) {}
+      final pool = <String>{
+        for (final k in const ['Rock clásico', 'Rock en español'])
+          ...?kMixArtistPools[k],
+        for (final e in kMixArtistPools.values) ...e,
+      }.toList()
+        ..shuffle();
+      names.addAll(pool.take(60));
+
+      var rel = await ArtistInfoService.instance
+          .recentReleases(names.toList(), days: days, max: 60);
+      rel = [
+        for (final r in rel)
+          if (r.album.year == year) r
+      ];
+      if (year < now.year) {
+        // Año pasado: el filtro de fechas de recentReleases ya cubre desde
+        // enero, pero deja pasar lo posterior; se recorta arriba por año.
+        rel = [
+          for (final r in rel)
+            if (r.album.year != null && r.album.year! <= to.year) r
+        ];
+      }
+      if (rel.length < 3) return null;
+
+      final songs = <Song>[];
+      final seen = <String>{};
+      for (var i = 0; i < rel.length && songs.length < 100; i += 6) {
+        final chunk = rel.skip(i).take(6).toList();
+        final lists = await Future.wait([
+          for (final r in chunk)
+            ArtistInfoService.instance
+                .albumTracks(r.album, r.artist)
+                .catchError((Object _) => <Song>[]),
+        ]);
+        for (final l in lists) {
+          for (final s in l.take(4)) {
+            if (seen.add('${s.artist}|${s.title}'.toLowerCase())) songs.add(s);
+          }
+        }
+      }
+      if (songs.length < 5) return null;
+      return AssistantResult(
+        'Estos son lanzamientos reales de $year de bandas que te pueden gustar.',
+        'Lanzamientos $year',
+        songs,
+        'Deezer',
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<AssistantResult> ask(String text, List<AiMessage> history) async {
+    if (_wantsNew(text)) {
+      final r = await _releases(text);
+      if (r != null) return r;
+    }
     await AiSettings.instance.load();
     final ctx = await _context();
     final system = ctx.isEmpty ? _system : '$_system\nContexto:\n$ctx';

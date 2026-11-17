@@ -103,7 +103,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
     _toBottom();
     _loadCovers(r);
     // Si la IA trajo menos de 80, pide un lote más automáticamente.
-    if (r.source != 'Reglas simples' && r.songs.length >= 3 && r.songs.length < 80) {
+    if ((r.source == 'Gemini' || r.source == 'Groq') &&
+        r.songs.length >= 3 &&
+        r.songs.length < 80) {
       await _expand(r);
     }
   }
