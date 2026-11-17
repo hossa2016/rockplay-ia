@@ -1,4 +1,4 @@
-"""Genera el icono de RockPlay (púa con rayo) y lo instala en la app Android.
+"""Genera el icono de RockPlay IA (púa con destellos) y lo instala en la app Android.
 
 Ejecutar en la raíz del proyecto, después de `flutter create` y antes de compilar.
 Necesita Pillow:  pip install pillow
@@ -17,7 +17,7 @@ for y in range(S):
     for x in range(S):
         d=math.hypot(x-S*0.5,y-S*0.55)/(S*0.7)
         t=max(0,1-d)**2
-        px[x,y]=lerp((10,10,13),(120,18,16),t*0.9)
+        px[x,y]=lerp((8,9,16),(52,30,130),t*0.95)
 # grano
 random.seed(3)
 g=Image.effect_noise((S,S),22).convert("L")
@@ -43,7 +43,7 @@ grad=Image.new("RGB",(S,S))
 gp=grad.load()
 for y in range(S):
     t=min(1,max(0,(y-S*0.15)/(S*0.7)))
-    c=lerp((236,52,44),(255,176,46),t)
+    c=lerp((124,92,255),(46,214,255),t)
     for x in range(S): gp[x,y]=c
 # sombra
 sh=Image.new("RGB",(S,S),(0,0,0))
@@ -52,16 +52,21 @@ bg.paste(sh,(0,24),shadow)
 bg.paste(grad,(0,0),pick)
 # borde metálico
 edge=ImageChops.subtract(pick,pick.filter(ImageFilter.MinFilter(15)))
-bg.paste(Image.new("RGB",(S,S),(255,226,170)),(0,0),edge.point(lambda v:int(v*0.55)))
+bg.paste(Image.new("RGB",(S,S),(215,235,255)),(0,0),edge.point(lambda v:int(v*0.55)))
 # rayo oscuro dentro de la púa
 d=ImageDraw.Draw(bg)
-bolt=[(570,300),(400,570),(510,570),(450,760),(645,490),(535,490)]
-bd=Image.new("L",(S,S),0); ImageDraw.Draw(bd).polygon(bolt,fill=255)
-bd=bd.filter(ImageFilter.GaussianBlur(1))
-bg.paste(Image.new("RGB",(S,S),(14,12,16)),(0,0),bd)
-# brillo del rayo
-hl=Image.new("L",(S,S),0); ImageDraw.Draw(hl).line([(570,312),(414,562)],fill=120,width=5)
-bg.paste(Image.new("RGB",(S,S),(255,120,80)),(0,0),hl.filter(ImageFilter.GaussianBlur(2)))
+def star(cx,cy,r,k=0.22):
+    pts=[]
+    for i in range(8):
+        a=math.pi/2*i/2-math.pi/2
+        rr=r if i%2==0 else r*k
+        pts.append((cx+rr*math.cos(a),cy+rr*math.sin(a)))
+    return pts
+st=Image.new("L",(S,S),0); sd=ImageDraw.Draw(st)
+sd.polygon(star(488,470,150),fill=255)
+sd.polygon(star(628,372,58),fill=255)
+st=st.filter(ImageFilter.GaussianBlur(1.2))
+bg.paste(Image.new("RGB",(S,S),(10,10,20)),(0,0),st)
 
 m = Image.new("L", (S, S), 0)
 ImageDraw.Draw(m).rounded_rectangle((0, 0, S, S), radius=230, fill=255)
