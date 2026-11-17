@@ -366,11 +366,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(r.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w900)),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(r.title,
+                        maxLines: 1,
+                        style: const TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.w900)),
+                  ),
                   const SizedBox(height: 3),
                   Text('${r.songs.length} canciones',
                       style: const TextStyle(

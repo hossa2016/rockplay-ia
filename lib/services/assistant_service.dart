@@ -128,7 +128,20 @@ Reglas:
               r.album.year! <= last)
             r
       ];
+      // Sin reediciones, en vivo ni recopilatorios; máximo 2 discos por banda.
+      final bad = RegExp(
+          r'live|en vivo|reissue|remaster|anniversary|aniversario|deluxe|'
+          r'greatest|best of|collection|box set|expanded|demos?\b|karaoke|'
+          r'tribute|instrumental',
+          caseSensitive: false);
+      final perArtist = <String, int>{};
       rel.shuffle();
+      rel = [
+        for (final r in rel)
+          if (!bad.hasMatch(r.album.title) &&
+              (perArtist[r.artist] = (perArtist[r.artist] ?? 0) + 1) <= 2)
+            r
+      ];
       if (rel.length < 3) return null;
 
       final songs = <Song>[];
@@ -142,8 +155,9 @@ Reglas:
                 .catchError((Object _) => <Song>[]),
         ]);
         for (final l in lists) {
-          for (final s in l.take(4)) {
-            if (seen.add('${s.artist}|${s.title}'.toLowerCase())) songs.add(s);
+          for (final s in l.take(3)) {
+            if (!bad.hasMatch(s.title) &&
+                seen.add('${s.artist}|${s.title}'.toLowerCase())) songs.add(s);
           }
         }
       }
