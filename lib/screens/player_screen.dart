@@ -43,6 +43,11 @@ class _PlayerScreenState extends State<PlayerScreen>
   String _infoKey = '';
 
   void _ensureInfo(Song song) {
+    if (song.isRadio) {
+      _infoKey = '';
+      _info = null;
+      return;
+    }
     final key = '${song.artist}|${song.title}';
     if (_infoKey == key) return;
     _infoKey = key;
@@ -332,6 +337,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               ],
             ),
           ),
+          if (!(pb.song.value?.isRadio ?? false))
           IconButton(
             iconSize: 24,
             tooltip: _lyrics ? 'Ocultar letra' : 'Ver letra',
@@ -362,7 +368,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 _confirmBlock();
               }
             },
-            itemBuilder: (_) => [
+            itemBuilder: (_) => _menuFor([
               const PopupMenuItem(
                 value: 'list',
                 child: ListTile(
@@ -406,8 +412,34 @@ class _PlayerScreenState extends State<PlayerScreen>
                       style: TextStyle(color: AppColors.red)),
                 ),
               ),
-            ],
+            ]),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// En radio solo tiene sentido el temporizador para dormir.
+  List<PopupMenuItem<String>> _menuFor(List<PopupMenuItem<String>> all) {
+    if (pb.song.value?.isRadio ?? false) {
+      return all.where((e) => e.value == 'sleep').toList();
+    }
+    return all;
+  }
+
+  Widget _liveBar() {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.circle, size: 10, color: AppColors.red),
+          SizedBox(width: 8),
+          Text('EN VIVO',
+              style: TextStyle(
+                  fontSize: 13,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w800)),
         ],
       ),
     );
@@ -420,7 +452,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       children: [
         _topBar(context),
         Expanded(
-          child: _lyrics ? LyricsView(song: song) : _visual(song),
+          child: (_lyrics && !song.isRadio)
+              ? LyricsView(song: song)
+              : _visual(song),
         ),
         Padding(
           padding: const EdgeInsets.fromLTRB(28, 16, 28, 0),
@@ -462,7 +496,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         ),
         _errorBanner(),
         const SizedBox(height: 8),
-        _progress(),
+        song.isRadio ? _liveBar() : _progress(),
         const SizedBox(height: 4),
         _controls(context, song),
         const SizedBox(height: 20),
@@ -472,7 +506,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Widget _cover(Song song) {
     return LayoutBuilder(builder: (context, box) {
-      final art = _info?.artwork ?? '';
+      final art = song.isRadio ? song.image : (_info?.artwork ?? '');
       final square = art.isNotEmpty;
       final w = square
           ? math.min(box.maxWidth - 56, box.maxHeight - 90)
@@ -730,7 +764,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                 icon: const Icon(Icons.skip_next_rounded),
                 onPressed: svc.hasNext ? () => svc.next() : null,
               ),
-              FavoriteButton(song: song),
+              song.isRadio
+                  ? const SizedBox(width: 48)
+                  : FavoriteButton(song: song),
             ],
           );
         },

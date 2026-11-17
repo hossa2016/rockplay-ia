@@ -81,6 +81,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
   Timer? _sleepTimer;
   DateTime? _sleepAt;
   bool _sleepEndOfSong = false;
+  bool _radio = false; // sonando una emisora en vivo con just_audio
+  StreamSubscription<IcyMetadata?>? _icySub;
 
   // ------------------------------------------------------------------ init
 
@@ -139,11 +141,12 @@ class RockPlayAudioHandler extends BaseAudioHandler
       onError: (Object e, StackTrace st) => _recover(),
     );
     _player.playingStream.listen((p) {
+      if (kEmbedMode && !_radio) return;
       _s.playing.add(p);
       _broadcast();
     });
     _player.positionStream.listen((p) {
-      if (!_resolving) _s.position.add(p);
+      if (!_resolving && !_radio) _s.position.add(p);
     });
     _player.durationStream.listen((d) {
       _s.duration.add(d);
@@ -153,7 +156,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
       }
     });
     _player.processingStateStream.listen((st) {
-      if (st == ProcessingState.completed && !_resolving) {
+      if (st == ProcessingState.completed && !_resolving && !_radio) {
         if (hasNextTrack) {
           _startAt(_index + 1);
         } else {
@@ -350,7 +353,62 @@ class RockPlayAudioHandler extends BaseAudioHandler
   }
 
   /// Modo YouTube IFrame: solo busca el videoId y se lo pasa al WebView.
+  /// Emisora en vivo: just_audio reproduce la transmisión directamente.
+  Future<void> _startRadio(int index) async {
+    final gen = ++_gen;
+    _setIndex(index);
+    _s.error.add(null);
+    _embedPlaying = false;
+    unawaited(EmbedBridge.instance.pause());
+    _radio = true;
+    _resolving = true;
+    _s.playing.add(false);
+    _broadcast();
+    final song = _songs[index];
+    try {
+      await _player.setUrl(song.url).timeout(const Duration(seconds: 25));
+      if (gen != _gen) return;
+      _resolving = false;
+      await _icySub?.cancel();
+      _icySub = _player.icyMetadataStream.listen((m) {
+        final t = (m?.info?.title ?? '').trim();
+        if (t.isEmpty || !_radio || _index != index || index >= _songs.length) {
+          return;
+        }
+        final cur = _songs[index];
+        if (cur.artist == t) return;
+        _songs[index] = Song(
+            title: cur.title,
+            artist: t,
+            album: cur.album,
+            image: cur.image,
+            url: cur.url,
+            query: cur.query);
+        _s.currentSong.add(_songs[index]);
+        mediaItem.add(_item(_songs[index], index));
+      });
+      unawaited(_player.play());
+      _broadcast();
+    } catch (_) {
+      if (gen != _gen) return;
+      _resolving = false;
+      _emitError('No se pudo conectar con la emisora.');
+      _broadcast();
+    }
+  }
+
   Future<void> _startEmbed(int index) async {
+    if (index >= 0 && index < _songs.length && _songs[index].isRadio) {
+      return _startRadio(index);
+    }
+    if (_radio) {
+      _radio = false;
+      await _icySub?.cancel();
+      _icySub = null;
+      try {
+        await _player.stop();
+      } catch (_) {}
+    }
     final gen = ++_gen;
     _setIndex(index);
     _s.error.add(null);
@@ -467,6 +525,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
   /// otra versión si hace falta). true = lista, false = no hay forma,
   /// null = la cola cambió mientras tanto.
   Future<bool?> _prepare(int n, int gen) async {
+    if (_songs[n].isRadio) return true;
     var s0 = _songs[n];
     final title = s0.title;
     final base = (s0.query.isNotEmpty ? s0.query : '${s0.artist} ${s0.title}')
@@ -628,6 +687,13 @@ class RockPlayAudioHandler extends BaseAudioHandler
   /// reintenta una vez con URL nueva desde la misma posición; si vuelve a
   /// fallar, salta a la siguiente.
   Future<void> _recover() async {
+    if (_radio) {
+      if (!_resolving) {
+        _emitError('Se cortó la transmisión. Toca play para reconectar.');
+        _broadcast();
+      }
+      return;
+    }
     if (_resolving || _index < 0) return;
     final song = _songs[_index];
     if (_recoveredIndex == _index) {
@@ -678,8 +744,11 @@ class RockPlayAudioHandler extends BaseAudioHandler
   // --------------------------------------------------------------- Estado
 
   void _broadcast() {
-    final playing = kEmbedMode ? _embedPlaying : _player.playing;
-    final ps = kEmbedMode ? ProcessingState.ready : _player.processingState;
+    final playing =
+        kEmbedMode && !_radio ? _embedPlaying : _player.playing;
+    final ps = kEmbedMode && !_radio
+        ? ProcessingState.ready
+        : _player.processingState;
     final busy = _resolving ||
         ps == ProcessingState.loading ||
         ps == ProcessingState.buffering;
@@ -704,15 +773,19 @@ class RockPlayAudioHandler extends BaseAudioHandler
         if (playing) MediaControl.pause else MediaControl.play,
         MediaControl.skipToNext,
       ],
-      systemActions: const {
-        MediaAction.seek,
-        MediaAction.seekForward,
-        MediaAction.seekBackward,
-      },
+      systemActions: _radio
+          ? const <MediaAction>{}
+          : const {
+              MediaAction.seek,
+              MediaAction.seekForward,
+              MediaAction.seekBackward,
+            },
       androidCompactActionIndices: const [0, 1, 2],
       processingState: aps,
       playing: playing,
-      updatePosition: kEmbedMode ? _embedPos : _player.position,
+      updatePosition: _radio
+          ? Duration.zero
+          : (kEmbedMode ? _embedPos : _player.position),
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
       queueIndex: _index < 0 ? null : _index,
@@ -723,6 +796,11 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> play() async {
+    if (_radio) {
+      // En vivo: reconecta en vez de reanudar lo que quedó en el búfer.
+      if (_index >= 0 && !_resolving) return _startRadio(_index);
+      return;
+    }
     if (kEmbedMode) {
       if (_index >= 0 &&
           !_resolving &&
@@ -747,6 +825,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> pause() async {
+    if (_radio) return _player.pause();
     if (kEmbedMode) return EmbedBridge.instance.pause();
     await _player.pause();
   }
@@ -757,13 +836,16 @@ class RockPlayAudioHandler extends BaseAudioHandler
     _resolving = false;
     if (kEmbedMode) unawaited(EmbedBridge.instance.pause());
     await _player.stop();
+    _radio = false;
+    await _icySub?.cancel();
+    _icySub = null;
     _broadcast();
     await super.stop();
   }
 
   @override
   Future<void> seek(Duration position) async {
-    if (_resolving) return;
+    if (_resolving || _radio) return;
     if (kEmbedMode) {
       await EmbedBridge.instance.seek(position);
       _s.position.add(position);
@@ -785,6 +867,10 @@ class RockPlayAudioHandler extends BaseAudioHandler
   @override
   Future<void> skipToPrevious() async {
     if (_index < 0) return;
+    if (_radio) {
+      if (hasPreviousTrack) await _startEmbed(_index - 1);
+      return;
+    }
     if (kEmbedMode) {
       if (_embedPos > const Duration(seconds: 3) || !hasPreviousTrack) {
         await EmbedBridge.instance.seek(Duration.zero);

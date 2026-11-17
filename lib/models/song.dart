@@ -17,6 +17,9 @@ class Song {
     this.query = '',
   });
 
+  /// Emisora de radio en vivo (la dirección de la transmisión va en [url]).
+  bool get isRadio => query.startsWith('radio:');
+
   Song withVideoId(String id) => Song(
         title: title,
         artist: artist,

@@ -18,6 +18,8 @@ import '../widgets/section_header.dart';
 import '../widgets/state_views.dart';
 import 'artist_screen.dart';
 import 'assistant_screen.dart';
+import 'radio_screen.dart';
+import '../services/radio_service.dart';
 import 'dj_screen.dart';
 import 'library_screen.dart';
 import 'search_screen.dart';
@@ -172,6 +174,12 @@ class _HomeTabState extends State<_HomeTab> {
             _header(context),
             _djBanner(),
             _personalMix(),
+            SectionTitle('Radio en vivo',
+                actionLabel: 'Ver todas',
+                onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                        builder: (_) => const RadioScreen()))),
+            _radioRow(),
             const SectionTitle('Mixes por género y época'),
             _mixRow(MixService.genre),
             const SectionTitle('Para cada momento'),
@@ -370,6 +378,110 @@ class _HomeTabState extends State<_HomeTab> {
     if (name == null || name.trim().isEmpty) return;
     await PlaylistService.instance.create(name);
     PlaybackUi.instance.bumpLibrary();
+  }
+
+  Widget _radioRow() {
+    return ValueListenableBuilder<int>(
+      valueListenable: RadioService.instance.revision,
+      builder: (context, _, __) => FutureBuilder<List<RadioStation>>(
+        future: RadioService.instance.saved(),
+        builder: (context, snap) {
+          final list = snap.data ?? const <RadioStation>[];
+          void openAll() => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const RadioScreen()));
+          if (snap.connectionState == ConnectionState.done && list.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(16),
+                onTap: openAll,
+                child: Container(
+                  height: 96,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.outline),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Row(children: [
+                    Icon(Icons.radio_rounded, color: AppColors.amber, size: 32),
+                    SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Aún no tienes emisoras',
+                              style: TextStyle(fontWeight: FontWeight.w700)),
+                          SizedBox(height: 2),
+                          Text('Agrega Radioacktiva, La Ochentera y más',
+                              style: TextStyle(
+                                  color: AppColors.textDim, fontSize: 13)),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded,
+                        color: AppColors.textDim),
+                  ]),
+                ),
+              ),
+            );
+          }
+          return SizedBox(
+            height: 132,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemCount: list.length + 1,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, i) {
+                if (i == list.length) {
+                  return InkWell(
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: openAll,
+                    child: Container(
+                      width: 104,
+                      height: 104,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.outline),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_rounded, color: AppColors.amber),
+                          SizedBox(height: 4),
+                          Text('Agregar', style: TextStyle(fontSize: 12)),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+                final s = list[i];
+                return GestureDetector(
+                  onTap: () => playStation(context, s),
+                  child: SizedBox(
+                    width: 104,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        StationLogo(station: s, size: 104, radius: 14),
+                        const SizedBox(height: 6),
+                        Text(s.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<List<ReleaseItem>>? _releasesFuture;
