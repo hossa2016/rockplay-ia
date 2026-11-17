@@ -27,11 +27,14 @@ class _SearchHubState extends State<SearchHub> {
             color: on ? AppColors.red : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
           ),
-          child: Text(label,
-              style: TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w800,
-                  color: on ? Colors.white : AppColors.textDim)),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: on ? Colors.white : AppColors.textDim)),
+          ),
         ),
       ),
     );

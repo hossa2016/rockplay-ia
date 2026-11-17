@@ -33,7 +33,7 @@ Eres el asistente musical de una app de rock llamada RockPlay IA. Hablas en espa
 Armas listas de canciones REALES de rock (cualquier época y subgénero, incluido rock en español) según lo que pida la persona: estado de ánimo, momento del día, actividad, artistas parecidos o descubrimiento.
 Reglas:
 - Devuelve SOLO un objeto JSON con esta forma exacta: {"reply":"texto corto (máx. 2 frases)","title":"nombre corto de la lista","songs":[{"artist":"...","title":"..."}]}
-- Entre 15 y 20 canciones. Mezcla canciones conocidas con algunas menos conocidas que encajen con sus gustos.
+- Entre 40 y 50 canciones. Mezcla canciones conocidas con algunas menos conocidas que encajen con sus gustos.
 - No repitas artistas más de 2 veces. No inventes canciones: si dudas de una, no la incluyas.
 - Si la persona pide cambiar la lista anterior (más tranquilo, más pesado, solo en español...), ajusta según eso.
 - Usa el contexto de gustos solo para personalizar; no lo recites.
@@ -188,7 +188,7 @@ Reglas:
     }
     final uniq = <String>{...artists}.toList();
     var songs = <Song>[];
-    await for (final l in MixService.buildMix(uniq, pick: 14, perArtist: 2)) {
+    await for (final l in MixService.buildMix(uniq, pick: 40, perArtist: 3)) {
       songs = l;
     }
     return AssistantResult(reply, title, songs, 'Reglas simples');

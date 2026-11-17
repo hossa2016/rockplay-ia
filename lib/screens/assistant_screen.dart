@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/player_route.dart';
 import '../widgets/playback_ui.dart';
 import 'ai_settings_screen.dart';
+import 'song_list_screen.dart';
 import 'taste_screen.dart';
 
 class _Msg {
@@ -145,6 +146,47 @@ class _AssistantScreenState extends State<AssistantScreen> {
             content: Text('Guardada como "${p.name}" en Mi música.')));
   }
 
+  void _close(_Msg m) {
+    setState(() {
+      final i = _msgs.indexOf(m);
+      if (i < 0) return;
+      _msgs.removeAt(i);
+      if (i - 1 >= 0 && _msgs[i - 1].fromUser) _msgs.removeAt(i - 1);
+    });
+  }
+
+  Future<void> _expand(AssistantResult cur) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    _toBottom();
+    try {
+      final r = await AssistantService.instance.ask(
+          'Amplía la lista "${cur.title}" con 50 canciones más, distintas a las '
+              'que ya tienes: ${cur.songs.take(40).map((s) => '${s.artist} - ${s.title}').join('; ')}',
+          const <AiMessage>[]);
+      final seen = {
+        for (final s in cur.songs) '${s.artist}|${s.title}'.toLowerCase()
+      };
+      var added = 0;
+      for (final s in r.songs) {
+        if (seen.add('${s.artist}|${s.title}'.toLowerCase())) {
+          cur.songs.add(s);
+          added++;
+        }
+      }
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          duration: const Duration(seconds: 3),
+          content: Text(added > 0
+              ? 'Se agregaron $added canciones (${cur.songs.length} en total).'
+              : 'No encontré más canciones nuevas.')));
+      _loadCovers(cur);
+    } catch (_) {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Widget _chip(String label, VoidCallback onTap) => Material(
         color: AppColors.surfaceHigh,
         shape: const StadiumBorder(side: BorderSide(color: AppColors.outline)),
@@ -209,7 +251,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Align(alignment: Alignment.centerLeft, child: box),
-                if (r != null && r.songs.isNotEmpty) _playlistCard(r),
+                if (r != null && r.songs.isNotEmpty) _playlistCard(r, () => _close(m)),
                 if (r != null && r.note != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
@@ -223,6 +265,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: Row(children: [
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: _chip('Ampliar a 100', () => _expand(r)),
+                        ),
                         for (final t in _tweaks)
                           Padding(
                             padding: const EdgeInsets.only(right: 8),
@@ -283,7 +329,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
     );
   }
 
-  Widget _playlistCard(AssistantResult r) {
+  Widget _playlistCard(AssistantResult r, VoidCallback onClose) {
     return Container(
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.all(14),
@@ -329,6 +375,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 ],
               ),
             ),
+            IconButton(
+              tooltip: 'Cerrar lista',
+              visualDensity: VisualDensity.compact,
+              onPressed: onClose,
+              icon: const Icon(Icons.close_rounded,
+                  color: AppColors.textDim, size: 22),
+            ),
           ]),
           const SizedBox(height: 8),
           for (var i = 0; i < r.songs.length && i < 3; i++)
@@ -346,7 +399,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(r.songs[i].title,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontWeight: FontWeight.w700, fontSize: 14)),
@@ -360,11 +413,22 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ]),
             ),
           if (r.songs.length > 3)
-            Padding(
-              padding: const EdgeInsets.only(top: 2, bottom: 2),
-              child: Text('y ${r.songs.length - 3} más',
-                  style: const TextStyle(
-                      color: AppColors.textDim, fontSize: 12.5)),
+            InkWell(
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => SongListScreen(
+                        title: r.title,
+                        subtitle: '${r.songs.length} canciones',
+                        songs: r.songs,
+                        emptyMessage: 'Lista vacía.',
+                      ))),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Text('Ver las ${r.songs.length - 3} restantes',
+                    style: const TextStyle(
+                        color: AppColors.amber,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700)),
+              ),
             ),
           const SizedBox(height: 8),
           Row(children: [
@@ -423,9 +487,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
             height: 84,
             alignment: Alignment.bottomLeft,
             padding: const EdgeInsets.all(14),
-            child: Text(t[0] as String,
-                style:
-                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.bottomLeft,
+              child: Text(t[0] as String,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 15)),
+            ),
           ),
         ),
       ),
@@ -572,6 +640,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     ],
                   ),
                 ),
+                if (_msgs.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Limpiar conversación',
+                    icon: const Icon(Icons.delete_sweep_rounded),
+                    onPressed: () => setState(() => _msgs.clear()),
+                  ),
                 IconButton(
                   tooltip: 'Tu gusto',
                   icon: const Icon(Icons.insights_rounded),
