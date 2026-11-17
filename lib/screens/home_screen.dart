@@ -22,7 +22,7 @@ import 'radio_screen.dart';
 import '../services/radio_service.dart';
 import 'dj_screen.dart';
 import 'library_screen.dart';
-import 'search_screen.dart';
+import 'search_hub.dart';
 
 /// Contenedor principal: pestañas + mini-reproductor sobre la navegación.
 class HomeScreen extends StatefulWidget {
@@ -35,7 +35,10 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
 
-  void _go(int i) => setState(() => _tab = i);
+  void _go(int i) {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    setState(() => _tab = i);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
           index: _tab,
           children: [
             _HomeTab(onNavigate: _go),
-            const SearchScreen(),
+            const SearchHub(),
             const LibraryScreen(),
             const AssistantScreen(),
           ],
@@ -167,33 +170,86 @@ class _HomeTabState extends State<_HomeTab> {
           children: [
             _header(context),
             _personalMix(),
-            _djBanner(),
-            SectionTitle('Radio en vivo',
-                actionLabel: 'Ver todas',
-                onAction: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                        builder: (_) => const RadioScreen()))),
-            _radioRow(),
-            const SectionTitle('Mixes por género y época'),
-            _mixRow(MixService.genre),
-            const SectionTitle('Nuevos lanzamientos'),
-            _releasesRow(),
-            const SectionTitle('Bandas que quizá no conoces'),
-            _emergingRow(),
-            if (_blocked.isNotEmpty) ...[
-              const SectionTitle('Artistas bloqueados'),
-              _blockedChips(),
-            ],
             SectionTitle(
-              'Escuchado recientemente',
+              'Seguir escuchando',
               actionLabel: _recent.isEmpty ? null : 'Ver todo',
               onAction: () => widget.onNavigate(2),
             ),
             _recentSection(),
+            const SectionTitle('Descubrir'),
+            _discoverChips(),
+            const SizedBox(height: 14),
+            _discoverBody(),
+            if (_blocked.isNotEmpty) ...[
+              const SectionTitle('Artistas bloqueados'),
+              _blockedChips(),
+            ],
           ],
         ),
       ),
     );
+  }
+
+  int _disc = 0;
+
+  Widget _discoverChips() {
+    const labels = ['Bandas', 'Lanzamientos', 'Radio', 'Mixes'];
+    return SizedBox(
+      height: 40,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: labels.length,
+        separatorBuilder: (context, i) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final on = _disc == i;
+          return GestureDetector(
+            onTap: () => setState(() => _disc = i),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: on ? AppColors.red : AppColors.surfaceHigh,
+                borderRadius: BorderRadius.circular(999),
+                border: on ? null : Border.all(color: AppColors.outline),
+              ),
+              child: Text(labels[i],
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: on ? Colors.white : AppColors.textDim)),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _discoverBody() {
+    switch (_disc) {
+      case 0:
+        return _emergingRow();
+      case 1:
+        return _releasesRow();
+      case 2:
+        return Column(children: [
+          _radioRow(),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                        builder: (_) => const RadioScreen())),
+                child: const Text('Ver todas las emisoras'),
+              ),
+            ),
+          ),
+        ]);
+      default:
+        return _mixRow(MixService.genre);
+    }
   }
 
   Widget _header(BuildContext context) {

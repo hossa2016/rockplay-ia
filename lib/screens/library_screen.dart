@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../models/song.dart';
 import '../services/library_service.dart';
+import '../services/playlist_service.dart';
+import '../widgets/add_to_playlist.dart';
+import '../widgets/cover_art.dart';
+import 'song_list_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
 import '../widgets/playback_ui.dart';
@@ -20,6 +24,7 @@ class LibraryScreen extends StatefulWidget {
 class _LibraryScreenState extends State<LibraryScreen> {
   List<Song> _favs = [];
   List<Song> _hist = [];
+  List<Playlist> _lists = [];
   bool _loading = true;
   bool _failed = false;
 
@@ -40,10 +45,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
     try {
       final f = await LibraryService.instance.favorites();
       final h = await LibraryService.instance.history();
+      final pl = await PlaylistService.instance.all();
       if (!mounted) return;
       setState(() {
         _favs = f;
         _hist = h;
+        _lists = pl;
         _loading = false;
         _failed = false;
       });
@@ -136,10 +143,77 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
+  Future<void> _newList() async {
+    final name = await askPlaylistName(context);
+    if (name == null || name.trim().isEmpty) return;
+    await PlaylistService.instance.create(name);
+    PlaybackUi.instance.bumpLibrary();
+  }
+
+  Widget _listsTab() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: _newList,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Nueva lista'),
+          ),
+        ),
+        if (_lists.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(20),
+            child: Text(
+              'Aún no tienes listas. Crea una o guarda la que arme el asistente.',
+              style: TextStyle(color: AppColors.textDim, height: 1.4),
+            ),
+          ),
+        for (final p in _lists)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: SizedBox(
+              width: 52,
+              height: 52,
+              child: CoverArt(
+                  url: p.songs.isEmpty ? '' : p.songs.first.image, radius: 10),
+            ),
+            title: Text(p.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text('${p.songs.length} canciones',
+                style: const TextStyle(color: AppColors.textDim)),
+            trailing: const Icon(Icons.chevron_right_rounded,
+                color: AppColors.textDim),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => SongListScreen(
+                title: p.name,
+                subtitle: 'Tu lista',
+                songs: p.songs,
+                emptyMessage:
+                    'Lista vacía. Guarda canciones desde el reproductor.',
+                onRemove: (s) async {
+                  await PlaylistService.instance.removeSong(p.id, s.videoId);
+                  PlaybackUi.instance.bumpLibrary();
+                },
+                onDeleteList: () async {
+                  await PlaylistService.instance.delete(p.id);
+                  PlaybackUi.instance.bumpLibrary();
+                  if (context.mounted) Navigator.of(context).pop();
+                },
+              ),
+            )),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
@@ -157,27 +231,38 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           builder: (_) => const StatsScreen())),
                 ),
               ),
-              const TabBar(
-                isScrollable: true,
-                tabAlignment: TabAlignment.start,
-                dividerColor: Colors.transparent,
-                indicatorColor: AppColors.red,
-                indicatorSize: TabBarIndicatorSize.label,
-                labelColor: Colors.white,
-                unselectedLabelColor: AppColors.textFaint,
-                labelStyle:
-                    TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                padding: EdgeInsets.symmetric(horizontal: 12),
-                tabs: [
-                  Tab(text: 'Favoritos'),
-                  Tab(text: 'Historial'),
-                ],
+              Container(
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: AppColors.outline),
+                ),
+                child: TabBar(
+                  dividerColor: Colors.transparent,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    color: AppColors.red,
+                    borderRadius: BorderRadius.circular(11),
+                  ),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: AppColors.textDim,
+                  labelStyle: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 13.5),
+                  tabs: const [
+                    Tab(height: 40, text: 'Favoritos'),
+                    Tab(height: 40, text: 'Listas'),
+                    Tab(height: 40, text: 'Historial'),
+                  ],
+                ),
               ),
               const SizedBox(height: 8),
               Expanded(
                 child: TabBarView(
                   children: [
                     _list(_favs, favorites: true),
+                    _listsTab(),
                     _list(_hist, favorites: false),
                   ],
                 ),

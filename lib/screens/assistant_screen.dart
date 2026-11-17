@@ -4,6 +4,8 @@ import '../models/song.dart';
 import '../services/ai_client.dart';
 import '../services/ai_settings.dart';
 import '../services/assistant_service.dart';
+import '../services/deezer_service.dart';
+import '../widgets/cover_art.dart';
 import '../services/playlist_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/player_route.dart';
@@ -98,6 +100,30 @@ class _AssistantScreenState extends State<AssistantScreen> {
       _busy = false;
     });
     _toBottom();
+    _loadCovers(r);
+  }
+
+  /// Busca las portadas reales de las primeras canciones de la lista.
+  Future<void> _loadCovers(AssistantResult r) async {
+    final dz = DeezerService();
+    for (var i = 0; i < r.songs.length && i < 8; i++) {
+      final s = r.songs[i];
+      if (s.image.isNotEmpty) continue;
+      try {
+        final c = await dz.coverFor('${s.artist} ${s.title}');
+        if (c.isEmpty) continue;
+        r.songs[i] = Song(
+          title: s.title,
+          artist: s.artist,
+          album: s.album,
+          image: c,
+          url: s.url,
+          videoId: s.videoId,
+          query: s.query,
+        );
+        if (mounted) setState(() {});
+      } catch (_) {}
+    }
   }
 
   /// Resumen de la respuesta anterior para que la IA tenga contexto.
@@ -114,7 +140,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
     PlaybackUi.instance.bumpLibrary();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Guardada como "${p.name}" en Mi música.')));
+        SnackBar(
+            duration: const Duration(seconds: 3),
+            content: Text('Guardada como "${p.name}" en Mi música.')));
   }
 
   Widget _chip(String label, VoidCallback onTap) => Material(
@@ -227,7 +255,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         ),
       );
 
-  Widget _mosaic(double size) {
+  Widget _mosaic(double size, List<Song> songs) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(12),
       child: SizedBox(
@@ -242,7 +270,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     child: Container(
                         margin: EdgeInsets.only(
                             right: c == 0 ? 1 : 0, bottom: r == 0 ? 1 : 0),
-                        decoration: _grad(r * 2 + c)),
+                        decoration: _grad(r * 2 + c),
+                        child: (r * 2 + c) < songs.length &&
+                                songs[r * 2 + c].image.isNotEmpty
+                            ? CoverArt(url: songs[r * 2 + c].image, radius: 0)
+                            : null),
                   ),
               ]),
             ),
@@ -264,7 +296,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            _mosaic(68),
+            _mosaic(68, r.songs),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -303,11 +335,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(children: [
-                Container(
+                SizedBox(
                   width: 40,
                   height: 40,
-                  decoration: _grad(i + 1).copyWith(
-                      borderRadius: BorderRadius.circular(9)),
+                  child: CoverArt(url: r.songs[i].image, radius: 9),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -535,7 +566,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                               .textTheme
                               .titleLarge
                               ?.copyWith(fontSize: 22)),
-                      const Text('Tu guía de rock personal',
+                      const Text('Tu guía de rock',
                           style: TextStyle(
                               color: AppColors.textDim, fontSize: 12.5)),
                     ],

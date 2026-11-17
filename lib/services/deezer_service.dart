@@ -46,6 +46,23 @@ class DeezerService {
     return null;
   }
 
+  /// Portada de la mejor coincidencia (vacía si no hay).
+  Future<String> coverFor(String query) async {
+    final q = query
+        .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    if (q.isEmpty) return '';
+    final j = await _get('/search', {'q': q, 'limit': '3'});
+    for (final t in (j['data'] as List?) ?? <dynamic>[]) {
+      if (t is Map && t['album'] is Map) {
+        final c = (t['album']['cover_medium'] ?? '') as String;
+        if (c.isNotEmpty) return c;
+      }
+    }
+    return '';
+  }
+
   List<Song> _tracks(Map<String, dynamic> json) {
     final out = <Song>[];
     final data = (json['data'] as List?) ?? <dynamic>[];

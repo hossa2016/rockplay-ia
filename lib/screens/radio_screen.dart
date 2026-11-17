@@ -134,6 +134,8 @@ class _RadioScreenState extends State<RadioScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
+        persist: false,
+        duration: const Duration(seconds: 3),
         content: Text(saved ? 'Quitada de tus emisoras' : 'Guardada'),
         action: SnackBarAction(
           label: 'Deshacer',
