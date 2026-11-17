@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
+import 'deezer_service.dart';
 
 class LibraryService {
   LibraryService._();
@@ -50,10 +51,38 @@ class LibraryService {
     return true;
   }
 
+  /// Completa la portada con Deezer si la canción no la trae.
+  Future<Song> _withCover(Song s) async {
+    if (s.image.isNotEmpty) return s;
+    try {
+      final c = await DeezerService().coverFor('${s.artist} ${s.title}');
+      if (c.isEmpty) return s;
+      return Song(
+        title: s.title,
+        artist: s.artist,
+        album: s.album,
+        image: c,
+        url: s.url,
+        videoId: s.videoId,
+        query: s.query,
+      );
+    } catch (_) {
+      return s;
+    }
+  }
+
   Future<void> addToHistory(Song song) async {
     final h = await history();
     h.removeWhere((s) => s.videoId == song.videoId);
-    h.insert(0, song);
+    h.insert(0, await _withCover(song));
+    // Completa también algunas anteriores que quedaron sin portada.
+    var fixed = 0;
+    for (var i = 1; i < h.length && fixed < 6; i++) {
+      if (h[i].image.isEmpty) {
+        h[i] = await _withCover(h[i]);
+        fixed++;
+      }
+    }
     await _save(_histKey, h.take(50).toList());
   }
 }
