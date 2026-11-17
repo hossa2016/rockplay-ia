@@ -1,0 +1,959 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io' show HttpClient;
+
+import 'package:audio_service/audio_service.dart';
+import 'package:audio_session/audio_session.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:rxdart/rxdart.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/song.dart';
+import 'deezer_service.dart';
+import 'embed_bridge.dart';
+import 'library_service.dart';
+import 'music_api_service.dart';
+import 'stream_resolver.dart';
+
+/// true = reproduce con el reproductor oficial de YouTube (IFrame) en vez de
+/// extraer el audio (YouTube bloquea la extracción).
+const bool kEmbedMode = true;
+
+/// Estado observable compartido entre el handler y PlaybackService.
+/// Lo crea PlaybackService (así los streams existen antes de init()).
+class PlaybackSubjects {
+  final BehaviorSubject<Song?> currentSong = BehaviorSubject<Song?>.seeded(null);
+  final BehaviorSubject<bool> playing = BehaviorSubject<bool>.seeded(false);
+  final BehaviorSubject<bool> loading = BehaviorSubject<bool>.seeded(false);
+  final BehaviorSubject<String?> error = BehaviorSubject<String?>.seeded(null);
+  final BehaviorSubject<Duration> position =
+      BehaviorSubject<Duration>.seeded(Duration.zero);
+  final BehaviorSubject<Duration?> duration =
+      BehaviorSubject<Duration?>.seeded(null);
+  final BehaviorSubject<List<Song>> queue =
+      BehaviorSubject<List<Song>>.seeded(const <Song>[]);
+  final BehaviorSubject<int?> currentIndex = BehaviorSubject<int?>.seeded(null);
+
+  /// 0 = sin repetir, 1 = repetir lista, 2 = repetir canción.
+  final BehaviorSubject<int> repeat = BehaviorSubject<int>.seeded(0);
+
+  /// Temporizador para dormir: null = apagado; texto con el tiempo restante.
+  final BehaviorSubject<String?> sleepLabel = BehaviorSubject<String?>.seeded(null);
+}
+
+/// Handler de audio_service: gestiona cola, resolución de URL y just_audio.
+/// La cola la llevamos nosotros (no ConcatenatingAudioSource) porque las URL
+/// de YouTube se resuelven de forma perezosa y caducan.
+class RockPlayAudioHandler extends BaseAudioHandler
+    with QueueHandler, SeekHandler {
+  RockPlayAudioHandler(this._s) {
+    _init();
+  }
+
+  final PlaybackSubjects _s;
+  final AudioPlayer _player = AudioPlayer();
+  final MusicApiService _api = MusicApiService();
+  final StreamResolver _resolver = StreamResolver.instance;
+
+  List<Song> _songs = <Song>[];
+  int _index = -1;
+  int _gen = 0; // token de la carga vigente
+  bool _resolving = false;
+  int _recoveredIndex = -1;
+  int _prefetchedFor = -2;
+
+  String _stage = '';
+  final DeezerService _deezer = DeezerService();
+  DateTime? _ytDownUntil;
+  String _notice = '';
+  String _progress = '';
+  Timer? _tick;
+  static const int _maxConsecutiveFailures = 2;
+  String _lastDetail = '';
+  bool _embedPlaying = false;
+  final Set<String> _badIds = <String>{};
+  final Map<int, int> _altTries = <int, int>{};
+  String _handledErrFor = '';
+  int _embedFails = 0;
+  Duration _embedPos = Duration.zero;
+  Duration? _resumeAt; // posición pendiente al restaurar la cola
+  Timer? _saveTimer;
+  Timer? _sleepTimer;
+  DateTime? _sleepAt;
+  bool _sleepEndOfSong = false;
+
+  // ------------------------------------------------------------------ init
+
+  Future<void> _init() async {
+    final eb = EmbedBridge.instance;
+    eb.onPlaying = (p) {
+      _embedPlaying = p;
+      _s.playing.add(p);
+      _broadcast();
+    };
+    eb.onTick = (pos, dur) {
+      _embedPos = pos;
+      if (!_resolving) {
+        _s.position.add(pos);
+        if (dur != null && _s.duration.valueOrNull != dur) {
+          _s.duration.add(dur);
+          final item = mediaItem.value;
+          if (item != null) mediaItem.add(item.copyWith(duration: dur));
+        }
+      }
+    };
+    Timer.periodic(const Duration(seconds: 20), (_) {
+      if (_embedPlaying) _saveNow();
+    });
+    eb.onEnded = () {
+      if (_sleepEndOfSong) {
+        _clearSleep();
+        EmbedBridge.instance.pause();
+        return;
+      }
+      final rep = _s.repeat.value;
+      if (rep == 2 && _index >= 0) {
+        EmbedBridge.instance.rearm();
+        EmbedBridge.instance.seek(Duration.zero);
+        EmbedBridge.instance.play();
+      } else if (hasNextTrack) {
+        _startEmbed(_index + 1);
+      } else if (rep == 1 && _songs.isNotEmpty) {
+        _startEmbed(0);
+      } else {
+        _embedPlaying = false;
+        _s.playing.add(false);
+        _broadcast();
+      }
+    };
+    eb.onError = (m) => _onEmbedError(m);
+    try {
+      final session = await AudioSession.instance;
+      await session.configure(AudioSessionConfiguration.music());
+      // just_audio (handleInterruptions: true) ya pausa/reanuda con las
+      // interrupciones de audio_session (llamadas, otras apps, auriculares).
+    } catch (_) {}
+
+    _player.playbackEventStream.listen(
+      (_) => _broadcast(),
+      onError: (Object e, StackTrace st) => _recover(),
+    );
+    _player.playingStream.listen((p) {
+      _s.playing.add(p);
+      _broadcast();
+    });
+    _player.positionStream.listen((p) {
+      if (!_resolving) _s.position.add(p);
+    });
+    _player.durationStream.listen((d) {
+      _s.duration.add(d);
+      final item = mediaItem.value;
+      if (d != null && item != null && item.duration != d) {
+        mediaItem.add(item.copyWith(duration: d));
+      }
+    });
+    _player.processingStateStream.listen((st) {
+      if (st == ProcessingState.completed && !_resolving) {
+        if (hasNextTrack) {
+          _startAt(_index + 1);
+        } else {
+          _player.pause();
+          _player.seek(Duration.zero);
+        }
+      }
+    });
+  }
+
+  bool get hasNextTrack => _index >= 0 && _index + 1 < _songs.length;
+  bool get hasPreviousTrack => _index > 0;
+
+  // ---------------------------------------------------------- API de cola
+
+  Future<void> playQueue(List<Song> songs, int index) async {
+    if (songs.isEmpty) return;
+    _songs = List<Song>.of(songs);
+    final i = index.clamp(0, _songs.length - 1);
+    _publishQueue();
+    await _startAt(i);
+  }
+
+  void _publishQueue() {
+    _scheduleSave();
+    _s.queue.add(List<Song>.unmodifiable(_songs));
+    queue.add([for (var i = 0; i < _songs.length; i++) _item(_songs[i], i)]);
+  }
+
+  MediaItem _item(Song s, int i, {Duration? duration}) => MediaItem(
+        id: s.videoId.isNotEmpty ? s.videoId : 'q$i:${s.query}',
+        title: s.title,
+        artist: s.artist,
+        album: s.album.isEmpty ? null : s.album,
+        artUri: s.image.isEmpty ? null : Uri.tryParse(s.image),
+        duration: duration,
+      );
+
+  void _setIndex(int i) {
+    _index = i;
+    _scheduleSave();
+    final song = _songs[i];
+    _s.currentIndex.add(i);
+    _s.currentSong.add(song);
+    _s.position.add(Duration.zero);
+    _s.duration.add(null);
+    mediaItem.add(_item(song, i));
+  }
+
+  void _replaceSong(int i, Song song) {
+    _songs[i] = song;
+    _publishQueue();
+    if (i == _index) {
+      _s.currentSong.add(song);
+      mediaItem.add(_item(song, i, duration: _player.duration));
+    }
+  }
+
+  // ----------------------------------------------------------- Carga/avance
+
+  /// Carga y reproduce la canción [index]; si falla, avisa y salta a la
+  /// siguiente (hasta [_maxConsecutiveFailures] seguidas).
+  Future<void> _startAt(int index,
+      {Duration? resumeAt, bool fresh = false}) async {
+    if (kEmbedMode) return _startEmbed(index);
+    final gen = ++_gen;
+    var i = index;
+    var fails = 0;
+    var forceFresh = fresh;
+    if (resumeAt == null) _recoveredIndex = -1;
+
+    while (true) {
+      if (gen != _gen) return;
+      _setIndex(i);
+      _resolving = true;
+      unawaited(_player.pause());
+      StreamResolver.onProgress = (m) => _progress = m;
+      _progress = '';
+      final t0 = DateTime.now();
+      _tick?.cancel();
+      _tick = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!_resolving) {
+          _tick?.cancel();
+          return;
+        }
+        _s.error.add(
+            '${DateTime.now().difference(t0).inSeconds}s | $_stage | $_progress');
+      });
+      if (fails == 0) _s.error.add(null);
+      _broadcast();
+
+      final song = _songs[i];
+      String? failure;
+      try {
+        final ok = await _loadSong(i, gen, forceFresh)
+            .timeout(const Duration(seconds: 130));
+        if (ok == null) return; // reemplazada por otra carga
+        if (ok) {
+          _resolving = false;
+          if (_notice.isNotEmpty) {
+            _emitError(_notice);
+            _notice = '';
+          }
+          if (resumeAt != null) await _player.seek(resumeAt);
+          unawaited(_player.play());
+          _broadcast();
+          final current = _songs[i];
+          unawaited(LibraryService.instance
+              .addToHistory(current)
+              .catchError((_) {}));
+          _prefetchNext();
+          return;
+        }
+        failure = 'No se pudo reproducir. $_lastDetail';
+      } on StreamResolveException catch (e) {
+        failure = e.message;
+      } catch (e) {
+        failure = 'Error: $e | etapa: $_stage | $_lastDetail';
+      }
+
+      if (gen != _gen) return;
+      fails++;
+      forceFresh = false;
+      resumeAt = null;
+      _emitError(failure ?? 'Error de reproducción.');
+      if (i + 1 < _songs.length && fails < _maxConsecutiveFailures) {
+        i++;
+        continue;
+      }
+      // Sin más canciones o demasiados fallos seguidos: detenerse.
+      _resolving = false;
+      try {
+        await _player.stop();
+      } catch (_) {}
+      if (fails >= _maxConsecutiveFailures) {
+        _emitError('Se detuvo. Último error: ${failure ?? "?"}');
+      }
+      _broadcast();
+      return;
+    }
+  }
+
+  /// El video no se puede incrustar (o falló): prueba otra versión de la misma
+  /// canción (letra / audio / Topic); si no hay, salta a la siguiente.
+  Future<void> _onEmbedError(String message) async {
+    if (_index < 0 || _index >= _songs.length) return;
+    final idx = _index;
+    final gen = _gen;
+    final song = _songs[idx];
+    if (song.videoId.isEmpty || _handledErrFor == song.videoId) return;
+    _handledErrFor = song.videoId;
+    _badIds.add(song.videoId);
+    final tries = (_altTries[idx] ?? 0) + 1;
+    _altTries[idx] = tries;
+
+    if (tries <= 4) {
+      var base = song.query.isNotEmpty
+          ? song.query
+          : '${song.title} ${song.artist}';
+      base = base
+          .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
+          .replaceAll(RegExp(r'\s+'), ' ')
+          .trim();
+      const suffixes = ['official audio', 'lyrics', 'audio', 'topic'];
+      final api = MusicApiService();
+      String? id;
+      try {
+        id = await api.findEmbeddable(
+            '$base ${suffixes[(tries - 1) % suffixes.length]}', _badIds);
+        if (id != null) _embedOk.add(id);
+      } catch (_) {
+      } finally {
+        try {
+          api.dispose();
+        } catch (_) {}
+      }
+      if (gen != _gen || idx != _index) return;
+      if (id != null) {
+        final alt = song.withVideoId(id);
+        _replaceSong(idx, alt);
+        _s.error.add(null);
+        EmbedBridge.instance.load(id);
+        return;
+      }
+    }
+    _emitError('Pasando a la siguiente…');
+    if (hasNextTrack) {
+      Future<void>.delayed(const Duration(milliseconds: 400), () {
+        if (idx == _index && gen == _gen && hasNextTrack) {
+          _startEmbed(idx + 1);
+        }
+      });
+    }
+  }
+
+  /// Modo YouTube IFrame: solo busca el videoId y se lo pasa al WebView.
+  Future<void> _startEmbed(int index) async {
+    final gen = ++_gen;
+    _setIndex(index);
+    _s.error.add(null);
+    _altTries.remove(index);
+    _handledErrFor = '';
+    _embedPos = Duration.zero;
+    _embedPlaying = false;
+    _s.playing.add(false);
+    _resolving = true;
+    _broadcast();
+    var song = _songs[index];
+    try {
+      if (song.videoId.isEmpty) {
+        final q =
+            song.query.isNotEmpty ? song.query : '${song.artist} ${song.title}';
+        _s.error.add('Buscando «${song.title}»…');
+        String? id;
+        Object? lastErr;
+        final dbg = <String>[];
+        for (final qq in [
+          q,
+          '$q official audio',
+          '${song.title} ${song.artist}',
+        ]) {
+          // Instancia nueva por intento: evita conexiones colgadas.
+          final api = MusicApiService();
+          try {
+            id = await api
+                .findEmbeddable(qq, _badIds)
+                .timeout(const Duration(seconds: 25));
+            if (id != null) _embedOk.add(id);
+          } catch (e) {
+            lastErr = e;
+          } finally {
+            try {
+              api.dispose();
+            } catch (_) {}
+          }
+          if (gen != _gen) return;
+          if (id != null) break;
+          dbg.add('${lastErr != null ? 'error ${lastErr.toString().split('\n').first}' : MusicApiService.lastDebug}');
+          _s.error.add('Buscando «${song.title}»…');
+        }
+        _s.error.add(null);
+        if (id == null) {
+          _resolving = false;
+          _embedFails++;
+          _emitError('Pasando a la siguiente…');
+          _broadcast();
+          if (_embedFails < 3 && index + 1 < _songs.length) {
+            Future<void>.delayed(const Duration(milliseconds: 600), () {
+              if (gen == _gen) _startEmbed(index + 1);
+            });
+          }
+          return;
+        }
+        _embedFails = 0;
+        song = song.withVideoId(id);
+        _replaceSong(index, song);
+      }
+    } catch (e) {
+      if (gen != _gen) return;
+      _resolving = false;
+      _emitError('Error buscando en YouTube: $e');
+      _broadcast();
+      return;
+    }
+    // Comprueba antes de cargar que el video se puede incrustar: así el
+    // cambio a otra versión ocurre sin mostrar el error gris.
+    if (!_embedOk.contains(song.videoId)) {
+      final ok = await _embeddable(song.videoId, 4);
+      if (gen != _gen) return;
+      if (ok) {
+        _embedOk.add(song.videoId);
+      } else {
+        _resolving = false;
+        _broadcast();
+        _onEmbedError('no incrustable');
+        return;
+      }
+    }
+    _resolving = false;
+    final rs = _resumeAt;
+    _resumeAt = null;
+    EmbedBridge.instance.load(song.videoId,
+        start: rs == null ? 0 : rs.inMilliseconds / 1000.0);
+    _broadcast();
+    _prefetchAhead(gen);
+  }
+
+  final Set<String> _embedOk = <String>{};
+  bool _prefBusy = false;
+  int _removed = 0;
+
+  Future<bool> _embeddable(String id, int seconds) =>
+      MusicApiService.embeddable(id, seconds);
+
+  Future<String?> _altFind(String q) async {
+    final api = MusicApiService();
+    try {
+      return await api
+          .findEmbeddable(q, _badIds)
+          .timeout(const Duration(seconds: 25));
+    } catch (_) {
+      return null;
+    } finally {
+      try {
+        api.dispose();
+      } catch (_) {}
+    }
+  }
+
+  /// Deja lista la canción n: con videoId que se pueda incrustar (buscando
+  /// otra versión si hace falta). true = lista, false = no hay forma,
+  /// null = la cola cambió mientras tanto.
+  Future<bool?> _prepare(int n, int gen) async {
+    var s0 = _songs[n];
+    final title = s0.title;
+    final base = (s0.query.isNotEmpty ? s0.query : '${s0.artist} ${s0.title}')
+        .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    var ok = s0.videoId.isNotEmpty && _embedOk.contains(s0.videoId);
+    if (!ok && s0.videoId.isNotEmpty) {
+      ok = await _embeddable(s0.videoId, 6);
+      if (!ok) _badIds.add(s0.videoId);
+    }
+    if (gen != _gen) return null;
+    if (!ok) {
+      for (final q in [
+        base,
+        '$base official audio',
+        '$base lyrics',
+        '$base audio',
+      ]) {
+        final id = await _altFind(q);
+        if (gen != _gen) return null;
+        if (id != null) {
+          s0 = s0.withVideoId(id);
+          ok = true;
+          break;
+        }
+      }
+    }
+    if (gen != _gen || n >= _songs.length || _songs[n].title != title) {
+      return null;
+    }
+    if (!ok) return false;
+    if (s0.videoId != _songs[n].videoId) _replaceSong(n, s0);
+    _embedOk.add(s0.videoId);
+    return true;
+  }
+
+  /// Mientras suena la actual, prepara las 3 siguientes. Las que no se pueden
+  /// reproducir en la app se quitan de la cola sin que se note el salto.
+  void _prefetchAhead(int gen) {
+    if (_prefBusy) return;
+    _prefBusy = true;
+    () async {
+      try {
+        var n = _index + 1;
+        var done = 0;
+        while (done < 3 && n < _songs.length && gen == _gen) {
+          final title = _songs[n].title;
+          final r = await _prepare(n, gen);
+          if (r == null) break;
+          if (r == false) {
+            if (n < _songs.length && _songs[n].title == title) {
+              _songs.removeAt(n);
+              _removed++;
+              _publishQueue();
+            }
+            continue; // la siguiente ocupa ahora el lugar n
+          }
+          done++;
+          n++;
+        }
+      } catch (_) {
+      } finally {
+        _prefBusy = false;
+      }
+    }();
+  }
+
+  /// true = cargada; false = falló; null = superada por otra carga.
+  Future<bool?> _loadSong(int i, int gen, bool fresh) async {
+    var song = _songs[i];
+    if (song.videoId.isEmpty) {
+      final q = song.query.isNotEmpty ? song.query : '${song.artist} ${song.title}';
+      _stage = 'buscando';
+      final id = await _api.findVideoId(q);
+      if (gen != _gen) return null;
+      if (id == null) return false;
+      song = song.withVideoId(id);
+      _replaceSong(i, song);
+    }
+    final exclude = <String>{};
+    final down = _ytDownUntil;
+    if (down != null && DateTime.now().isBefore(down)) {
+      return _loadPreview(song, gen);
+    }
+    for (var attempt = 0; attempt < 2; attempt++) {
+      _stage = 'resolviendo';
+      ResolvedStream rs;
+      try {
+        rs = await _resolver.resolve(
+          song.videoId,
+          force: fresh || attempt > 0,
+          exclude: exclude,
+        );
+      } on StreamResolveException {
+        // YouTube bloquea esta conexión: usar vista previa de Deezer (30 s).
+        _ytDownUntil = DateTime.now().add(const Duration(minutes: 3));
+        return _loadPreview(song, gen);
+      }
+      if (gen != _gen) return null;
+      try {
+        _stage = 'cargando ${rs.source}';
+        _lastDetail = 'probó ${rs.source}';
+        await _player
+            .setAudioSource(AudioSource.uri(
+              rs.uri,
+              headers: rs.headers.isEmpty ? null : rs.headers,
+            ))
+            .timeout(const Duration(seconds: 20));
+        if (gen != _gen) return null;
+        return true;
+      } on PlayerInterruptedException {
+        return null;
+      } catch (e) {
+        _lastDetail = '${rs.source}: $e';
+        // Típicamente 403 / URL caducada: descarta y reintenta una vez
+        // evitando la misma fuente.
+        _resolver.invalidate(song.videoId);
+        exclude.add(rs.source);
+        if (attempt == 1) return false;
+      }
+    }
+    return false;
+  }
+
+  /// Respaldo: vista previa de 30 s desde Deezer (sin clave, sin bloqueo).
+  Future<bool?> _loadPreview(Song song, int gen) async {
+    _stage = 'vista previa';
+    final q = song.query.isNotEmpty ? song.query : '${song.artist} ${song.title}';
+    String? url;
+    try {
+      url = await _deezer.previewUrl(q);
+    } catch (e) {
+      _lastDetail = 'deezer: $e';
+      return false;
+    }
+    if (gen != _gen) return null;
+    if (url == null) {
+      _lastDetail = 'deezer: sin vista previa para "$q"';
+      return false;
+    }
+    try {
+      await _player
+          .setAudioSource(AudioSource.uri(Uri.parse(url)))
+          .timeout(const Duration(seconds: 20));
+      if (gen != _gen) return null;
+      _notice =
+          'Vista previa de 30 s: YouTube bloquea el audio completo en esta conexión.';
+      return true;
+    } on PlayerInterruptedException {
+      return null;
+    } catch (e) {
+      _lastDetail = 'preview: $e';
+      return false;
+    }
+  }
+
+  /// Error durante la reproducción (URL caducada, 403 a mitad de canción):
+  /// reintenta una vez con URL nueva desde la misma posición; si vuelve a
+  /// fallar, salta a la siguiente.
+  Future<void> _recover() async {
+    if (_resolving || _index < 0) return;
+    final song = _songs[_index];
+    if (_recoveredIndex == _index) {
+      _emitError('Se interrumpió «${song.title}».');
+      if (hasNextTrack) {
+        await _startAt(_index + 1);
+      } else {
+        await _player.pause();
+      }
+      return;
+    }
+    _recoveredIndex = _index;
+    final pos = _player.position;
+    _resolver.invalidate(song.videoId);
+    await _startAt(_index, resumeAt: pos, fresh: true);
+  }
+
+  /// Resuelve en segundo plano la siguiente canción (videoId + URL).
+  void _prefetchNext() {
+    final n = _index + 1;
+    if (n >= _songs.length || _prefetchedFor == n) return;
+    _prefetchedFor = n;
+    final gen = _gen;
+    () async {
+      try {
+        var s = _songs[n];
+        if (s.videoId.isEmpty) {
+          final q = s.query.isNotEmpty ? s.query : '${s.artist} ${s.title}';
+          final id = await _api.findVideoId(q);
+          if (id == null || gen != _gen) return;
+          s = s.withVideoId(id);
+          _replaceSong(n, s);
+        }
+        await _resolver.resolve(s.videoId);
+      } catch (_) {
+        _prefetchedFor = -2; // permitir reintento en la carga real
+      }
+    }();
+  }
+
+  void _emitError(String msg) {
+    _s.error.add(msg);
+    Future<void>.delayed(const Duration(seconds: 40), () {
+      if (_s.error.valueOrNull == msg) _s.error.add(null);
+    });
+  }
+
+  // --------------------------------------------------------------- Estado
+
+  void _broadcast() {
+    final playing = kEmbedMode ? _embedPlaying : _player.playing;
+    final ps = kEmbedMode ? ProcessingState.ready : _player.processingState;
+    final busy = _resolving ||
+        ps == ProcessingState.loading ||
+        ps == ProcessingState.buffering;
+    _s.loading.add(busy);
+
+    final AudioProcessingState aps;
+    if (_resolving) {
+      aps = AudioProcessingState.loading;
+    } else {
+      aps = const {
+        ProcessingState.idle: AudioProcessingState.idle,
+        ProcessingState.loading: AudioProcessingState.loading,
+        ProcessingState.buffering: AudioProcessingState.buffering,
+        ProcessingState.ready: AudioProcessingState.ready,
+        ProcessingState.completed: AudioProcessingState.completed,
+      }[ps]!;
+    }
+
+    playbackState.add(PlaybackState(
+      controls: [
+        MediaControl.skipToPrevious,
+        if (playing) MediaControl.pause else MediaControl.play,
+        MediaControl.skipToNext,
+      ],
+      systemActions: const {
+        MediaAction.seek,
+        MediaAction.seekForward,
+        MediaAction.seekBackward,
+      },
+      androidCompactActionIndices: const [0, 1, 2],
+      processingState: aps,
+      playing: playing,
+      updatePosition: kEmbedMode ? _embedPos : _player.position,
+      bufferedPosition: _player.bufferedPosition,
+      speed: _player.speed,
+      queueIndex: _index < 0 ? null : _index,
+    ));
+  }
+
+  // ------------------------------------------------- Controles (AudioHandler)
+
+  @override
+  Future<void> play() async {
+    if (kEmbedMode) {
+      if (_index >= 0 &&
+          !_resolving &&
+          (_songs[_index].videoId.isEmpty ||
+              EmbedBridge.instance.controller == null)) {
+        _embedFails = 0;
+        return _startEmbed(_index);
+      }
+      return EmbedBridge.instance.play();
+    }
+    if (_index >= 0 &&
+        !_resolving &&
+        _player.processingState == ProcessingState.idle) {
+      await _startAt(_index);
+      return;
+    }
+    if (_player.processingState == ProcessingState.completed) {
+      await _player.seek(Duration.zero);
+    }
+    unawaited(_player.play());
+  }
+
+  @override
+  Future<void> pause() async {
+    if (kEmbedMode) return EmbedBridge.instance.pause();
+    await _player.pause();
+  }
+
+  @override
+  Future<void> stop() async {
+    _gen++;
+    _resolving = false;
+    if (kEmbedMode) unawaited(EmbedBridge.instance.pause());
+    await _player.stop();
+    _broadcast();
+    await super.stop();
+  }
+
+  @override
+  Future<void> seek(Duration position) async {
+    if (_resolving) return;
+    if (kEmbedMode) {
+      await EmbedBridge.instance.seek(position);
+      _s.position.add(position);
+      return;
+    }
+    await _player.seek(position);
+    _s.position.add(position);
+  }
+
+  @override
+  Future<void> skipToNext() async {
+    if (hasNextTrack) {
+      await _startAt(_index + 1);
+    } else if (_s.repeat.value == 1 && _songs.isNotEmpty) {
+      await _startAt(0);
+    }
+  }
+
+  @override
+  Future<void> skipToPrevious() async {
+    if (_index < 0) return;
+    if (kEmbedMode) {
+      if (_embedPos > const Duration(seconds: 3) || !hasPreviousTrack) {
+        await EmbedBridge.instance.seek(Duration.zero);
+        return;
+      }
+      await _startEmbed(_index - 1);
+      return;
+    }
+    if (_player.position > const Duration(seconds: 3) || !hasPreviousTrack) {
+      await _player.seek(Duration.zero);
+      return;
+    }
+    await _startAt(_index - 1);
+  }
+
+  @override
+  Future<void> skipToQueueItem(int index) async {
+    if (index < 0 || index >= _songs.length) return;
+    await _startAt(index);
+  }
+
+  // ------------------------------------------------------- Cola editable
+
+  void qRemove(int i) {
+    if (i < 0 || i >= _songs.length || i == _index) return;
+    _songs.removeAt(i);
+    if (i < _index) _index--;
+    _s.currentIndex.add(_index);
+    _publishQueue();
+  }
+
+  /// [to] como lo entrega ReorderableListView (antes de quitar el elemento).
+  void qMove(int from, int to) {
+    if (from < 0 || from >= _songs.length) return;
+    if (to > from) to--;
+    to = to.clamp(0, _songs.length - 1);
+    if (from == to) return;
+    final s = _songs.removeAt(from);
+    _songs.insert(to, s);
+    if (from == _index) {
+      _index = to;
+    } else if (from < _index && to >= _index) {
+      _index--;
+    } else if (from > _index && to <= _index) {
+      _index++;
+    }
+    _s.currentIndex.add(_index);
+    _publishQueue();
+  }
+
+  void qPlayNext(Song s) {
+    if (_songs.isEmpty) {
+      playQueue([s], 0);
+      return;
+    }
+    _songs.insert(_index + 1, s);
+    _publishQueue();
+  }
+
+  void qAdd(Song s) {
+    if (_songs.isEmpty) {
+      playQueue([s], 0);
+      return;
+    }
+    _songs.add(s);
+    _publishQueue();
+  }
+
+  /// Baraja solo lo que viene después de la canción actual.
+  void qShuffle() {
+    if (_index < 0 || _index + 1 >= _songs.length) return;
+    final rest = _songs.sublist(_index + 1)..shuffle();
+    _songs = [..._songs.sublist(0, _index + 1), ...rest];
+    _publishQueue();
+  }
+
+  void setRepeat(int mode) => _s.repeat.add(mode.clamp(0, 2));
+
+  // --------------------------------------------- Temporizador para dormir
+
+  static String _fmt(Duration d) {
+    final m = d.inMinutes;
+    final s = d.inSeconds % 60;
+    return '$m:${s.toString().padLeft(2, '0')}';
+  }
+
+  void _clearSleep() {
+    _sleepTimer?.cancel();
+    _sleepAt = null;
+    _sleepEndOfSong = false;
+    _s.sleepLabel.add(null);
+  }
+
+  /// [d] null y endOfSong false = apagar.
+  void setSleep(Duration? d, {bool endOfSong = false}) {
+    _clearSleep();
+    if (endOfSong) {
+      _sleepEndOfSong = true;
+      _s.sleepLabel.add('Al terminar la canción');
+      return;
+    }
+    if (d == null) return;
+    _sleepAt = DateTime.now().add(d);
+    _s.sleepLabel.add(_fmt(d));
+    _sleepTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      final at = _sleepAt;
+      if (at == null) {
+        t.cancel();
+        return;
+      }
+      final left = at.difference(DateTime.now());
+      if (left <= Duration.zero) {
+        _clearSleep();
+        pause();
+      } else {
+        _s.sleepLabel.add(_fmt(left));
+      }
+    });
+  }
+
+  // ------------------------------------------------ Cola guardada en disco
+
+  void _scheduleSave() {
+    _saveTimer?.cancel();
+    _saveTimer = Timer(const Duration(seconds: 2), _saveNow);
+  }
+
+  Future<void> _saveNow() async {
+    try {
+      if (_songs.isEmpty || _index < 0) return;
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString(
+        'queue_v1',
+        jsonEncode({
+          'i': _index,
+          'p': _embedPos.inSeconds,
+          's': [for (final s in _songs.take(700)) s.toJson()],
+        }),
+      );
+    } catch (_) {}
+  }
+
+  /// Recupera la cola de la sesión anterior (en pausa, lista para ▶).
+  Future<void> restore() async {
+    try {
+      if (_songs.isNotEmpty) return;
+      final sp = await SharedPreferences.getInstance();
+      final raw = sp.getString('queue_v1');
+      if (raw == null) return;
+      final j = jsonDecode(raw) as Map<String, dynamic>;
+      final list = [
+        for (final e in (j['s'] as List))
+          Song.fromJson(Map<String, dynamic>.from(e as Map)),
+      ];
+      if (list.isEmpty) return;
+      _songs = list;
+      final i = ((j['i'] as num?)?.toInt() ?? 0).clamp(0, list.length - 1);
+      final p = Duration(seconds: (j['p'] as num?)?.toInt() ?? 0);
+      _publishQueue();
+      _setIndex(i);
+      _resumeAt = p > const Duration(seconds: 3) ? p : null;
+      _s.position.add(p);
+      _broadcast();
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> onTaskRemoved() async {
+    // Si no está sonando, cerrar el servicio al quitar la app de recientes.
+    if (!(kEmbedMode ? _embedPlaying : _player.playing)) await stop();
+  }
+}

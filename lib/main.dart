@@ -1,0 +1,23 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'app.dart';
+import 'services/playback_service.dart';
+import 'widgets/playback_ui.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: Color(0xFF14141A),
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
+  try {
+    await PlaybackService.instance.init();
+    PlaybackUi.instance.start();
+  } catch (_) {
+    // La interfaz debe abrir aunque el audio falle al iniciar.
+  }
+  runApp(const RockPlayApp());
+}

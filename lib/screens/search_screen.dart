@@ -1,0 +1,293 @@
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/song.dart';
+import '../services/music_api_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/music_card.dart';
+import '../widgets/player_route.dart';
+import '../widgets/section_header.dart';
+import '../widgets/state_views.dart';
+
+class SearchScreen extends StatefulWidget {
+  final String title;
+  final String hint;
+  final String intro;
+  final String querySuffix;
+
+  const SearchScreen({
+    super.key,
+    this.title = 'Buscar',
+    this.hint = 'Artista o canción',
+    this.intro = 'Encuentra artistas, álbumes y canciones de rock',
+    this.querySuffix = '',
+  });
+
+  @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
+  static const List<String> _suggestions = [
+    'Rock clásico',
+    'Hard rock',
+    'Heavy metal',
+    'Grunge',
+    'Punk rock',
+    'Rock alternativo',
+    'Indie rock',
+    'Rock en español',
+  ];
+
+  final TextEditingController _controller = TextEditingController();
+  final MusicApiService _api = MusicApiService();
+  List<Song> _results = [];
+  bool _loading = false;
+  bool _searched = false;
+  String? _error;
+  int _searchId = 0;
+  bool _more = false;
+  List<String> _history = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  String get _histKey => 'search_hist_${widget.title}';
+
+  Future<void> _loadHistory() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final l = sp.getStringList(_histKey) ?? [];
+      if (mounted) setState(() => _history = l);
+    } catch (_) {}
+  }
+
+  Future<void> _saveHistory(String q) async {
+    final l = [q, ..._history.where((e) => e.toLowerCase() != q.toLowerCase())]
+        .take(10)
+        .toList();
+    _history = l;
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setStringList(_histKey, l);
+    } catch (_) {}
+  }
+
+  Future<void> _clearHistory() async {
+    setState(() => _history = []);
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.remove(_histKey);
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _api.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search() async {
+    final q = _controller.text.trim();
+    if (q.isEmpty) return;
+    FocusScope.of(context).unfocus();
+    _saveHistory(q);
+    setState(() {
+      _loading = true;
+      _searched = true;
+      _error = null;
+    });
+    final id = ++_searchId;
+    _results = [];
+    _more = true;
+    try {
+      var first = true;
+      await for (final r
+          in _api.searchStream('$q${widget.querySuffix}', max: 300)) {
+        if (!mounted || id != _searchId) return;
+        setState(() {
+          _results = r;
+          if (first) _loading = false;
+          first = false;
+        });
+      }
+      if (!mounted || id != _searchId) return;
+      setState(() {
+        _loading = false;
+        _more = false;
+      });
+    } catch (e) {
+      if (!mounted || id != _searchId) return;
+      setState(() {
+        _loading = false;
+        _more = false;
+        if (_results.isEmpty) {
+          _error =
+              'No se pudo buscar. Revisa tu conexión e inténtalo de nuevo.';
+        }
+      });
+    }
+  }
+
+  void _useSuggestion(String q) {
+    _controller.text = q;
+    _search();
+  }
+
+  Widget _intro() {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      children: [
+        Text(
+          widget.intro,
+          style: const TextStyle(color: AppColors.textDim, height: 1.4),
+        ),
+        if (_history.isNotEmpty) ...[
+          const SizedBox(height: 22),
+          Row(
+            children: [
+              Expanded(
+                child: Text('Búsquedas recientes',
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              TextButton(
+                  onPressed: _clearHistory, child: const Text('Borrar')),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final h in _history)
+                ActionChip(
+                  avatar: const Icon(Icons.history_rounded, size: 16),
+                  label: Text(h),
+                  onPressed: () => _useSuggestion(h),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 22),
+        Text('Explora géneros',
+            style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final s in _suggestions)
+              ActionChip(label: Text(s), onPressed: () => _useSuggestion(s)),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _body() {
+    if (_loading) return const SkeletonList();
+    if (_error != null) {
+      return StateMessage(
+        icon: Icons.cloud_off_rounded,
+        title: 'Sin conexión',
+        message: _error!,
+        actionLabel: 'Reintentar',
+        onAction: _search,
+        isError: true,
+      );
+    }
+    if (!_searched) return _intro();
+    if (_results.isEmpty) {
+      return const StateMessage(
+        icon: Icons.search_off_rounded,
+        title: 'Sin resultados',
+        message: 'Prueba con otro nombre o revisa la ortografía.',
+      );
+    }
+    return ListView.builder(
+      padding: const EdgeInsets.only(bottom: 16),
+      itemCount: _results.length + 1,
+      itemBuilder: (context, i) {
+        if (i == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: Row(
+              children: [
+                FilledButton.icon(
+                  onPressed: () {
+                    final list = List<Song>.of(_results)..shuffle();
+                    playSongs(context, list, 0);
+                  },
+                  icon: const Icon(Icons.shuffle_rounded),
+                  label: const Text('Aleatorio'),
+                ),
+                const SizedBox(width: 10),
+                OutlinedButton.icon(
+                  onPressed: () => playSongs(context, _results, 0),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Reproducir todo'),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    _more
+                        ? '${_results.length} · cargando más…'
+                        : '${_results.length} canciones',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        color: AppColors.textDim, fontSize: 12),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+        final idx = i - 1;
+        final song = _results[idx];
+        return FadeIn(
+          order: idx,
+          child: MusicCard(
+            song: song,
+            onTap: () => playSongs(context, _results, idx),
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageHeader(title: widget.title),
+            AppSearchField(
+              controller: _controller,
+              hint: widget.hint,
+              onSubmit: _search,
+            ),
+            const SizedBox(height: 4),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: KeyedSubtree(
+                  key: ValueKey<String>(
+                      '$_loading-$_searched-${_error != null}-$_searchId-${_results.isEmpty}'),
+                  child: _body(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
