@@ -68,8 +68,12 @@ class SectionTitle extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: Text(text.toUpperCase(),
-                style: Theme.of(context).textTheme.titleLarge),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(text.toUpperCase(),
+                  maxLines: 1, style: Theme.of(context).textTheme.titleLarge),
+            ),
           ),
           if (actionLabel != null && onAction != null)
             TextButton(
