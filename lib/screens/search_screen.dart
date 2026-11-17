@@ -139,51 +139,102 @@ class _SearchScreenState extends State<SearchScreen> {
     _search();
   }
 
+  static const List<List<Object>> _tiles = [
+    ['Grunge', Color(0xFFC2331A), Color(0xFF2C0A05)],
+    ['Rock en español', Color(0xFF3A4A8A), Color(0xFF0D1030)],
+    ['Heavy metal', Color(0xFF7A1411), Color(0xFF1A1014)],
+    ['Rock clásico', Color(0xFF8A5A2A), Color(0xFF241608)],
+    ['Hard rock', Color(0xFFB8420F), Color(0xFF2A1005)],
+    ['Punk rock', Color(0xFF2A6F8A), Color(0xFF08202A)],
+    ['Rock alternativo', Color(0xFF5A3A8A), Color(0xFF150D30)],
+    ['Indie rock', Color(0xFF2A7A5A), Color(0xFF08241A)],
+  ];
+
+  Widget _label(String t) => Padding(
+        padding: const EdgeInsets.only(left: 4, bottom: 10),
+        child: Text(t,
+            style: const TextStyle(
+                fontSize: 12,
+                letterSpacing: 1.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.amber)),
+      );
+
+  Widget _genreTile(List<Object> t) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [t[1] as Color, t[2] as Color],
+          ),
+        ),
+        child: InkWell(
+          onTap: () => _useSuggestion(t[0] as String),
+          child: Container(
+            alignment: Alignment.bottomLeft,
+            padding: const EdgeInsets.all(14),
+            child: Text(t[0] as String,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _intro() {
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
-        Text(
-          widget.intro,
-          style: const TextStyle(color: AppColors.textDim, height: 1.4),
-        ),
         if (_history.isNotEmpty) ...[
-          const SizedBox(height: 22),
+          const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(
-                child: Text('Búsquedas recientes',
-                    style: Theme.of(context).textTheme.titleMedium),
-              ),
+              Expanded(child: _label('RECIENTES')),
               TextButton(
                   onPressed: _clearHistory, child: const Text('Borrar')),
             ],
           ),
-          const SizedBox(height: 4),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               for (final h in _history)
-                ActionChip(
-                  avatar: const Icon(Icons.history_rounded, size: 16),
-                  label: Text(h),
-                  onPressed: () => _useSuggestion(h),
+                Material(
+                  color: AppColors.surfaceHigh,
+                  shape: const StadiumBorder(
+                      side: BorderSide(color: AppColors.outline)),
+                  child: InkWell(
+                    customBorder: const StadiumBorder(),
+                    onTap: () => _useSuggestion(h),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      child: Text(h,
+                          style: const TextStyle(
+                              fontSize: 13, fontWeight: FontWeight.w600)),
+                    ),
+                  ),
                 ),
             ],
           ),
         ],
-        const SizedBox(height: 22),
-        Text('Explora géneros',
-            style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final s in _suggestions)
-              ActionChip(label: Text(s), onPressed: () => _useSuggestion(s)),
-          ],
+        const SizedBox(height: 24),
+        _label('EXPLORAR POR GÉNERO'),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 2.3,
+          children: [for (final t in _tiles) _genreTile(t)],
         ),
         const SizedBox(height: 22),
         Material(
