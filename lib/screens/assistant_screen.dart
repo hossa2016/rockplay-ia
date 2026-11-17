@@ -464,6 +464,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
             ),
             const SizedBox(width: 10),
             IconButton(
+              tooltip: 'Aleatorio',
+              style: IconButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF3A3A46)),
+                  minimumSize: const Size(46, 46)),
+              onPressed: () {
+                final mix = List<Song>.of(r.songs)..shuffle();
+                playSongs(context, mix, 0);
+              },
+              icon: const Icon(Icons.shuffle_rounded),
+            ),
+            const SizedBox(width: 10),
+            IconButton(
               tooltip: 'Guardar lista',
               style: IconButton.styleFrom(
                   side: const BorderSide(color: Color(0xFF3A3A46)),
