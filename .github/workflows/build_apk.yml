@@ -33,6 +33,10 @@ jobs:
           done
           pip install pillow
           python tools/setup_icon.py
+      - name: Firma fija (permite actualizar sin desinstalar)
+        run: |
+          mkdir -p ~/.android
+          cp tools/debug.keystore ~/.android/debug.keystore
       - run: flutter build apk --release
       - uses: actions/upload-artifact@v4
         with:
