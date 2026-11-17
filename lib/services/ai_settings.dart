@@ -5,7 +5,7 @@ class AiSettings {
   AiSettings._();
   static final AiSettings instance = AiSettings._();
 
-  static const String defaultGroqModel = 'llama-3.3-70b-versatile';
+  static const String defaultGroqModel = 'openai/gpt-oss-120b';
   static const String defaultGeminiModel = 'gemini-flash-latest';
 
   String groqKey = '';
@@ -22,6 +22,11 @@ class AiSettings {
       groqKey = sp.getString('ai_groq_key') ?? '';
       geminiKey = sp.getString('ai_gemini_key') ?? '';
       groqModel = sp.getString('ai_groq_model') ?? defaultGroqModel;
+      // Modelos que Groq ya retiró: usa el actual.
+      if (groqModel == 'llama-3.3-70b-versatile' ||
+          groqModel == 'llama-3.1-8b-instant') {
+        groqModel = defaultGroqModel;
+      }
       geminiModel = sp.getString('ai_gemini_model') ?? defaultGeminiModel;
       learn = sp.getBool('ai_learn') ?? true;
     } catch (_) {}

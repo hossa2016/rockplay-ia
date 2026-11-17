@@ -26,9 +26,36 @@ class AiClient {
 
   static const Duration _timeout = Duration(seconds: 25);
 
+  static const List<String> _groqFallbacks = [
+    'openai/gpt-oss-120b',
+    'openai/gpt-oss-20b',
+    'qwen/qwen3.6-27b',
+  ];
+
   Future<String> groq(String system, List<AiMessage> msgs) async {
     final s = AiSettings.instance;
     if (s.groqKey.trim().isEmpty) throw const AiFailure('Groq', 'sin clave');
+    final models = <String>[
+      s.groqModel,
+      for (final m in _groqFallbacks)
+        if (m != s.groqModel) m,
+    ];
+    AiFailure? last;
+    for (final model in models) {
+      try {
+        return await _groqOnce(model, system, msgs);
+      } on AiFailure catch (e) {
+        last = e;
+        // Solo prueba otro modelo si este no existe o fue retirado.
+        if (e.reason != 'modelo no encontrado') rethrow;
+      }
+    }
+    throw last ?? const AiFailure('Groq', 'modelo no encontrado');
+  }
+
+  Future<String> _groqOnce(
+      String model, String system, List<AiMessage> msgs) async {
+    final s = AiSettings.instance;
     try {
       final r = await http
           .post(
@@ -38,9 +65,10 @@ class AiClient {
               'Content-Type': 'application/json',
             },
             body: jsonEncode({
-              'model': s.groqModel,
+              'model': model,
               'temperature': 0.8,
               'response_format': {'type': 'json_object'},
+              if (model.startsWith('openai/gpt-oss')) 'reasoning_effort': 'low',
               'messages': [
                 {'role': 'system', 'content': system},
                 for (final m in msgs)
@@ -48,7 +76,7 @@ class AiClient {
               ],
             }),
           )
-          .timeout(_timeout);
+          .timeout(const Duration(seconds: 40));
       if (r.statusCode != 200) {
         throw AiFailure('Groq', _why(r.statusCode));
       }
@@ -66,6 +94,17 @@ class AiClient {
   }
 
   Future<String> gemini(String system, List<AiMessage> msgs) async {
+    try {
+      return await _geminiOnce(system, msgs);
+    } on AiFailure catch (e) {
+      // 503 = servidor saturado: un reintento suele bastar.
+      if (e.reason != 'error 503') rethrow;
+      await Future<void>.delayed(const Duration(seconds: 2));
+      return _geminiOnce(system, msgs);
+    }
+  }
+
+  Future<String> _geminiOnce(String system, List<AiMessage> msgs) async {
     final s = AiSettings.instance;
     if (s.geminiKey.trim().isEmpty) {
       throw const AiFailure('Gemini', 'sin clave');
@@ -120,7 +159,7 @@ class AiClient {
   static String _why(int code) {
     if (code == 429) return 'límite diario o por minuto alcanzado';
     if (code == 401 || code == 403) return 'clave rechazada';
-    if (code == 404) return 'modelo no encontrado';
+    if (code == 404 || code == 400) return 'modelo no encontrado';
     return 'error $code';
   }
 }
