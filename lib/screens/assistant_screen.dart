@@ -27,13 +27,6 @@ class AssistantScreen extends StatefulWidget {
 }
 
 class _AssistantScreenState extends State<AssistantScreen> {
-  static const List<String> _moods = [
-    'Con energía',
-    'Melancólico',
-    'Para concentrarme',
-    'De carretera',
-    'Quiero algo nuevo',
-  ];
   static const List<String> _tweaks = [
     'Más tranquilo',
     'Más pesado',
@@ -124,134 +117,286 @@ class _AssistantScreenState extends State<AssistantScreen> {
         SnackBar(content: Text('Guardada como "${p.name}" en Mi música.')));
   }
 
-  Widget _chip(String label, VoidCallback onTap) => ActionChip(
-        label: Text(label),
-        onPressed: _busy ? null : onTap,
+  Widget _chip(String label, VoidCallback onTap) => Material(
+        color: AppColors.surfaceHigh,
+        shape: const StadiumBorder(side: BorderSide(color: AppColors.outline)),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: _busy ? null : onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            child: Text(label,
+                style: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600)),
+          ),
+        ),
+      );
+
+  Widget _avatar(double size) => Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(
+            shape: BoxShape.circle, gradient: AppColors.accent),
+        child: Icon(Icons.auto_awesome_rounded,
+            color: Colors.white, size: size * 0.5),
       );
 
   Widget _bubble(_Msg m, bool last) {
     final r = m.result;
     final user = m.fromUser;
-    return Column(
-      crossAxisAlignment:
-          user ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-      children: [
-        Container(
-          constraints: const BoxConstraints(maxWidth: 320),
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: user ? AppColors.red : AppColors.surfaceHigh,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(18),
-              topRight: const Radius.circular(18),
-              bottomLeft: Radius.circular(user ? 18 : 6),
-              bottomRight: Radius.circular(user ? 6 : 18),
+    final box = Container(
+      constraints: const BoxConstraints(maxWidth: 300),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        gradient: user
+            ? const LinearGradient(
+                colors: [Color(0xFFD42B27), Color(0xFFB3201B)])
+            : null,
+        color: user ? null : AppColors.surface,
+        border: user ? null : Border.all(color: AppColors.outline),
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(20),
+          topRight: const Radius.circular(20),
+          bottomLeft: Radius.circular(user ? 20 : 6),
+          bottomRight: Radius.circular(user ? 6 : 20),
+        ),
+      ),
+      child: Text(m.text, style: const TextStyle(fontSize: 14.5, height: 1.45)),
+    );
+    if (user) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        child: Align(alignment: Alignment.centerRight, child: box),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _avatar(32),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(alignment: Alignment.centerLeft, child: box),
+                if (r != null && r.songs.isNotEmpty) _playlistCard(r),
+                if (r != null && r.note != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text(r.note!,
+                        style: const TextStyle(
+                            color: AppColors.textFaint, fontSize: 12)),
+                  ),
+                if (r != null && last && r.songs.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(children: [
+                        for (final t in _tweaks)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: _chip(t, () => _send(t)),
+                          ),
+                      ]),
+                    ),
+                  ),
+              ],
             ),
           ),
-          child: Text(m.text, style: const TextStyle(fontSize: 15, height: 1.4)),
+        ],
+      ),
+    );
+  }
+
+  static const List<List<Color>> _grads = [
+    [Color(0xFF3A4A8A), Color(0xFF0D1030)],
+    [Color(0xFF2A6F8A), Color(0xFF08202A)],
+    [Color(0xFF8A5A2A), Color(0xFF241608)],
+    [Color(0xFFC2331A), Color(0xFF2C0A05)],
+    [Color(0xFF7A1411), Color(0xFF1A1014)],
+  ];
+
+  BoxDecoration _grad(int i) => BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: _grads[i % _grads.length],
         ),
-        if (r != null && r.songs.isNotEmpty) _playlistCard(r),
-        if (r != null && r.note != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 4, bottom: 2),
-            child: Text(r.note!,
-                style: const TextStyle(color: AppColors.textFaint, fontSize: 12)),
-          ),
-        if (r != null && last && r.songs.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final t in _tweaks) _chip(t, () => _send(t)),
-            ]),
-          ),
-      ],
+      );
+
+  Widget _mosaic(double size) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: Column(children: [
+          for (var r = 0; r < 2; r++)
+            Expanded(
+              child: Row(children: [
+                for (var c = 0; c < 2; c++)
+                  Expanded(
+                    child: Container(
+                        margin: EdgeInsets.only(
+                            right: c == 0 ? 1 : 0, bottom: r == 0 ? 1 : 0),
+                        decoration: _grad(r * 2 + c)),
+                  ),
+              ]),
+            ),
+        ]),
+      ),
     );
   }
 
   Widget _playlistCard(AssistantResult r) {
     return Container(
-      margin: const EdgeInsets.only(top: 4),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border.all(color: AppColors.outline),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
       ),
-      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: const BoxDecoration(gradient: AppColors.heroGradient),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('RESPONDIDO CON ${r.source.toUpperCase()}',
-                    style: const TextStyle(
-                        fontSize: 11, letterSpacing: 1.4, color: AppColors.amber)),
-                const SizedBox(height: 4),
-                Text(r.title,
-                    style: const TextStyle(
-                        fontSize: 19, fontWeight: FontWeight.w900)),
-                Text('${r.songs.length} canciones',
-                    style: const TextStyle(
-                        color: Color(0xFFD0D0D8), fontSize: 13)),
-              ],
+          Row(children: [
+            _mosaic(68),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(r.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 3),
+                  Text('${r.songs.length} canciones',
+                      style: const TextStyle(
+                          color: AppColors.textDim, fontSize: 12.5)),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceHigh,
+                      border: Border.all(color: AppColors.outline),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(r.source,
+                        style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.amber)),
+                  ),
+                ],
+              ),
             ),
-          ),
-          for (final s in r.songs.take(5))
+          ]),
+          const SizedBox(height: 8),
+          for (var i = 0; i < r.songs.length && i < 3; i++)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               child: Row(children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: _grad(i + 1).copyWith(
+                      borderRadius: BorderRadius.circular(9)),
+                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(s.title,
+                        Text(r.songs[i].title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w600, fontSize: 14.5)),
-                        Text(s.artist,
+                                fontWeight: FontWeight.w700, fontSize: 14)),
+                        Text(r.songs[i].artist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                color: AppColors.textDim, fontSize: 12.5)),
+                                color: AppColors.textDim, fontSize: 12)),
                       ]),
                 ),
               ]),
             ),
-          if (r.songs.length > 5)
+          if (r.songs.length > 3)
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
-              child: Text('y ${r.songs.length - 5} más…',
-                  style: const TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+              padding: const EdgeInsets.only(top: 2, bottom: 2),
+              child: Text('y ${r.songs.length - 3} más',
+                  style: const TextStyle(
+                      color: AppColors.textDim, fontSize: 12.5)),
             ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: () => playSongs(context, r.songs, 0),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Reproducir'),
-                ),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: FilledButton.icon(
+                style: FilledButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: AppColors.bg,
+                    minimumSize: const Size(0, 46),
+                    shape: const StadiumBorder()),
+                onPressed: () => playSongs(context, r.songs, 0),
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('Reproducir'),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                      minimumSize: const Size(0, 50),
-                      shape: const StadiumBorder()),
-                  onPressed: () => _save(r),
-                  child: const Text('Guardar lista'),
-                ),
-              ),
-            ]),
-          ),
+            ),
+            const SizedBox(width: 10),
+            IconButton(
+              tooltip: 'Guardar lista',
+              style: IconButton.styleFrom(
+                  side: const BorderSide(color: Color(0xFF3A3A46)),
+                  minimumSize: const Size(46, 46)),
+              onPressed: () => _save(r),
+              icon: const Icon(Icons.bookmark_border_rounded),
+            ),
+          ]),
         ],
+      ),
+    );
+  }
+
+  static const List<List<Object>> _moodTiles = [
+    ['Con energía', Color(0xFFC2331A), Color(0xFF2C0A05)],
+    ['Melancólico', Color(0xFF3A4A8A), Color(0xFF0D1030)],
+    ['Para concentrarme', Color(0xFF2A6F8A), Color(0xFF08202A)],
+    ['De carretera', Color(0xFFB8420F), Color(0xFF2A1005)],
+    ['Quiero algo nuevo', Color(0xFF8A5A2A), Color(0xFF241608)],
+  ];
+
+  Widget _moodTile(List<Object> t) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(18),
+      clipBehavior: Clip.antiAlias,
+      child: Ink(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(18),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [t[1] as Color, t[2] as Color],
+          ),
+        ),
+        child: InkWell(
+          onTap: _busy ? null : () => _send(t[0] as String),
+          child: Container(
+            height: 84,
+            alignment: Alignment.bottomLeft,
+            padding: const EdgeInsets.all(14),
+            child: Text(t[0] as String,
+                style:
+                    const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+          ),
+        ),
       ),
     );
   }
@@ -261,53 +406,100 @@ class _AssistantScreenState extends State<AssistantScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          constraints: const BoxConstraints(maxWidth: 320),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceHigh,
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(18),
-              topRight: Radius.circular(18),
-              bottomRight: Radius.circular(18),
-              bottomLeft: Radius.circular(6),
-            ),
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: AppColors.heroGradient,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0x38FFB02E)),
           ),
-          child: const Text(
-            'Hola. Soy tu asistente de rock. Dime cómo estás o qué quieres '
-            'escuchar y te armo una lista.',
-            style: TextStyle(fontSize: 15, height: 1.45),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('¿QUÉ SUENA HOY?',
+                  style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.amber)),
+              const SizedBox(height: 6),
+              const Text('Cuéntame cómo estás\ny armo tu lista',
+                  style: TextStyle(
+                      fontSize: 22, fontWeight: FontWeight.w900, height: 1.15)),
+              const SizedBox(height: 14),
+              Text('Escribe abajo, por ejemplo: rock para estudiar de noche.',
+                  style: TextStyle(
+                      color: const Color(0xBFFFFFFF),
+                      fontSize: 13.5,
+                      height: 1.4)),
+            ],
           ),
         ),
-        const SizedBox(height: 14),
-        Wrap(spacing: 8, runSpacing: 8, children: [
-          for (final m in _moods) _chip(m, () => _send(m)),
-        ]),
         if (_noKeys) ...[
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border.all(color: AppColors.outline),
-              borderRadius: BorderRadius.circular(16),
+          const SizedBox(height: 14),
+          Material(
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: const BorderSide(color: AppColors.outline),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Sin claves de IA, el asistente funciona con reglas simples. '
-                  'Agrega una clave gratuita para que entienda frases libres.',
-                  style: TextStyle(color: AppColors.textDim, height: 1.4),
-                ),
-                const SizedBox(height: 8),
-                TextButton(
-                  onPressed: _openSettings,
-                  child: const Text('Agregar clave'),
-                ),
-              ],
+            child: InkWell(
+              customBorder: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18)),
+              onTap: _openSettings,
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                        color: AppColors.surfaceHigh,
+                        borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.key_rounded,
+                        color: AppColors.amber, size: 20),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Activa la IA gratis',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w800, fontSize: 14)),
+                        SizedBox(height: 2),
+                        Text('Sin clave funciona con reglas simples',
+                            style: TextStyle(
+                                color: AppColors.textDim, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.textDim),
+                ]),
+              ),
             ),
           ),
         ],
+        const SizedBox(height: 22),
+        const Padding(
+          padding: EdgeInsets.only(left: 4, bottom: 10),
+          child: Text('ELIGE UN ÁNIMO',
+              style: TextStyle(
+                  fontSize: 12,
+                  letterSpacing: 1.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.amber)),
+        ),
+        GridView.count(
+          crossAxisCount: 2,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          mainAxisSpacing: 10,
+          crossAxisSpacing: 10,
+          childAspectRatio: 1.9,
+          children: [for (final t in _moodTiles) _moodTile(t)],
+        ),
       ],
     );
   }
@@ -330,11 +522,24 @@ class _AssistantScreenState extends State<AssistantScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 8, 4),
+              padding: const EdgeInsets.fromLTRB(20, 14, 8, 8),
               child: Row(children: [
+                _avatar(44),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text('ASISTENTE',
-                      style: Theme.of(context).textTheme.displaySmall),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('ASISTENTE',
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
+                              ?.copyWith(fontSize: 22)),
+                      const Text('Tu guía de rock personal',
+                          style: TextStyle(
+                              color: AppColors.textDim, fontSize: 12.5)),
+                    ],
+                  ),
                 ),
                 IconButton(
                   tooltip: 'Tu gusto',
@@ -359,15 +564,18 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   for (var i = 0; i < _msgs.length; i++)
                     _bubble(_msgs[i], i == _msgs.length - 1 && !_busy),
                   if (_busy)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       child: Row(children: [
-                        SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2)),
-                        SizedBox(width: 12),
-                        Text('Pensando…',
+                        _avatar(32),
+                        const SizedBox(width: 10),
+                        const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: AppColors.amber)),
+                        const SizedBox(width: 10),
+                        const Text('Armando tu lista…',
                             style: TextStyle(color: AppColors.textDim)),
                       ]),
                     ),
@@ -375,25 +583,50 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 10),
+              padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
               child: Row(children: [
                 Expanded(
                   child: TextField(
                     controller: _input,
                     textInputAction: TextInputAction.send,
                     onSubmitted: _send,
-                    decoration: const InputDecoration(
-                        hintText: 'Escríbele al asistente…'),
+                    decoration: InputDecoration(
+                      hintText: 'Escribe lo que quieras escuchar',
+                      filled: true,
+                      fillColor: AppColors.surfaceHigh,
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 14),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: const BorderSide(color: AppColors.outline),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: const BorderSide(color: AppColors.outline),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(25),
+                        borderSide: const BorderSide(color: AppColors.red),
+                      ),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
-                IconButton.filled(
-                  style: IconButton.styleFrom(
-                      backgroundColor: AppColors.red,
-                      minimumSize: const Size(48, 48)),
-                  tooltip: 'Enviar',
-                  onPressed: _busy ? null : () => _send(_input.text),
-                  icon: const Icon(Icons.send_rounded),
+                Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: Ink(
+                    width: 50,
+                    height: 50,
+                    decoration: const BoxDecoration(
+                        shape: BoxShape.circle, gradient: AppColors.accent),
+                    child: InkWell(
+                      onTap: _busy ? null : () => _send(_input.text),
+                      child: const Icon(Icons.arrow_forward_rounded,
+                          color: Colors.white),
+                    ),
+                  ),
                 ),
               ]),
             ),

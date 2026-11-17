@@ -50,7 +50,6 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             _HomeTab(onNavigate: _go),
             const SearchScreen(),
-            const DjScreen(),
             const LibraryScreen(),
             const AssistantScreen(),
           ],
@@ -79,11 +78,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icon(Icons.search_rounded),
                   selectedIcon: Icon(Icons.search_rounded),
                   label: 'Buscar',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.graphic_eq_rounded),
-                  selectedIcon: Icon(Icons.graphic_eq_rounded),
-                  label: 'DJ',
                 ),
                 NavigationDestination(
                   icon: Icon(Icons.library_music_outlined),
@@ -172,8 +166,8 @@ class _HomeTabState extends State<_HomeTab> {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             _header(context),
-            _djBanner(),
             _personalMix(),
+            _djBanner(),
             SectionTitle('Radio en vivo',
                 actionLabel: 'Ver todas',
                 onAction: () => Navigator.of(context).push(
@@ -182,11 +176,6 @@ class _HomeTabState extends State<_HomeTab> {
             _radioRow(),
             const SectionTitle('Mixes por género y época'),
             _mixRow(MixService.genre),
-            const SectionTitle('Para cada momento'),
-            _mixRow(MixService.mood),
-            SectionTitle('Mis listas',
-                actionLabel: 'Nueva', onAction: _newList),
-            _listsRow(),
             const SectionTitle('Nuevos lanzamientos'),
             _releasesRow(),
             const SectionTitle('Bandas que quizá no conoces'),
@@ -198,7 +187,7 @@ class _HomeTabState extends State<_HomeTab> {
             SectionTitle(
               'Escuchado recientemente',
               actionLabel: _recent.isEmpty ? null : 'Ver todo',
-              onAction: () => widget.onNavigate(3),
+              onAction: () => widget.onNavigate(2),
             ),
             _recentSection(),
           ],
@@ -254,7 +243,8 @@ class _HomeTabState extends State<_HomeTab> {
             child: _QuickTile(
               icon: Icons.radio_rounded,
               label: 'DJ',
-              onTap: () => widget.onNavigate(2),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DjScreen())),
             ),
           ),
           const SizedBox(width: 10),
@@ -262,7 +252,7 @@ class _HomeTabState extends State<_HomeTab> {
             child: _QuickTile(
               icon: Icons.favorite_rounded,
               label: 'Mi música',
-              onTap: () => widget.onNavigate(3),
+              onTap: () => widget.onNavigate(2),
             ),
           ),
         ],
@@ -284,7 +274,8 @@ class _HomeTabState extends State<_HomeTab> {
             border: Border.all(color: const Color(0x33FFB02E)),
           ),
           child: InkWell(
-            onTap: () => widget.onNavigate(2),
+            onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const DjScreen())),
             child: Stack(
               children: [
                 Positioned(
