@@ -459,7 +459,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     shape: const StadiumBorder()),
                 onPressed: () => playSongs(context, r.songs, 0),
                 icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Reproducir'),
+                label: const FittedBox(
+                    fit: BoxFit.scaleDown, child: Text('Reproducir')),
               ),
             ),
             const SizedBox(width: 10),
