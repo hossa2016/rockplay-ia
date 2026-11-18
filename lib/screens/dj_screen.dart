@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/data_saver.dart';
 
 import '../models/song.dart';
 import '../services/music_api_service.dart';
@@ -82,6 +83,10 @@ class _DjScreenState extends State<DjScreen> {
         ...similar.take(40),
         ...(List<String>.of(similar.skip(40).toList())..shuffle()).take(59),
       ];
+      final maxA = DataSaver.instance.mixArtists;
+      if (similarPicked.length > maxA - 1) {
+        similarPicked.removeRange(maxA - 1, similarPicked.length);
+      }
       final queries = <String>[
         '$artistName ${_suffixes[DateTime.now().millisecond % _suffixes.length]}',
         for (final sn in similarPicked)
@@ -196,7 +201,7 @@ class _DjScreenState extends State<DjScreen> {
     }
     var k = 0;
     var any = true;
-    while (any && tracks.length < 650) {
+    while (any && tracks.length < DataSaver.instance.mixSongs) {
       any = false;
       for (var i = 1; i < got.length; i++) {
         if (k < got[i].length) {

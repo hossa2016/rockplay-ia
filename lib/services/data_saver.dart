@@ -23,6 +23,10 @@ class DataSaver {
   int limitMb = 250;
   bool noMobileImages = false;
   bool audioOnly = false;
+  static const List<int> mixSongOptions = [50, 100, 200, 300, 500];
+  static const List<int> mixArtistOptions = [10, 20, 40, 70, 100];
+  int mixSongs = 500;
+  int mixArtists = 100;
 
   Directory? _dir;
   bool _keepLoaded = false;
@@ -40,6 +44,8 @@ class DataSaver {
           .firstWhere((e) => e.name == m, orElse: () => CacheMode.limit);
       limitMb = sp.getInt('ds_limit') ?? 250;
       noMobileImages = sp.getBool('ds_nomobile') ?? false;
+      mixSongs = sp.getInt('ds_mixsongs') ?? 500;
+      mixArtists = sp.getInt('ds_mixartists') ?? 100;
       audioOnly = false; // función retirada (YouTube bloquea la extracción)
     } catch (_) {}
     try {
@@ -57,6 +63,8 @@ class DataSaver {
       await sp.setString('ds_mode', mode.name);
       await sp.setInt('ds_limit', limitMb);
       await sp.setBool('ds_nomobile', noMobileImages);
+      await sp.setInt('ds_mixsongs', mixSongs);
+      await sp.setInt('ds_mixartists', mixArtists);
     } catch (_) {}
   }
 

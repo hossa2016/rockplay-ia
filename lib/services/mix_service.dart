@@ -7,6 +7,7 @@ import '../models/song.dart';
 import 'artist_pools.dart';
 import 'library_service.dart';
 import 'music_api_service.dart';
+import 'data_saver.dart';
 
 class MixDef {
   final String title;
@@ -216,7 +217,9 @@ class MixService {
     final ctrl = StreamController<List<Song>>();
     final names = List<String>.of(artists);
     if (!keepOrder) names.shuffle();
-    final chosen = names.take(pick).toList();
+    final maxA = DataSaver.instance.mixArtists;
+    final maxS = DataSaver.instance.mixSongs;
+    final chosen = names.take(pick < maxA ? pick : maxA).toList();
     final api = MusicApiService();
     final got = List<List<Song>>.filled(chosen.length, <Song>[]);
     var cancelled = false;
@@ -238,7 +241,7 @@ class MixService {
         }
         i++;
       }
-      ctrl.add(out);
+      ctrl.add(out.length > maxS ? out.take(maxS).toList() : out);
     }
 
     ctrl.onCancel = () {
