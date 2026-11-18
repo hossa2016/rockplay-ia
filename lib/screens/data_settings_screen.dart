@@ -136,19 +136,6 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
               _apply();
             },
           ),
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            activeColor: AppColors.amber,
-            title: const Text('Ahorrar datos al reproducir'),
-            subtitle: const Text(
-                'Baja solo el audio, sin video. Si una canción no se puede, usa el reproductor de YouTube. Aplica desde la siguiente canción.',
-                style: TextStyle(color: AppColors.textDim)),
-            value: _ds.audioOnly,
-            onChanged: (v) {
-              setState(() => _ds.audioOnly = v);
-              _apply();
-            },
-          ),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(14),
