@@ -389,21 +389,19 @@ class RockPlayAudioHandler extends BaseAudioHandler
       }
     }
     _chainSkips++;
+    SkipLog.add('«${song.title}»: ${message.replaceFirst('YouTube no permite reproducir este video aquí', 'bloqueado por YouTube')} · ${MusicApiService.lastDebug}');
     if (_chainSkips >= 4) {
       // Varias seguidas sin sonar: no seguir saltando en silencio.
       _chainSkips = 0;
       _resolving = false;
       _broadcast();
-      _emitError('No se pudieron reproducir varias canciones seguidas. '
-          'Puede ser la conexión o que YouTube las bloquee. '
-          'Toca siguiente para probar otra. (${MusicApiService.lastDebug})');
+      _emitError('Varias canciones seguidas no están disponibles. '
+          'Toca siguiente para probar otra.');
       return;
     }
-    final why = message.replaceFirst('YouTube no permite reproducir este video aquí', 'YouTube lo bloquea');
-    _emitError('Pasando a la siguiente… «${song.title}»: $why · '
-        '${MusicApiService.lastDebug}');
+    _emitError('Saltando una canción no disponible…');
     if (hasNextTrack) {
-      Future<void>.delayed(const Duration(milliseconds: 1800), () {
+      Future<void>.delayed(const Duration(milliseconds: 900), () {
         if (idx == _index && gen == _gen && hasNextTrack) {
           _startAt(idx + 1);
         }

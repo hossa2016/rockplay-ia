@@ -126,3 +126,16 @@ class BadVideos {
     } catch (_) {}
   }
 }
+
+
+/// Registro corto de canciones saltadas y su motivo (para diagnóstico).
+class SkipLog {
+  static final List<String> entries = <String>[];
+  static void add(String s) {
+    final t = DateTime.now();
+    final hh = t.hour.toString().padLeft(2, '0');
+    final mm = t.minute.toString().padLeft(2, '0');
+    entries.insert(0, '$hh:$mm  $s');
+    if (entries.length > 40) entries.removeRange(40, entries.length);
+  }
+}

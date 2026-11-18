@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/block_service.dart';
 
 import '../services/data_saver.dart';
 import '../theme/app_theme.dart';
@@ -135,6 +136,40 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
               setState(() => _ds.noMobileImages = v);
               _apply();
             },
+          ),
+          const SizedBox(height: 10),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.bug_report_outlined),
+            title: const Text('Registro de canciones saltadas'),
+            subtitle: const Text('Motivo técnico de las últimas canciones que no sonaron.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            onTap: () => showDialog<void>(
+              context: context,
+              builder: (c) => AlertDialog(
+                title: const Text('Canciones saltadas'),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: SkipLog.entries.isEmpty
+                      ? const Text('Todavía no se ha saltado ninguna.')
+                      : ListView(
+                          shrinkWrap: true,
+                          children: [
+                            for (final e in SkipLog.entries)
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 10),
+                                child: Text(e, style: const TextStyle(fontSize: 12.5)),
+                              ),
+                          ],
+                        ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(c),
+                      child: const Text('Cerrar')),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 22),
           const Text('Tamaño de los mixes y la emisora',
