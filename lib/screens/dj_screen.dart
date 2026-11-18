@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../services/mix_service.dart';
 import '../services/data_saver.dart';
 
 import '../models/song.dart';
@@ -18,7 +20,7 @@ class DjScreen extends StatefulWidget {
 }
 
 class _DjScreenState extends State<DjScreen> {
-  static const List<String> _suggestions = [
+  static const List<String> _defaults = [
     'Metallica',
     'Linkin Park',
     'Nirvana',
@@ -43,6 +45,81 @@ class _DjScreenState extends State<DjScreen> {
   String? _message;
   bool _isError = false;
   bool _filling = false;
+
+  static const String _pinKey = 'dj_pinned_v1';
+  List<String> _pinned = <String>[];
+  List<String> _auto = <String>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSuggestions();
+  }
+
+  Future<void> _loadSuggestions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _pinned = prefs.getStringList(_pinKey) ?? <String>[];
+    } catch (_) {}
+    var mine = <String>[];
+    try {
+      mine = await MixService.personalArtists();
+    } catch (_) {}
+    final pinnedLower = _pinned.map((e) => e.toLowerCase()).toSet();
+    final pool = <String>[
+      for (final n in (mine.toSet().toList()..shuffle()))
+        if (!pinnedLower.contains(n.toLowerCase())) n,
+    ];
+    final auto = pool.take(8).toList();
+    if (auto.length + _pinned.length < 8) {
+      for (final d in (List<String>.of(_defaults)..shuffle())) {
+        if (auto.length + _pinned.length >= 8) break;
+        if (!pinnedLower.contains(d.toLowerCase()) &&
+            !auto.any((a) => a.toLowerCase() == d.toLowerCase())) {
+          auto.add(d);
+        }
+      }
+    }
+    if (mounted) setState(() => _auto = auto);
+  }
+
+  Future<void> _savePinned() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_pinKey, _pinned);
+    } catch (_) {}
+  }
+
+  Future<void> _addPinned() async {
+    final c = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Agregar artista'),
+        content: TextField(
+          controller: c,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: const InputDecoration(hintText: 'Nombre del artista'),
+          onSubmitted: (v) => Navigator.pop(ctx, v),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, c.text),
+              child: const Text('Agregar')),
+        ],
+      ),
+    );
+    final n = (name ?? '').trim();
+    if (n.isEmpty) return;
+    if (!_pinned.any((e) => e.toLowerCase() == n.toLowerCase())) {
+      _pinned.add(n);
+      await _savePinned();
+    }
+    await _loadSuggestions();
+  }
 
   @override
   void dispose() {
@@ -264,15 +341,49 @@ class _DjScreenState extends State<DjScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        Text('Prueba con', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: Text('Prueba con',
+                  style: Theme.of(context).textTheme.titleMedium),
+            ),
+            IconButton(
+              tooltip: 'Otras sugerencias',
+              icon: const Icon(Icons.refresh_rounded),
+              onPressed: _loadSuggestions,
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final s in _suggestions)
+            for (final s in _pinned)
+              InputChip(
+                avatar: const Icon(Icons.push_pin_rounded,
+                    size: 16, color: AppColors.amber),
+                label: Text(s),
+                onPressed: () => _useSuggestion(s),
+                onDeleted: () async {
+                  _pinned.remove(s);
+                  await _savePinned();
+                  await _loadSuggestions();
+                },
+              ),
+            for (final s in _auto)
               ActionChip(label: Text(s), onPressed: () => _useSuggestion(s)),
+            ActionChip(
+              avatar: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('Agregar'),
+              onPressed: _addPinned,
+            ),
           ],
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Los fijados (con chincheta) los eliges tú. Los demás salen de lo que más escuchas.',
+          style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
         ),
       ],
     );
