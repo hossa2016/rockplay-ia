@@ -381,9 +381,11 @@ class RockPlayAudioHandler extends BaseAudioHandler
           'Toca siguiente para probar otra. (${MusicApiService.lastDebug})');
       return;
     }
-    _emitError('Pasando a la siguiente…');
+    final why = message.replaceFirst('YouTube no permite reproducir este video aquí', 'YouTube lo bloquea');
+    _emitError('Pasando a la siguiente… «${song.title}»: $why · '
+        '${MusicApiService.lastDebug}');
     if (hasNextTrack) {
-      Future<void>.delayed(const Duration(milliseconds: 400), () {
+      Future<void>.delayed(const Duration(milliseconds: 1800), () {
         if (idx == _index && gen == _gen && hasNextTrack) {
           _startAt(idx + 1);
         }
