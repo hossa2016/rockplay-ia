@@ -124,6 +124,24 @@ class MusicApiService {
   /// Diagnóstico de la última búsqueda de video (se muestra si falla).
   static String lastDebug = '';
 
+  // Las búsquedas de apoyo van de una en una y con una pausa corta, para que
+  // YouTube no devuelva resultados vacíos por exceso de peticiones.
+  static Future<void> _gate = Future<void>.value();
+  static Future<T> _serial<T>(Future<T> Function() f) async {
+    final prev = _gate;
+    final done = Completer<void>();
+    _gate = done.future;
+    try {
+      await prev;
+    } catch (_) {}
+    try {
+      return await f();
+    } finally {
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      done.complete();
+    }
+  }
+
   /// Busca otro video distinto a los de [exclude] (p. ej. uno que sí se pueda
   /// incrustar). Sin caché.
   Future<String?> findVideoIdExcluding(String query, Set<String> exclude) =>
@@ -166,7 +184,12 @@ class MusicApiService {
       {Set<String> exclude = const <String>{}, List<String>? ranked}) async {
     final sw = Stopwatch()..start();
     lastDebug = 'buscando…';
-    final results = await _yt.search.search(query);
+    var results = await _serial(() => _yt.search.search(query));
+    if (results.isEmpty) {
+      // YouTube a veces responde vacío si se le pide muy rápido: reintenta.
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      results = await _serial(() => _yt.search.search(query));
+    }
     lastDebug = '${results.length} resultados en ${sw.elapsedMilliseconds}ms';
     var kept = 0;
     final lq = query.toLowerCase();
