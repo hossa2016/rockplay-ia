@@ -22,6 +22,7 @@ class DataSaver {
   CacheMode mode = CacheMode.limit;
   int limitMb = 250;
   bool noMobileImages = false;
+  bool audioOnly = false;
 
   Directory? _dir;
   bool _keepLoaded = false;
@@ -39,6 +40,7 @@ class DataSaver {
           .firstWhere((e) => e.name == m, orElse: () => CacheMode.limit);
       limitMb = sp.getInt('ds_limit') ?? 250;
       noMobileImages = sp.getBool('ds_nomobile') ?? false;
+      audioOnly = sp.getBool('ds_audioonly') ?? false;
     } catch (_) {}
     try {
       final base = await getTemporaryDirectory();
@@ -55,6 +57,7 @@ class DataSaver {
       await sp.setString('ds_mode', mode.name);
       await sp.setInt('ds_limit', limitMb);
       await sp.setBool('ds_nomobile', noMobileImages);
+      await sp.setBool('ds_audioonly', audioOnly);
     } catch (_) {}
   }
 

@@ -254,26 +254,36 @@ class _HomeTabState extends State<_HomeTab> {
 
   Widget _header(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+      padding: const EdgeInsets.fromLTRB(20, 26, 20, 14),
       child: Row(
         children: [
-          const PickLogo(size: 52),
-          const SizedBox(width: 14),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: AppColors.accent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 26),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _greeting(),
+                  '${_greeting()}, Hernán',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: AppColors.textDim,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
+                      color: AppColors.textDim, fontSize: 13),
                 ),
-                const SizedBox(height: 2),
-                Text('RockPlay',
-                    style: Theme.of(context).textTheme.headlineMedium),
+                const Text('ROCKPLAY',
+                    style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                        height: 1.1)),
               ],
             ),
           ),
@@ -696,53 +706,112 @@ class _HomeTabState extends State<_HomeTab> {
     );
   }
 
+  Future<void> _playMix() async {
+    final artists = await MixService.personalArtists();
+    if (!mounted) return;
+    if (artists.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text(
+            'Marca algunas canciones como favoritas o escucha música y armo tu mix.'),
+      ));
+      return;
+    }
+    _openMix(
+      'Tu mix',
+      'Con tus artistas favoritos',
+      const [Color(0xFF7A1411), Color(0xFF14141A)],
+      MixService.buildMix(artists, pick: 30, perArtist: 10),
+    );
+  }
+
   Widget _personalMix() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Material(
-        color: AppColors.surfaceHigh,
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          onTap: () async {
-            final artists = await MixService.personalArtists();
-            if (!mounted) return;
-            if (artists.isEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                content: Text(
-                    'Marca algunas canciones como favoritas o escucha música y armo tu mix.'),
-              ));
-              return;
-            }
-            _openMix(
-              'Tu mix',
-              'Con tus artistas favoritos',
-              const [Color(0xFF7A1411), Color(0xFF14141A)],
-              MixService.buildMix(artists, pick: 30, perArtist: 10),
-            );
-          },
-          child: const Padding(
-            padding: EdgeInsets.all(18),
-            child: Row(
+          onTap: _playMix,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color(0xFFB3201B),
+                  Color(0xFF5A0F0D),
+                  Color(0xFF1A1014)
+                ],
+                stops: [0, 0.55, 1],
+              ),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: const Color(0x38FFB02E)),
+            ),
+            child: Stack(
               children: [
-                Icon(Icons.auto_awesome_rounded,
-                    color: AppColors.amber, size: 30),
-                SizedBox(width: 14),
-                Expanded(
+                const Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: Opacity(
+                    opacity: 0.5,
+                    child: SizedBox(
+                      width: 260,
+                      height: 90,
+                      child: CustomPaint(painter: _WavePainter()),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 22),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Tu mix',
+                      const Text('TU MIX',
                           style: TextStyle(
-                              fontSize: 17, fontWeight: FontWeight.w800)),
-                      SizedBox(height: 2),
-                      Text('Armado con tus favoritos y lo que más escuchas',
+                              fontSize: 11,
+                              letterSpacing: 2,
+                              color: AppColors.amber,
+                              fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      const Text('SUENA COMO\nTÚ ERES',
                           style: TextStyle(
-                              color: AppColors.textDim, fontSize: 13)),
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              height: 1.05)),
+                      const SizedBox(height: 8),
+                      const ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: 230),
+                        child: Text(
+                            'Armado con tus favoritos y lo último que escuchaste.',
+                            style: TextStyle(
+                                fontSize: 13, color: Color(0xBFFFFFFF))),
+                      ),
+                      const SizedBox(height: 16),
+                      Container(
+                        height: 46,
+                        padding: const EdgeInsets.symmetric(horizontal: 22),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(23),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.play_arrow_rounded,
+                                size: 22, color: AppColors.bg),
+                            SizedBox(width: 6),
+                            Text('Reproducir',
+                                style: TextStyle(
+                                    color: AppColors.bg,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 15)),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                Icon(Icons.play_circle_fill_rounded, size: 40),
               ],
             ),
           ),
@@ -1058,4 +1127,30 @@ class _MixCard extends StatelessWidget {
       ),
     );
   }
+}
+
+
+class _WavePainter extends CustomPainter {
+  const _WavePainter();
+  @override
+  void paint(Canvas canvas, Size size) {
+    void wave(double y, double amp, double alpha) {
+      final path = Path()..moveTo(0, y);
+      for (double x = 0; x < 280; x += 40) {
+        path.quadraticBezierTo(x + 20, y - amp, x + 40, y);
+      }
+      canvas.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2
+            ..color = AppColors.amber.withValues(alpha: alpha));
+    }
+
+    wave(60, 80, 0.5);
+    wave(72, 64, 0.3);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }

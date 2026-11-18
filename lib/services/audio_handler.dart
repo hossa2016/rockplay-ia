@@ -14,10 +14,8 @@ import 'embed_bridge.dart';
 import 'library_service.dart';
 import 'music_api_service.dart';
 import 'stream_resolver.dart';
+import 'data_saver.dart';
 
-/// true = reproduce con el reproductor oficial de YouTube (IFrame) en vez de
-/// extraer el audio (YouTube bloquea la extracción).
-const bool kEmbedMode = true;
 
 /// Estado observable compartido entre el handler y PlaybackService.
 /// Lo crea PlaybackService (así los streams existen antes de init()).
@@ -119,9 +117,9 @@ class RockPlayAudioHandler extends BaseAudioHandler
         EmbedBridge.instance.seek(Duration.zero);
         EmbedBridge.instance.play();
       } else if (hasNextTrack) {
-        _startEmbed(_index + 1);
+        _startAt(_index + 1);
       } else if (rep == 1 && _songs.isNotEmpty) {
-        _startEmbed(0);
+        _startAt(0);
       } else {
         _embedPlaying = false;
         _s.playing.add(false);
@@ -141,7 +139,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
       onError: (Object e, StackTrace st) => _recover(),
     );
     _player.playingStream.listen((p) {
-      if (kEmbedMode && !_radio) return;
+      if (_useEmbed && !_radio) return;
       _s.playing.add(p);
       _broadcast();
     });
@@ -219,9 +217,22 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   /// Carga y reproduce la canción [index]; si falla, avisa y salta a la
   /// siguiente (hasta [_maxConsecutiveFailures] seguidas).
+  bool _useEmbed = true;
+
   Future<void> _startAt(int index,
       {Duration? resumeAt, bool fresh = false}) async {
-    if (kEmbedMode) return _startEmbed(index);
+    if (!DataSaver.instance.audioOnly ||
+        (index >= 0 && index < _songs.length && _songs[index].isRadio)) {
+      _useEmbed = true;
+      return _startEmbed(index);
+    }
+    if (_useEmbed) {
+      _useEmbed = false;
+      _embedPlaying = false;
+      try {
+        unawaited(EmbedBridge.instance.pause());
+      } catch (_) {}
+    }
     final gen = ++_gen;
     var i = index;
     var fails = 0;
@@ -278,6 +289,15 @@ class RockPlayAudioHandler extends BaseAudioHandler
       }
 
       if (gen != _gen) return;
+      if (fails == 0 && !_radio) {
+        // Solo audio falló: usar el reproductor de YouTube para esta canción.
+        _resolving = false;
+        _useEmbed = true;
+        try {
+          await _player.stop();
+        } catch (_) {}
+        return _startEmbed(i);
+      }
       fails++;
       forceFresh = false;
       resumeAt = null;
@@ -346,7 +366,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     if (hasNextTrack) {
       Future<void>.delayed(const Duration(milliseconds: 400), () {
         if (idx == _index && gen == _gen && hasNextTrack) {
-          _startEmbed(idx + 1);
+          _startAt(idx + 1);
         }
       });
     }
@@ -460,7 +480,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
           _broadcast();
           if (_embedFails < 3 && index + 1 < _songs.length) {
             Future<void>.delayed(const Duration(milliseconds: 600), () {
-              if (gen == _gen) _startEmbed(index + 1);
+              if (gen == _gen) _startAt(index + 1);
             });
           }
           return;
@@ -745,8 +765,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   void _broadcast() {
     final playing =
-        kEmbedMode && !_radio ? _embedPlaying : _player.playing;
-    final ps = kEmbedMode && !_radio
+        _useEmbed && !_radio ? _embedPlaying : _player.playing;
+    final ps = _useEmbed && !_radio
         ? ProcessingState.ready
         : _player.processingState;
     final busy = _resolving ||
@@ -785,7 +805,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
       playing: playing,
       updatePosition: _radio
           ? Duration.zero
-          : (kEmbedMode ? _embedPos : _player.position),
+          : (_useEmbed ? _embedPos : _player.position),
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
       queueIndex: _index < 0 ? null : _index,
@@ -801,13 +821,13 @@ class RockPlayAudioHandler extends BaseAudioHandler
       if (_index >= 0 && !_resolving) return _startRadio(_index);
       return;
     }
-    if (kEmbedMode) {
+    if (_useEmbed) {
       if (_index >= 0 &&
           !_resolving &&
           (_songs[_index].videoId.isEmpty ||
               EmbedBridge.instance.controller == null)) {
         _embedFails = 0;
-        return _startEmbed(_index);
+        return _startAt(_index);
       }
       return EmbedBridge.instance.play();
     }
@@ -826,7 +846,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
   @override
   Future<void> pause() async {
     if (_radio) return _player.pause();
-    if (kEmbedMode) return EmbedBridge.instance.pause();
+    if (_useEmbed) return EmbedBridge.instance.pause();
     await _player.pause();
   }
 
@@ -834,7 +854,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
   Future<void> stop() async {
     _gen++;
     _resolving = false;
-    if (kEmbedMode) unawaited(EmbedBridge.instance.pause());
+    if (_useEmbed) unawaited(EmbedBridge.instance.pause());
     await _player.stop();
     _radio = false;
     await _icySub?.cancel();
@@ -846,7 +866,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
   @override
   Future<void> seek(Duration position) async {
     if (_resolving || _radio) return;
-    if (kEmbedMode) {
+    if (_useEmbed) {
       await EmbedBridge.instance.seek(position);
       _s.position.add(position);
       return;
@@ -868,15 +888,15 @@ class RockPlayAudioHandler extends BaseAudioHandler
   Future<void> skipToPrevious() async {
     if (_index < 0) return;
     if (_radio) {
-      if (hasPreviousTrack) await _startEmbed(_index - 1);
+      if (hasPreviousTrack) await _startAt(_index - 1);
       return;
     }
-    if (kEmbedMode) {
+    if (_useEmbed) {
       if (_embedPos > const Duration(seconds: 3) || !hasPreviousTrack) {
         await EmbedBridge.instance.seek(Duration.zero);
         return;
       }
-      await _startEmbed(_index - 1);
+      await _startAt(_index - 1);
       return;
     }
     if (_player.position > const Duration(seconds: 3) || !hasPreviousTrack) {
@@ -1040,6 +1060,6 @@ class RockPlayAudioHandler extends BaseAudioHandler
   @override
   Future<void> onTaskRemoved() async {
     // Si no está sonando, cerrar el servicio al quitar la app de recientes.
-    if (!(kEmbedMode ? _embedPlaying : _player.playing)) await stop();
+    if (!(_useEmbed ? _embedPlaying : _player.playing)) await stop();
   }
 }
