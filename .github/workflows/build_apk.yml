@@ -41,8 +41,11 @@ jobs:
         run: |
           echo "org.gradle.vfs.watch=false" >> android/gradle.properties
           echo "org.gradle.daemon=false" >> android/gradle.properties
+          echo "org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g -XX:+HeapDumpOnOutOfMemoryError" >> android/gradle.properties
+          echo "kotlin.daemon.jvmargs=-Xmx2g" >> android/gradle.properties
+          free -m
       - run: python3 tools/fix_signing.py
-      - run: flutter build apk --release
+      - run: flutter build apk --release --target-platform android-arm64
       - uses: actions/upload-artifact@v4
         with:
           name: RockPlayIA-APK
