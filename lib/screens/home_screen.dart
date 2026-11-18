@@ -257,14 +257,10 @@ class _HomeTabState extends State<_HomeTab> {
       padding: const EdgeInsets.fromLTRB(20, 26, 20, 14),
       child: Row(
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              gradient: AppColors.accent,
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 26),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset('assets/icon/logo.png',
+                width: 44, height: 44, filterQuality: FilterQuality.medium),
           ),
           const SizedBox(width: 12),
           Expanded(
