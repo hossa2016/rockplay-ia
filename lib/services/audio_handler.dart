@@ -330,6 +330,24 @@ class RockPlayAudioHandler extends BaseAudioHandler
     }
   }
 
+  /// Limpia un título de YouTube para buscar otra versión: quita números de
+  /// pista, años, paréntesis y palabras como HD / Official / Live.
+  static String _cleanQuery(String q) {
+    var t = q
+        .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
+        .replaceAll(RegExp(r'^\s*\d{1,2}\s*[-.)]\s*'), '')
+        .replaceAll(
+            RegExp(
+                r'\b(hd|hq|4k|official|oficial|video|audio|lyrics?|letra|live|en vivo|remaster(ed)?|studio version|version)\b',
+                caseSensitive: false),
+            ' ')
+        .replaceAll(RegExp(r'\b(19|20)\d{2}\b'), ' ')
+        .replaceAll(RegExp(r'\s+-\s+'), ' ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    return t.isEmpty ? q : t;
+  }
+
   /// El video no se puede incrustar (o falló): prueba otra versión de la misma
   /// canción (letra / audio / Topic); si no hay, salta a la siguiente.
   Future<void> _onEmbedError(String message) async {
@@ -344,14 +362,10 @@ class RockPlayAudioHandler extends BaseAudioHandler
     final tries = (_altTries[idx] ?? 0) + 1;
     _altTries[idx] = tries;
 
-    if (tries <= (_chainSkips >= 1 ? 2 : 4)) {
-      var base = song.query.isNotEmpty
+    if (tries <= 4) {
+      final base = _cleanQuery(song.query.isNotEmpty
           ? song.query
-          : '${song.title} ${song.artist}';
-      base = base
-          .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
+          : '${song.title} ${song.artist}');
       const suffixes = ['topic', 'official audio', 'lyrics', 'audio'];
       final api = MusicApiService();
       String? id;
@@ -573,10 +587,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
     if (_songs[n].isRadio) return true;
     var s0 = _songs[n];
     final title = s0.title;
-    final base = (s0.query.isNotEmpty ? s0.query : '${s0.artist} ${s0.title}')
-        .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
+    final base = _cleanQuery(
+        s0.query.isNotEmpty ? s0.query : '${s0.artist} ${s0.title}');
     var ok = s0.videoId.isNotEmpty && _embedOk.contains(s0.videoId);
     if (!ok && s0.videoId.isNotEmpty) {
       ok = await _embeddable(s0.videoId, 6);
