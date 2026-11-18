@@ -102,10 +102,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
     });
     _toBottom();
     _loadCovers(r);
-    // Si la IA trajo menos de 80, pide un lote más automáticamente.
+    // Si la IA trajo bastante menos del máximo, pide un lote más.
+    final mx = AiSettings.instance.maxSongs;
     if ((r.source == 'Gemini' || r.source == 'Groq') &&
         r.songs.length >= 3 &&
-        r.songs.length < 80) {
+        mx >= 60 &&
+        r.songs.length < mx * 0.8) {
       await _expand(r);
     }
   }
@@ -178,8 +180,14 @@ class _AssistantScreenState extends State<AssistantScreen> {
     setState(() => _busy = true);
     _toBottom();
     try {
+      final mx = AiSettings.instance.maxSongs;
+      final room = mx - cur.songs.length;
+      if (room <= 0) {
+        if (mounted) setState(() => _busy = false);
+        return;
+      }
       final r = await AssistantService.instance.ask(
-          'Amplía la lista "${cur.title}" con 50 canciones más, distintas a las '
+          'Amplía la lista "${cur.title}" con ${room > 50 ? 50 : room} canciones más, distintas a las '
               'que ya tienes: ${cur.songs.take(40).map((s) => '${s.artist} - ${s.title}').join('; ')}',
           const <AiMessage>[]);
       final seen = {
@@ -187,6 +195,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
       };
       var added = 0;
       for (final s in r.songs) {
+        if (cur.songs.length >= mx) break;
         if (seen.add('${s.artist}|${s.title}'.toLowerCase())) {
           cur.songs.add(s);
           added++;
@@ -285,7 +294,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       child: Row(children: [
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
-                          child: _chip('Ampliar a 100', () => _expand(r)),
+                          child: _chip('Ampliar (hasta ${AiSettings.instance.maxSongs})', () => _expand(r)),
                         ),
                         for (final t in _tweaks)
                           Padding(

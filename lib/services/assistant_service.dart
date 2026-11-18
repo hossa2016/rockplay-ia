@@ -34,7 +34,7 @@ Eres el asistente musical de una app de rock llamada RockPlay IA. Hablas en espa
 Armas listas de canciones REALES de rock (cualquier época y subgénero, incluido rock en español) según lo que pida la persona: estado de ánimo, momento del día, actividad, artistas parecidos o descubrimiento.
 Reglas:
 - Devuelve SOLO un objeto JSON con esta forma exacta: {"reply":"texto corto (máx. 2 frases)","title":"nombre corto de la lista","songs":[{"artist":"...","title":"..."}]}
-- Entre 90 y 100 canciones, todas distintas. Mezcla canciones conocidas con algunas menos conocidas que encajen con sus gustos.
+- Entre __MIN__ y __MAX__ canciones, todas distintas. Mezcla canciones conocidas con algunas menos conocidas que encajen con sus gustos.
 - No repitas artistas más de 2 veces. No inventes canciones: si dudas de una, no la incluyas.
 - Si la persona pide cambiar la lista anterior (más tranquilo, más pesado, solo en español...), ajusta según eso.
 - Usa el contexto de gustos solo para personalizar; no lo recites.
@@ -159,7 +159,7 @@ Reglas:
 
       final songs = <Song>[];
       final seen = <String>{};
-      for (var i = 0; i < rel.length && songs.length < 100; i += 6) {
+      for (var i = 0; i < rel.length && songs.length < AiSettings.instance.maxSongs; i += 6) {
         final chunk = rel.skip(i).take(6).toList();
         final lists = await Future.wait([
           for (final r in chunk)
@@ -186,7 +186,17 @@ Reglas:
     }
   }
 
+  /// Pide la lista y la recorta al máximo configurado.
   Future<AssistantResult> ask(String text, List<AiMessage> history) async {
+    final r = await _ask(text, history);
+    final mx = AiSettings.instance.maxSongs;
+    if (r.songs.length <= mx) return r;
+    return AssistantResult(r.reply, r.title, r.songs.take(mx).toList(),
+        r.source, r.note);
+  }
+
+  Future<AssistantResult> _ask(String text, List<AiMessage> history) async {
+    await AiSettings.instance.load();
     var releaseFailed = false;
     if (_wantsNew(text)) {
       final r = await _releases(text);
@@ -195,7 +205,11 @@ Reglas:
     }
     await AiSettings.instance.load();
     final ctx = await _context();
-    final system = ctx.isEmpty ? _system : '$_system\nContexto:\n$ctx';
+    final mx = AiSettings.instance.maxSongs;
+    final base = _system
+        .replaceAll('__MAX__', '$mx')
+        .replaceAll('__MIN__', '${mx >= 40 ? mx - 10 : mx - 5}');
+    final system = ctx.isEmpty ? base : '$base\nContexto:\n$ctx';
     final msgs = <AiMessage>[
       ...history.length > 6 ? history.sublist(history.length - 6) : history,
       AiMessage(true, text),
@@ -315,7 +329,7 @@ Reglas:
     }
     final uniq = <String>{...artists}.toList();
     var songs = <Song>[];
-    await for (final l in MixService.buildMix(uniq, pick: 40, perArtist: 3)) {
+    await for (final l in MixService.buildMix(uniq, pick: AiSettings.instance.maxSongs < 40 ? AiSettings.instance.maxSongs : 40, perArtist: 3)) {
       songs = l;
     }
     return AssistantResult(reply, title, songs, 'Reglas simples');

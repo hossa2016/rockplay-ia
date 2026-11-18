@@ -111,6 +111,29 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
                 ),
                 const SizedBox(height: 20),
+                const Text('Canciones por lista',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 4),
+                const Text(
+                  'Máximo de canciones que trae el asistente. Menos canciones = respuesta más rápida y menos gasto de tu cuota gratis.',
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                ),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final n in AiSettings.maxOptions)
+                      ChoiceChip(
+                        label: Text('$n'),
+                        selected: AiSettings.instance.maxSongs == n,
+                        onSelected: (_) {
+                          setState(() => AiSettings.instance.maxSongs = n);
+                          AiSettings.instance.save();
+                        },
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 20),
                 ExpansionTile(
                   tilePadding: EdgeInsets.zero,
                   title: const Text('Avanzado: modelos'),

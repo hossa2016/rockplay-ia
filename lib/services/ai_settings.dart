@@ -13,6 +13,8 @@ class AiSettings {
   String groqModel = defaultGroqModel;
   String geminiModel = defaultGeminiModel;
   bool learn = true;
+  static const List<int> maxOptions = [20, 40, 60, 80, 100];
+  int maxSongs = 100;
   bool _loaded = false;
 
   Future<void> load() async {
@@ -29,6 +31,7 @@ class AiSettings {
       }
       geminiModel = sp.getString('ai_gemini_model') ?? defaultGeminiModel;
       learn = sp.getBool('ai_learn') ?? true;
+      maxSongs = (sp.getInt('ai_max') ?? 100).clamp(20, 100);
     } catch (_) {}
     _loaded = true;
   }
@@ -43,6 +46,7 @@ class AiSettings {
       await sp.setString('ai_gemini_model',
           geminiModel.trim().isEmpty ? defaultGeminiModel : geminiModel.trim());
       await sp.setBool('ai_learn', learn);
+      await sp.setInt('ai_max', maxSongs);
     } catch (_) {}
   }
 }
