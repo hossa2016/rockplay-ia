@@ -55,6 +55,8 @@ class MusicApiService {
   Stream<List<Song>> searchStream(String query,
       {int max = 300, int maxPages = 25, String? mustMention}) async* {
     await BlockService.instance.ensureLoaded();
+    await BadVideos.load();
+    final wantsCoverQ = query.toLowerCase().contains('cover');
     final needle = mustMention == null ? '' : BlockService.normName(mustMention);
     final q = query.trim();
     if (q.isEmpty) {
@@ -69,6 +71,12 @@ class MusicApiService {
       for (final v in page) {
         if (!_looksLikeSong(v.title, v.duration, v.isLive, v.author)) continue;
         if (!seen.add(v.id.value)) continue;
+        if (BadVideos.ids.contains(v.id.value)) continue;
+        if (!wantsCoverQ &&
+            RegExp(r'\bcover\b|covered by', caseSensitive: false)
+                .hasMatch(v.title)) {
+          continue;
+        }
         if (BlockService.instance.isBlockedAuthor(v.author)) continue;
         if (needle.isNotEmpty &&
             !BlockService.norm('${v.title} ${v.author}').contains(needle)) {
@@ -184,7 +192,12 @@ class MusicApiService {
       if (!wantsLive && _notSong.hasMatch(title)) continue;
       if (_badChannel.hasMatch(author)) continue;
 
-      if (exclude.contains(v.id.value)) continue;
+      if (exclude.contains(v.id.value) || BadVideos.ids.contains(v.id.value)) {
+        continue;
+      }
+      if (!wantsCover && RegExp(r'\bcover\b|covered by').hasMatch(title)) {
+        continue;
+      }
       kept++;
       var score = 10 - rank; // respeta el orden de relevancia de YouTube
       if (author.endsWith('- topic')) score += 8;

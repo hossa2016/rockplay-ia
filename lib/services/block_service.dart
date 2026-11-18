@@ -9,6 +9,10 @@ class BlockService {
   static const String _key = 'blocked_artists_v1';
   final List<String> _names = <String>[];
   bool _loaded = false;
+  static const String _showKey = 'show_blocked_v1';
+
+  /// Si es true, los artistas bloqueados vuelven a aparecer (sin borrarlos).
+  bool showBlocked = false;
 
   List<String> get names => List<String>.unmodifiable(_names);
 
@@ -19,6 +23,7 @@ class BlockService {
       _names
         ..clear()
         ..addAll(prefs.getStringList(_key) ?? const <String>[]);
+      showBlocked = prefs.getBool(_showKey) ?? false;
     } catch (_) {}
     _loaded = true;
   }
@@ -27,6 +32,15 @@ class BlockService {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setStringList(_key, _names);
+    } catch (_) {}
+  }
+
+  Future<void> setShowBlocked(bool v) async {
+    await ensureLoaded();
+    showBlocked = v;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_showKey, v);
     } catch (_) {}
   }
 
@@ -64,7 +78,7 @@ class BlockService {
 
   /// ¿El canal [author] corresponde a un artista bloqueado?
   bool isBlockedAuthor(String author) {
-    if (_names.isEmpty) return false;
+    if (showBlocked || _names.isEmpty) return false;
     final a = normName(author
         .replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), ''));
     if (a.isEmpty) return false;
@@ -75,5 +89,40 @@ class BlockService {
       if (b.length >= 6 && a.contains(b)) return true;
     }
     return false;
+  }
+}
+
+
+/// Videos que YouTube no deja reproducir aquí: se recuerdan y se ocultan.
+class BadVideos {
+  static const String _key = 'bad_videos_v1';
+  static final Set<String> ids = <String>{};
+  static bool _loaded = false;
+
+  static Future<void> load() async {
+    if (_loaded) return;
+    _loaded = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      ids.addAll(prefs.getStringList(_key) ?? const <String>[]);
+    } catch (_) {}
+  }
+
+  static Future<void> add(String id) async {
+    if (id.isEmpty || !ids.add(id)) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      var list = ids.toList();
+      if (list.length > 1500) list = list.sublist(list.length - 1500);
+      await prefs.setStringList(_key, list);
+    } catch (_) {}
+  }
+
+  static Future<void> clear() async {
+    ids.clear();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_key);
+    } catch (_) {}
   }
 }

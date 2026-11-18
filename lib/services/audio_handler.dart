@@ -15,6 +15,7 @@ import 'library_service.dart';
 import 'music_api_service.dart';
 import 'stream_resolver.dart';
 import 'data_saver.dart';
+import 'block_service.dart';
 
 
 /// Estado observable compartido entre el handler y PlaybackService.
@@ -86,6 +87,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
   // ------------------------------------------------------------------ init
 
   Future<void> _init() async {
+    await BadVideos.load();
+    _badIds.addAll(BadVideos.ids);
     final eb = EmbedBridge.instance;
     eb.onPlaying = (p) {
       if (p) _chainSkips = 0;
@@ -337,6 +340,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     if (song.videoId.isEmpty || _handledErrFor == song.videoId) return;
     _handledErrFor = song.videoId;
     _badIds.add(song.videoId);
+    unawaited(BadVideos.add(song.videoId));
     final tries = (_altTries[idx] ?? 0) + 1;
     _altTries[idx] = tries;
 
@@ -576,7 +580,10 @@ class RockPlayAudioHandler extends BaseAudioHandler
     var ok = s0.videoId.isNotEmpty && _embedOk.contains(s0.videoId);
     if (!ok && s0.videoId.isNotEmpty) {
       ok = await _embeddable(s0.videoId, 6);
-      if (!ok) _badIds.add(s0.videoId);
+      if (!ok) {
+        _badIds.add(s0.videoId);
+        unawaited(BadVideos.add(s0.videoId));
+      }
     }
     if (gen != _gen) return null;
     if (!ok) {

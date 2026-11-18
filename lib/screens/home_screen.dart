@@ -840,7 +840,23 @@ class _HomeTabState extends State<_HomeTab> {
   Widget _blockedChips() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Wrap(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            activeColor: AppColors.amber,
+            title: const Text('Mostrar artistas bloqueados'),
+            subtitle: const Text('Apagado: no salen en búsquedas, emisora ni mixes.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+            value: BlockService.instance.showBlocked,
+            onChanged: (v) async {
+              await BlockService.instance.setShowBlocked(v);
+              if (mounted) setState(() {});
+              PlaybackUi.instance.bumpLibrary();
+            },
+          ),
+          Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
@@ -852,6 +868,8 @@ class _HomeTabState extends State<_HomeTab> {
                 PlaybackUi.instance.bumpLibrary();
               },
             ),
+        ],
+      ),
         ],
       ),
     );
