@@ -71,6 +71,8 @@ class LibraryService {
     }
   }
 
+  Future<void> clearHistory() => _save(_histKey, <Song>[]);
+
   Future<void> addToHistory(Song song) async {
     final h = await history();
     h.removeWhere((s) => s.videoId == song.videoId);

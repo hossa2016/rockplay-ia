@@ -71,6 +71,31 @@ class _LibraryScreenState extends State<LibraryScreen> {
     PlaybackUi.instance.bumpLibrary();
   }
 
+  Future<void> _confirmClearHistory() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Borrar historial'),
+        content: const Text(
+            'Se borrarán todas las canciones que has escuchado. Tus favoritos no se tocan.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Borrar')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    try {
+      await LibraryService.instance.clearHistory();
+    } catch (_) {}
+    PlaybackUi.instance.bumpLibrary();
+    if (mounted) _load();
+  }
+
   Widget _list(List<Song> songs, {required bool favorites}) {
     if (_loading) return const SkeletonList();
     if (_failed) {
@@ -111,6 +136,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     style: const TextStyle(color: AppColors.textDim),
                   ),
                 ),
+                if (!favorites)
+                  IconButton(
+                    tooltip: 'Borrar historial',
+                    icon: const Icon(Icons.delete_outline_rounded),
+                    onPressed: _confirmClearHistory,
+                  ),
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 42),
