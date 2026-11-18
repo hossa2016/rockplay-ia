@@ -218,10 +218,12 @@ class RockPlayAudioHandler extends BaseAudioHandler
   /// Carga y reproduce la canción [index]; si falla, avisa y salta a la
   /// siguiente (hasta [_maxConsecutiveFailures] seguidas).
   bool _useEmbed = true;
+  int _audioFails = 0; // fallos seguidos de solo audio en esta sesión
 
   Future<void> _startAt(int index,
       {Duration? resumeAt, bool fresh = false}) async {
     if (!DataSaver.instance.audioOnly ||
+        _audioFails >= 2 ||
         (index >= 0 && index < _songs.length && _songs[index].isRadio)) {
       _useEmbed = true;
       return _startEmbed(index);
@@ -263,10 +265,11 @@ class RockPlayAudioHandler extends BaseAudioHandler
       String? failure;
       try {
         final ok = await _loadSong(i, gen, forceFresh)
-            .timeout(const Duration(seconds: 130));
+            .timeout(const Duration(seconds: 20));
         if (ok == null) return; // reemplazada por otra carga
         if (ok) {
           _resolving = false;
+          _audioFails = 0;
           if (_notice.isNotEmpty) {
             _emitError(_notice);
             _notice = '';
@@ -291,6 +294,9 @@ class RockPlayAudioHandler extends BaseAudioHandler
       if (gen != _gen) return;
       if (fails == 0 && !_radio) {
         // Solo audio falló: usar el reproductor de YouTube para esta canción.
+        _audioFails++;
+        _tick?.cancel();
+        _s.error.add(null);
         _resolving = false;
         _useEmbed = true;
         try {
