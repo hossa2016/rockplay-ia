@@ -69,6 +69,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
   static const int _maxConsecutiveFailures = 2;
   String _lastDetail = '';
   bool _embedPlaying = false;
+  int _chainSkips = 0; // canciones saltadas seguidas por no poder reproducirse
   final Set<String> _badIds = <String>{};
   final Map<int, int> _altTries = <int, int>{};
   String _handledErrFor = '';
@@ -87,6 +88,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
   Future<void> _init() async {
     final eb = EmbedBridge.instance;
     eb.onPlaying = (p) {
+      if (p) _chainSkips = 0;
       _embedPlaying = p;
       _s.playing.add(p);
       _broadcast();
@@ -338,7 +340,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     final tries = (_altTries[idx] ?? 0) + 1;
     _altTries[idx] = tries;
 
-    if (tries <= 4) {
+    if (tries <= (_chainSkips >= 1 ? 2 : 4)) {
       var base = song.query.isNotEmpty
           ? song.query
           : '${song.title} ${song.artist}';
@@ -367,6 +369,17 @@ class RockPlayAudioHandler extends BaseAudioHandler
         EmbedBridge.instance.load(id);
         return;
       }
+    }
+    _chainSkips++;
+    if (_chainSkips >= 4) {
+      // Varias seguidas sin sonar: no seguir saltando en silencio.
+      _chainSkips = 0;
+      _resolving = false;
+      _broadcast();
+      _emitError('No se pudieron reproducir varias canciones seguidas. '
+          'Puede ser la conexión o que YouTube las bloquee. '
+          'Toca siguiente para probar otra. (${MusicApiService.lastDebug})');
+      return;
     }
     _emitError('Pasando a la siguiente…');
     if (hasNextTrack) {
