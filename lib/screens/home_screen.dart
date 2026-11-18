@@ -780,9 +780,9 @@ class _HomeTabState extends State<_HomeTab> {
                               fontWeight: FontWeight.w900,
                               height: 1.05)),
                       const SizedBox(height: 8),
-                      const ConstrainedBox(
+                      ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: 230),
-                        child: Text(
+                        child: const Text(
                             'Armado con tus favoritos y lo último que escuchaste.',
                             style: TextStyle(
                                 fontSize: 13, color: Color(0xBFFFFFFF))),
