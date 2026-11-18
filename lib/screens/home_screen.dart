@@ -114,6 +114,7 @@ class _HomeTabState extends State<_HomeTab> {
   List<Song> _recent = [];
   List<Playlist> _lists = [];
   List<String> _blocked = [];
+  bool _showBlockedList = false;
   bool _loading = true;
 
   @override
@@ -843,33 +844,32 @@ class _HomeTabState extends State<_HomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SwitchListTile(
-            contentPadding: EdgeInsets.zero,
-            activeColor: AppColors.amber,
-            title: const Text('Mostrar artistas bloqueados'),
-            subtitle: const Text('Apagado: no salen en búsquedas, emisora ni mixes.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-            value: BlockService.instance.showBlocked,
-            onChanged: (v) async {
-              await BlockService.instance.setShowBlocked(v);
-              if (mounted) setState(() {});
-              PlaybackUi.instance.bumpLibrary();
-            },
+          OutlinedButton.icon(
+            icon: Icon(_showBlockedList
+                ? Icons.visibility_off_rounded
+                : Icons.visibility_rounded),
+            label: Text(_showBlockedList
+                ? 'Ocultar bloqueados'
+                : 'Mostrar bloqueados (${_blocked.length})'),
+            onPressed: () => setState(() => _showBlockedList = !_showBlockedList),
           ),
-          Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: [
-          for (final n in _blocked)
-            InputChip(
-              label: Text(n),
-              onDeleted: () async {
-                await BlockService.instance.remove(n);
-                PlaybackUi.instance.bumpLibrary();
-              },
+          if (_showBlockedList) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final n in _blocked)
+                  InputChip(
+                    label: Text(n),
+                    onDeleted: () async {
+                      await BlockService.instance.remove(n);
+                      PlaybackUi.instance.bumpLibrary();
+                    },
+                  ),
+              ],
             ),
-        ],
-      ),
+          ],
         ],
       ),
     );

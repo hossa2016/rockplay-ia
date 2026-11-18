@@ -352,7 +352,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
           .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
           .replaceAll(RegExp(r'\s+'), ' ')
           .trim();
-      const suffixes = ['official audio', 'lyrics', 'audio', 'topic'];
+      const suffixes = ['topic', 'official audio', 'lyrics', 'audio'];
       final api = MusicApiService();
       String? id;
       try {
@@ -588,10 +588,10 @@ class RockPlayAudioHandler extends BaseAudioHandler
     if (gen != _gen) return null;
     if (!ok) {
       for (final q in [
-        base,
+        '$base topic',
         '$base official audio',
         '$base lyrics',
-        '$base audio',
+        base,
       ]) {
         final id = await _altFind(q);
         if (gen != _gen) return null;

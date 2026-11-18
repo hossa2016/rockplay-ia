@@ -78,7 +78,7 @@ class BlockService {
 
   /// ¿El canal [author] corresponde a un artista bloqueado?
   bool isBlockedAuthor(String author) {
-    if (showBlocked || _names.isEmpty) return false;
+    if (_names.isEmpty) return false;
     final a = normName(author
         .replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), ''));
     if (a.isEmpty) return false;

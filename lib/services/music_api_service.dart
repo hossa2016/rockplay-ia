@@ -15,7 +15,7 @@ class MusicApiService {
 
   /// Descarta mixes, recopilaciones, documentales, directos largos, etc.
   static final RegExp _notSong = RegExp(
-      r'\bmix\b|enganchad|megamix|compilation|recopilaci|full album|album completo|'
+      r'\bmix\b|split screen|multi-?angle|\d angle|enganchad|megamix|compilation|recopilaci|full album|album completo|'
       r'álbum completo|best of|greatest hits|grandes éxitos|top ?\d+|\d+ (hits|songs|canciones)|'
       r'playlist|documental|documentary|docu\b|biograf|biography|historia de|history of|the story of|story of|'
       r'entrevista|interview|conversación|conversation|podcast|episod|capítulo|capitulo|temporada|season|'
