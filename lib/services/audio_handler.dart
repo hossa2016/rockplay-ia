@@ -260,8 +260,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
           _tick?.cancel();
           return;
         }
-        _s.error.add(
-            '${DateTime.now().difference(t0).inSeconds}s | $_stage | $_progress');
+        final secs = DateTime.now().difference(t0).inSeconds;
+        _s.error.add(secs < 4 ? null : 'Cargando la canción…');
       });
       if (fails == 0) _s.error.add(null);
       _broadcast();
@@ -395,11 +395,15 @@ class RockPlayAudioHandler extends BaseAudioHandler
       _chainSkips = 0;
       _resolving = false;
       _broadcast();
-      _emitError('Varias canciones seguidas no están disponibles. '
-          'Toca siguiente para probar otra.');
+      _emitError('Se detuvo: varias canciones seguidas no están disponibles. '
+          'Toca siguiente para probar otra.',
+          seconds: 15);
       return;
     }
-    _emitError('Saltando una canción no disponible…');
+    final shortTitle = song.title.length > 34
+        ? '${song.title.substring(0, 34)}…'
+        : song.title;
+    _emitError('Omitimos «$shortTitle»: no está disponible.', seconds: 5);
     if (hasNextTrack) {
       Future<void>.delayed(const Duration(milliseconds: 900), () {
         if (idx == _index && gen == _gen && hasNextTrack) {
@@ -792,9 +796,9 @@ class RockPlayAudioHandler extends BaseAudioHandler
     }();
   }
 
-  void _emitError(String msg) {
+  void _emitError(String msg, {int seconds = 40}) {
     _s.error.add(msg);
-    Future<void>.delayed(const Duration(seconds: 40), () {
+    Future<void>.delayed(Duration(seconds: seconds), () {
       if (_s.error.valueOrNull == msg) _s.error.add(null);
     });
   }
