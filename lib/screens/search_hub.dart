@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
 import 'dj_screen.dart';
+import 'radio_screen.dart';
 import 'search_screen.dart';
 
-/// Pide abrir un modo de Buscar desde fuera (0 canciones, 1 emisora).
+/// Pide abrir un modo de Buscar desde fuera (0 canciones, 1 emisora, 2 radio).
 final ValueNotifier<int> searchHubWantMode = ValueNotifier<int>(-1);
 
 /// Pestaña Buscar: canciones o emisora de un artista.
@@ -79,12 +80,13 @@ class _SearchHubState extends State<SearchHub> {
               child: Row(children: [
                 _seg('Canciones', 0),
                 _seg('Emisora', 1),
+                _seg('Radio', 2),
               ]),
             ),
             Expanded(
               child: IndexedStack(
                 index: _mode,
-                children: const [SearchScreen(), DjScreen()],
+                children: const [SearchScreen(), DjScreen(), RadioScreen()],
               ),
             ),
           ],

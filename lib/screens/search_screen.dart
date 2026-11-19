@@ -296,33 +296,41 @@ class _SearchScreenState extends State<SearchScreen> {
         if (i == 0) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                FilledButton.icon(
-                  onPressed: () {
-                    final list = List<Song>.of(_results)..shuffle();
-                    playSongs(context, list, 0);
-                  },
-                  icon: const Icon(Icons.shuffle_rounded),
-                  label: const Text('Aleatorio'),
+                Text(
+                  _more
+                      ? '${_results.length} canciones · cargando más…'
+                      : '${_results.length} canciones',
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w800, fontSize: 16),
                 ),
-                const SizedBox(width: 10),
-                OutlinedButton.icon(
-                  onPressed: () => playSongs(context, _results, 0),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Reproducir todo'),
-                ),
-                const SizedBox(width: 12),
-                Flexible(
-                  child: Text(
-                    _more
-                        ? '${_results.length} · cargando más…'
-                        : '${_results.length} canciones',
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        color: AppColors.textDim, fontSize: 12),
+                const SizedBox(height: 10),
+                Row(children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 48)),
+                      onPressed: () {
+                        final list = List<Song>.of(_results)..shuffle();
+                        playSongs(context, list, 0);
+                      },
+                      icon: const Icon(Icons.shuffle_rounded),
+                      label: const Text('Aleatorio'),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                          minimumSize: const Size(0, 48)),
+                      onPressed: () => playSongs(context, _results, 0),
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: const Text('Reproducir'),
+                    ),
+                  ),
+                ]),
               ],
             ),
           );

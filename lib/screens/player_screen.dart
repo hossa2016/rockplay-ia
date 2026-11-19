@@ -6,6 +6,8 @@ import 'package:flutter/services.dart';
 
 import 'package:flutter/scheduler.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import '../models/song.dart';
 import '../services/embed_bridge.dart';
 import '../services/track_info_service.dart';
@@ -719,7 +721,10 @@ class _PlayerScreenState extends State<PlayerScreen>
                 color: const Color.fromRGBO(255, 176, 46, 0.35),
               ),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+            Row(
               children: [
                 const Icon(Icons.error_outline_rounded,
                     color: AppColors.amber, size: 20),
@@ -736,9 +741,50 @@ class _PlayerScreenState extends State<PlayerScreen>
                 ),
               ],
             ),
+            Wrap(spacing: 8, children: [
+              TextButton(
+                  onPressed: _showSkipped, child: const Text('Ver cuáles')),
+              if (pb.song.value != null &&
+                  pb.song.value!.videoId.isNotEmpty &&
+                  !pb.song.value!.isRadio)
+                TextButton(
+                  onPressed: () => launchUrl(
+                      Uri.parse(
+                          'https://www.youtube.com/watch?v=${pb.song.value!.videoId}'),
+                      mode: LaunchMode.externalApplication),
+                  child: const Text('Abrir en YouTube'),
+                ),
+            ]),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+
+  void _showSkipped() {
+    showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Canciones saltadas'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SkipLog.entries.isEmpty
+              ? const Text('Todavía no se ha saltado ninguna.')
+              : ListView(shrinkWrap: true, children: [
+                  for (final e in SkipLog.entries)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Text(e, style: const TextStyle(fontSize: 12.5)),
+                    ),
+                ]),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c), child: const Text('Cerrar')),
+        ],
+      ),
     );
   }
 
