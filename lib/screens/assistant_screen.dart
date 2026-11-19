@@ -560,9 +560,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
           onTap: _busy ? null : () => _send(t[0] as String),
           child: Container(
             height: 84,
-            alignment: Alignment.bottomLeft,
+            alignment: Alignment.center,
             padding: const EdgeInsets.all(14),
             child: Text(t[0] as String,
+                textAlign: TextAlign.center,
                 textScaler: const TextScaler.linear(1.0),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

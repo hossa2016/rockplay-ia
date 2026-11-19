@@ -177,9 +177,10 @@ class _SearchScreenState extends State<SearchScreen> {
         child: InkWell(
           onTap: () => _useSuggestion(t[0] as String),
           child: Container(
-            alignment: Alignment.bottomLeft,
+            alignment: Alignment.center,
             padding: const EdgeInsets.all(14),
             child: Text(t[0] as String,
+                textAlign: TextAlign.center,
                 textScaler: const TextScaler.linear(1.0),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
