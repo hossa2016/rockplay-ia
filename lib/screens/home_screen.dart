@@ -23,6 +23,7 @@ import '../services/radio_service.dart';
 import 'dj_screen.dart';
 import 'library_screen.dart';
 import 'search_hub.dart';
+import 'settings_hub_screen.dart';
 
 /// Contenedor principal: pestañas + mini-reproductor sobre la navegación.
 class HomeScreen extends StatefulWidget {
@@ -287,6 +288,13 @@ class _HomeTabState extends State<_HomeTab> {
                         height: 1.1)),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: 'Ajustes',
+            icon: const Icon(Icons.settings_rounded),
+            onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                    builder: (_) => const SettingsHubScreen())),
           ),
         ],
       ),

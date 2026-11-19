@@ -709,6 +709,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       valueListenable: pb.error,
       builder: (context, err, _) {
         if (err == null || err.isEmpty) return const SizedBox.shrink();
+        if (err.startsWith('Se detuvo: varias')) return _stoppedCard();
         return Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
           child: Container(
@@ -760,6 +761,88 @@ class _PlayerScreenState extends State<PlayerScreen>
           ),
         );
       },
+    );
+  }
+
+  Widget _stoppedCard() {
+    final last = SkipLog.entries.take(4).toList();
+    String name(String e) {
+      final a = e.indexOf('«');
+      final b = e.indexOf('»');
+      return (a >= 0 && b > a) ? e.substring(a + 1, b) : e;
+    }
+
+    final song = pb.song.value;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color.fromRGBO(255, 176, 46, 0.12),
+          borderRadius: BorderRadius.circular(16),
+          border:
+              Border.all(color: const Color.fromRGBO(255, 176, 46, 0.35)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('LA MÚSICA SE DETUVO',
+                style: TextStyle(
+                    color: AppColors.amber,
+                    fontSize: 12,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w800)),
+            const SizedBox(height: 6),
+            const Text(
+                'Las últimas canciones no se pueden reproducir en apps porque '
+                'YouTube las bloquea. No es un problema de tu teléfono ni de '
+                'tu internet.',
+                style: TextStyle(fontSize: 13, height: 1.35)),
+            const SizedBox(height: 8),
+            for (final e in last)
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 36),
+                child: Row(children: [
+                  Expanded(
+                    child: Text(name(e),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w700)),
+                  ),
+                  const Text('Bloqueada',
+                      style: TextStyle(
+                          color: AppColors.amber,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700)),
+                ]),
+              ),
+            const SizedBox(height: 4),
+            Wrap(spacing: 8, children: [
+              FilledButton(
+                style:
+                    FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+                onPressed: () {
+                  pb.error.value = null;
+                  Navigator.of(context).maybePop();
+                },
+                child: const Text('Seguir con otro artista'),
+              ),
+              TextButton(
+                  onPressed: _showSkipped, child: const Text('Ver cuáles')),
+              if (song != null && song.videoId.isNotEmpty && !song.isRadio)
+                TextButton(
+                  onPressed: () => launchUrl(
+                      Uri.parse(
+                          'https://www.youtube.com/watch?v=${song.videoId}'),
+                      mode: LaunchMode.externalApplication),
+                  child: const Text('Abrir en YouTube'),
+                ),
+            ]),
+          ],
+        ),
+      ),
     );
   }
 

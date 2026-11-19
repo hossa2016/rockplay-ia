@@ -79,6 +79,18 @@ class MusicCard extends StatelessWidget {
                   ),
                   const SizedBox(width: 8),
                   end,
+                  if (actions && trailing == null)
+                    SizedBox(
+                      width: 40,
+                      height: 48,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        tooltip: 'Más opciones',
+                        icon: const Icon(Icons.more_vert_rounded,
+                            color: AppColors.textDim),
+                        onPressed: () => showSongActions(context, song),
+                      ),
+                    ),
                 ],
               ),
             ),

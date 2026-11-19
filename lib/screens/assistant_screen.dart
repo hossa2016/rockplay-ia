@@ -12,7 +12,7 @@ import '../widgets/player_route.dart';
 import '../widgets/playback_ui.dart';
 import 'ai_settings_screen.dart';
 import 'song_list_screen.dart';
-import 'taste_screen.dart';
+import 'settings_hub_screen.dart';
 
 class _Msg {
   final bool fromUser;
@@ -677,6 +677,17 @@ class _AssistantScreenState extends State<AssistantScreen> {
     );
   }
 
+  Future<void> _openHub() async {
+    await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const SettingsHubScreen()));
+    await AiSettings.instance.load();
+    final s = AiSettings.instance;
+    if (mounted) {
+      setState(() =>
+          _noKeys = s.groqKey.trim().isEmpty && s.geminiKey.trim().isEmpty);
+    }
+  }
+
   Future<void> _openSettings() async {
     await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => const AiSettingsScreen()));
@@ -727,16 +738,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     onPressed: () => setState(() => _msgs.clear()),
                   ),
                 IconButton(
-                  tooltip: 'Tu gusto',
-                  icon: const Icon(Icons.insights_rounded),
-                  onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                          builder: (_) => const TasteScreen())),
-                ),
-                IconButton(
-                  tooltip: 'Claves del asistente',
-                  icon: const Icon(Icons.key_rounded),
-                  onPressed: _openSettings,
+                  tooltip: 'Ajustes',
+                  icon: const Icon(Icons.settings_rounded),
+                  onPressed: _openHub,
                 ),
               ]),
             ),
