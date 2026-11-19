@@ -180,6 +180,7 @@ class _SearchScreenState extends State<SearchScreen> {
             alignment: Alignment.bottomLeft,
             padding: const EdgeInsets.all(14),
             child: Text(t[0] as String,
+                textScaler: const TextScaler.linear(1.0),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
