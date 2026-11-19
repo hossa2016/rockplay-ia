@@ -27,6 +27,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
   List<Song> _hist = [];
   List<Playlist> _lists = [];
   bool _loading = true;
+  String _q = '';
+  int _sort = 0;
+  final TextEditingController _qc = TextEditingController();
   bool _failed = false;
 
   @override
@@ -39,6 +42,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   void dispose() {
     PlaybackUi.instance.libraryRevision.removeListener(_load);
+    _qc.dispose();
     super.dispose();
   }
 
@@ -138,11 +142,72 @@ class _LibraryScreenState extends State<LibraryScreen> {
               message: 'Lo que escuches aparecerá en tu historial.',
             );
     }
+    final all = songs;
+    final q = _q.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      songs = songs
+          .where((x) =>
+              x.title.toLowerCase().contains(q) ||
+              x.artist.toLowerCase().contains(q))
+          .toList();
+    }
+    if (_sort == 1) {
+      songs = List<Song>.of(songs)
+        ..sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+    } else if (_sort == 2) {
+      songs = List<Song>.of(songs)
+        ..sort((a, b) => a.artist.toLowerCase().compareTo(b.artist.toLowerCase()));
+    }
     return ListView.builder(
       padding: const EdgeInsets.only(bottom: 16),
-      itemCount: songs.length + 1,
+      itemCount: songs.length + 2,
       itemBuilder: (context, i) {
         if (i == 0) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (all.length > 6)
+                  TextField(
+                    controller: _qc,
+                    onChanged: (v) => setState(() => _q = v),
+                    decoration: InputDecoration(
+                      hintText: 'Buscar en esta lista',
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon: _q.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Borrar búsqueda',
+                              icon: const Icon(Icons.close_rounded),
+                              onPressed: () => setState(() {
+                                    _qc.clear();
+                                    _q = '';
+                                  }),
+                            ),
+                    ),
+                  ),
+                if (all.length > 6) const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final e in const [
+                      [0, 'Recientes'],
+                      [1, 'A–Z'],
+                      [2, 'Artista']
+                    ])
+                      ChoiceChip(
+                        label: Text(e[1] as String),
+                        selected: _sort == e[0],
+                        onSelected: (_) => setState(() => _sort = e[0] as int),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
+        if (i == 1) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
             child: Row(
@@ -171,7 +236,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
           );
         }
-        final idx = i - 1;
+        final idx = i - 2;
         final song = songs[idx];
         return FadeIn(
           order: idx,
