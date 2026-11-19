@@ -12,6 +12,7 @@ import '../widgets/player_route.dart';
 import '../widgets/playback_ui.dart';
 import 'ai_settings_screen.dart';
 import 'song_list_screen.dart';
+import '../widgets/tip_card.dart';
 import 'settings_hub_screen.dart';
 
 class _Msg {
@@ -750,6 +751,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 controller: _scroll,
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                 children: [
+                  const TipCard(
+                      id: 'asistente',
+                      text:
+                          'Toca un ánimo o escribe lo que quieras. El asistente arma la lista y puedes mezclarla, guardarla o ampliarla.'),
                   if (_msgs.isEmpty) _welcome(),
                   for (var i = 0; i < _msgs.length; i++)
                     _bubble(_msgs[i], i == _msgs.length - 1 && !_busy),

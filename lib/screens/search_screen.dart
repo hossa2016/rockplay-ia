@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/tip_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
@@ -365,6 +366,10 @@ class _SearchScreenState extends State<SearchScreen> {
               hint: widget.hint,
               onSubmit: _search,
             ),
+            const TipCard(
+                id: 'buscar',
+                text:
+                    'Escribe un artista o una canción. Con los tres puntos de cada canción la guardas en una lista o la agregas a la cola.'),
             const SizedBox(height: 4),
             Expanded(
               child: AnimatedSwitcher(

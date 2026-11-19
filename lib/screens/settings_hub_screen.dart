@@ -7,6 +7,8 @@ import '../theme/app_theme.dart';
 import 'ai_settings_screen.dart';
 import 'data_settings_screen.dart';
 import 'taste_screen.dart';
+import 'onboarding_screen.dart';
+import '../services/help_settings.dart';
 
 /// Un solo lugar para todos los ajustes (agrupados).
 class SettingsHubScreen extends StatefulWidget {
@@ -22,7 +24,18 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
   @override
   void initState() {
     super.initState();
+    HelpSettings.showTips.addListener(_refresh);
     _load();
+  }
+
+  void _refresh() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    HelpSettings.showTips.removeListener(_refresh);
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -71,7 +84,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
       );
 
   Widget _row(IconData icon, String title, String value, VoidCallback onTap,
-      {String? badge}) {
+      {String? badge, String? tip}) {
     return InkWell(
       onTap: onTap,
       child: ConstrainedBox(
@@ -100,6 +113,14 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                   Text(value,
                       style: const TextStyle(
                           fontSize: 13, color: AppColors.textDim)),
+                  if (tip != null && HelpSettings.showTips.value) ...[
+                    const SizedBox(height: 4),
+                    Text(tip,
+                        style: const TextStyle(
+                            fontSize: 12,
+                            height: 1.3,
+                            color: AppColors.amber)),
+                  ],
                 ],
               ),
             ),
@@ -267,20 +288,25 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
           _box([
             _row(Icons.vpn_key_rounded, 'Activar la IA', aiLabel,
                 () => _go(const AiSettingsScreen()),
-                badge: aiOn ? null : '!'),
+                badge: aiOn ? null : '!',
+                tip: 'Pega aquí tus claves gratis de Gemini o Groq para que el asistente piense con IA.'),
             _row(Icons.format_list_numbered_rounded, 'Canciones por lista',
-                '${ai.maxSongs} como máximo', _pickListSize),
+                '${ai.maxSongs} como máximo', _pickListSize,
+                tip: 'Cuántas canciones como máximo trae el asistente. Menos es más rápido.'),
             _row(Icons.insights_rounded, 'Tu gusto',
-                'Aprende de lo que escuchas', () => _go(const TasteScreen())),
+                'Aprende de lo que escuchas', () => _go(const TasteScreen()),
+                tip: 'Lo que la app sabe de tus gustos para recomendarte música.'),
           ]),
           _group('DATOS'),
           _box([
             _row(Icons.storage_rounded, 'Almacenamiento',
                 '${_size(_bytes)} en uso',
-                () => _go(const DataSettingsScreen())),
+                () => _go(const DataSettingsScreen()),
+                tip: 'Guarda portadas y datos para no bajarlos otra vez. Aquí puedes borrarlo.'),
             _row(Icons.tune_rounded, 'Tamaño de los mixes',
                 'Hasta ${ds.mixSongs} canciones y ${ds.mixArtists} artistas',
-                _pickMixSize),
+                _pickMixSize,
+                tip: 'Cuántas canciones y artistas usan Tu mix, los géneros y la emisora.'),
           ]),
           _group('REPRODUCCIÓN'),
           _box([
@@ -289,12 +315,67 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                     ? 'Ninguna por ahora'
                     : 'YouTube bloquea $bad de tus canciones',
                 _showSkipped,
-                badge: bad == 0 ? null : '$bad'),
+                badge: bad == 0 ? null : '$bad',
+                tip: 'Canciones que YouTube no deja reproducir en apps. La app las salta sola.'),
             _row(Icons.block_rounded, 'Artistas que no quiero',
                 blocked == 0
                     ? 'Ninguno oculto'
                     : '$blocked ${blocked == 1 ? "artista oculto" : "artistas ocultos"}',
-                _showBlocked),
+                _showBlocked,
+                tip: 'Artistas que ocultaste. Aquí puedes volver a mostrarlos.'),
+          ]),
+          _group('AYUDA'),
+          _box([
+            _row(Icons.slideshow_rounded, 'Ver la guía de bienvenida',
+                'Repasa para qué sirve cada parte', () async {
+              await HelpSettings.resetTips();
+              if (!mounted) return;
+              await Navigator.of(context).push(MaterialPageRoute<void>(
+                  fullscreenDialog: true,
+                  builder: (_) => const OnboardingScreen()));
+            }),
+            InkWell(
+              onTap: () =>
+                  HelpSettings.setShowTips(!HelpSettings.showTips.value),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 64),
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  child: Row(children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceHigh,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child:
+                          const Icon(Icons.lightbulb_outline_rounded, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Mostrar explicaciones',
+                              style: TextStyle(
+                                  fontSize: 15, fontWeight: FontWeight.w700)),
+                          SizedBox(height: 2),
+                          Text('Textos de ayuda bajo cada opción y consejos',
+                              style: TextStyle(
+                                  fontSize: 13, color: AppColors.textDim)),
+                        ],
+                      ),
+                    ),
+                    Switch(
+                      value: HelpSettings.showTips.value,
+                      onChanged: HelpSettings.setShowTips,
+                    ),
+                  ]),
+                ),
+              ),
+            ),
           ]),
         ],
       ),

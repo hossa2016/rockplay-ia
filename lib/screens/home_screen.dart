@@ -23,6 +23,8 @@ import '../services/radio_service.dart';
 import 'dj_screen.dart';
 import 'library_screen.dart';
 import 'search_hub.dart';
+import '../services/help_settings.dart';
+import 'onboarding_screen.dart';
 import 'settings_hub_screen.dart';
 
 /// Contenedor principal: pestañas + mini-reproductor sobre la navegación.
@@ -35,6 +37,20 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    HelpSettings.load();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final seen = await HelpSettings.onboardingSeen();
+      if (!seen && mounted) {
+        await Navigator.of(context).push(MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (_) => const OnboardingScreen()));
+      }
+    });
+  }
 
   void _go(int i) {
     ScaffoldMessenger.of(context).clearSnackBars();
