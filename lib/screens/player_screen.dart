@@ -869,12 +869,26 @@ class _PlayerScreenState extends State<PlayerScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('LA MÚSICA SE DETUVO',
-                style: TextStyle(
-                    color: AppColors.amber,
-                    fontSize: 12,
-                    letterSpacing: 1.5,
-                    fontWeight: FontWeight.w800)),
+            Row(children: [
+              const Expanded(
+                child: Text('LA MÚSICA SE DETUVO',
+                    style: TextStyle(
+                        color: AppColors.amber,
+                        fontSize: 12,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w800)),
+              ),
+              SizedBox(
+                width: 48,
+                height: 32,
+                child: IconButton(
+                  padding: EdgeInsets.zero,
+                  tooltip: 'Cerrar aviso',
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  onPressed: () => pb.error.value = null,
+                ),
+              ),
+            ]),
             const SizedBox(height: 6),
             const Text(
                 'Las últimas canciones no se pueden reproducir en apps porque '

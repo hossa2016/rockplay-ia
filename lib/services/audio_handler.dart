@@ -397,13 +397,13 @@ class RockPlayAudioHandler extends BaseAudioHandler
       _broadcast();
       _emitError('Se detuvo: varias canciones seguidas no están disponibles. '
           'Toca siguiente para probar otra.',
-          seconds: 15);
+          seconds: 3600);
       return;
     }
     final shortTitle = song.title.length > 34
         ? '${song.title.substring(0, 34)}…'
         : song.title;
-    _emitError('Omitimos «$shortTitle»: no está disponible.', seconds: 5);
+    _emitError('Omitimos «$shortTitle»: no está disponible.', seconds: 12);
     if (hasNextTrack) {
       Future<void>.delayed(const Duration(milliseconds: 900), () {
         if (idx == _index && gen == _gen && hasNextTrack) {
