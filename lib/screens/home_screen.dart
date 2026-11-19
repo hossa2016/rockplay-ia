@@ -171,6 +171,7 @@ class _HomeTabState extends State<_HomeTab> {
           children: [
             _header(context),
             _personalMix(),
+            _quickAccess(),
             SectionTitle(
               'Seguir escuchando',
               actionLabel: _recent.isEmpty ? null : 'Ver historial',
@@ -294,31 +295,26 @@ class _HomeTabState extends State<_HomeTab> {
 
   Widget _quickAccess() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
       child: Row(
         children: [
           Expanded(
             child: _QuickTile(
-              icon: Icons.search_rounded,
-              label: 'Buscar',
-              onTap: () => widget.onNavigate(1),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _QuickTile(
               icon: Icons.radio_rounded,
-              label: 'DJ',
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const DjScreen())),
+              label: 'Emisora de artista',
+              onTap: () {
+                widget.onNavigate(1);
+                searchHubWantMode.value = 1;
+              },
             ),
           ),
           const SizedBox(width: 10),
           Expanded(
             child: _QuickTile(
-              icon: Icons.favorite_rounded,
-              label: 'Mi música',
-              onTap: () => widget.onNavigate(2),
+              icon: Icons.sensors_rounded,
+              label: 'Radio en vivo',
+              onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(builder: (_) => const RadioScreen())),
             ),
           ),
         ],

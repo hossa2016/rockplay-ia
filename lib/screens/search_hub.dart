@@ -4,6 +4,9 @@ import '../theme/app_theme.dart';
 import 'dj_screen.dart';
 import 'search_screen.dart';
 
+/// Pide abrir un modo de Buscar desde fuera (0 canciones, 1 emisora).
+final ValueNotifier<int> searchHubWantMode = ValueNotifier<int>(-1);
+
 /// Pestaña Buscar: canciones o emisora de un artista.
 class SearchHub extends StatefulWidget {
   const SearchHub({super.key});
@@ -14,6 +17,25 @@ class SearchHub extends StatefulWidget {
 
 class _SearchHubState extends State<SearchHub> {
   int _mode = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    searchHubWantMode.addListener(_wantMode);
+  }
+
+  void _wantMode() {
+    final m = searchHubWantMode.value;
+    if (m < 0) return;
+    searchHubWantMode.value = -1;
+    if (mounted) setState(() => _mode = m);
+  }
+
+  @override
+  void dispose() {
+    searchHubWantMode.removeListener(_wantMode);
+    super.dispose();
+  }
 
   Widget _seg(String label, int i) {
     final on = _mode == i;

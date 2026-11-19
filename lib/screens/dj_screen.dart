@@ -326,7 +326,7 @@ class _DjScreenState extends State<DjScreen> {
               Icon(Icons.radio_rounded, color: AppColors.amber, size: 34),
               SizedBox(height: 14),
               Text(
-                'Tu DJ personal',
+                'Elige un artista',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
               ),
               SizedBox(height: 6),
@@ -508,7 +508,7 @@ class _DjScreenState extends State<DjScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const PageHeader(title: 'DJ RockPlay'),
+            const PageHeader(title: 'Emisora de artista'),
             AppSearchField(
               controller: _controller,
               hint: 'Artista, ej: Linkin Park',
