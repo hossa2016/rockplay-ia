@@ -358,7 +358,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     if (song.videoId.isEmpty || _handledErrFor == song.videoId) return;
     _handledErrFor = song.videoId;
     _badIds.add(song.videoId);
-    unawaited(BadVideos.add(song.videoId));
+    unawaited(BadVideos.add(song.videoId, title: song.title, artist: song.artist));
     final tries = (_altTries[idx] ?? 0) + 1;
     _altTries[idx] = tries;
 
@@ -596,7 +596,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
       ok = await _embeddable(s0.videoId, 6);
       if (!ok) {
         _badIds.add(s0.videoId);
-        unawaited(BadVideos.add(s0.videoId));
+        unawaited(BadVideos.add(s0.videoId, title: s0.title, artist: s0.artist));
       }
     }
     if (gen != _gen) return null;

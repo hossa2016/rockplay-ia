@@ -97,6 +97,9 @@ class BlockService {
 class BadVideos {
   static const String _key = 'bad_videos_v1';
   static final Set<String> ids = <String>{};
+  /// id → «Título — Artista» (para mostrar cuáles son).
+  static final Map<String, String> names = <String, String>{};
+  static const String _nameKey = 'bad_names_v1';
   static bool _loaded = false;
 
   static Future<void> load() async {
@@ -105,13 +108,25 @@ class BadVideos {
     try {
       final prefs = await SharedPreferences.getInstance();
       ids.addAll(prefs.getStringList(_key) ?? const <String>[]);
+      for (final l in prefs.getStringList(_nameKey) ?? const <String>[]) {
+        final i = l.indexOf('\t');
+        if (i > 0) names[l.substring(0, i)] = l.substring(i + 1);
+      }
     } catch (_) {}
   }
 
-  static Future<void> add(String id) async {
-    if (id.isEmpty || !ids.add(id)) return;
+  static Future<void> add(String id, {String title = '', String artist = ''}) async {
+    if (id.isEmpty) return;
+    final label = title.isEmpty ? '' : (artist.isEmpty ? title : '$title — $artist');
+    final isNew = ids.add(id);
+    if (!isNew && (label.isEmpty || names.containsKey(id))) return;
+    if (label.isNotEmpty) names[id] = label;
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setStringList(_nameKey, [
+        for (final e in names.entries.toList().reversed.take(400).toList().reversed)
+          '${e.key}\t${e.value}'
+      ]);
       var list = ids.toList();
       if (list.length > 1500) list = list.sublist(list.length - 1500);
       await prefs.setStringList(_key, list);
@@ -120,9 +135,11 @@ class BadVideos {
 
   static Future<void> clear() async {
     ids.clear();
+    names.clear();
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_key);
+      await prefs.remove(_nameKey);
     } catch (_) {}
   }
 }

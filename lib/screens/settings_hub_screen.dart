@@ -211,27 +211,60 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
   void _showSkipped() {
     showDialog<void>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Canciones que no sonaron'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SkipLog.entries.isEmpty
-              ? const Text('Todavía no se ha saltado ninguna.')
-              : ListView(shrinkWrap: true, children: [
-                  for (final e in SkipLog.entries)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(e, style: const TextStyle(fontSize: 12.5)),
-                    ),
-                ]),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(c),
-              child: const Text('Cerrar')),
-        ],
-      ),
-    );
+      builder: (c) => StatefulBuilder(builder: (c, set) {
+        final saved = BadVideos.names.values.toList().reversed.toList();
+        final unnamed = BadVideos.ids.length - BadVideos.names.length;
+        return AlertDialog(
+          title: const Text('Canciones que no sonaron'),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: BadVideos.ids.isEmpty && SkipLog.entries.isEmpty
+                ? const Text('Todavía no se ha saltado ninguna.')
+                : ListView(shrinkWrap: true, children: [
+                    Text(
+                        'YouTube no deja reproducir ${BadVideos.ids.length} canciones en apps. Se ocultan de tus búsquedas.',
+                        style: const TextStyle(
+                            color: AppColors.textDim, fontSize: 12.5)),
+                    const SizedBox(height: 10),
+                    for (final e in saved)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Text(e, style: const TextStyle(fontSize: 13.5)),
+                      ),
+                    if (unnamed > 0)
+                      Text('Y $unnamed más guardadas antes, sin nombre.',
+                          style: const TextStyle(
+                              color: AppColors.textDim, fontSize: 12.5)),
+                    if (SkipLog.entries.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      const Text('De esta sesión (motivo técnico)',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 6),
+                      for (final e in SkipLog.entries)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(e,
+                              style: const TextStyle(fontSize: 12)),
+                        ),
+                    ],
+                  ]),
+          ),
+          actions: [
+            if (BadVideos.ids.isNotEmpty)
+              TextButton(
+                onPressed: () async {
+                  await BadVideos.clear();
+                  set(() {});
+                },
+                child: const Text('Olvidar todas'),
+              ),
+            TextButton(
+                onPressed: () => Navigator.pop(c),
+                child: const Text('Cerrar')),
+          ],
+        );
+      }),
+    ).then((_) => _load());
   }
 
   void _showBlocked() {
