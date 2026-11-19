@@ -20,7 +20,7 @@ class AppColors {
   static const LinearGradient accent = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFE5332E), Color(0xFFFF8A1F)],
+    colors: [Color(0xFFE5332E), Color(0xFFB3201B)],
   );
 
   static const LinearGradient heroGradient = LinearGradient(

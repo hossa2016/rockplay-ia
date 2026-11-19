@@ -69,6 +69,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
       await LibraryService.instance.toggleFavorite(s);
     } catch (_) {}
     PlaybackUi.instance.bumpLibrary();
+    if (!mounted) return;
+    final m = ScaffoldMessenger.of(context);
+    m.clearSnackBars();
+    m.showSnackBar(SnackBar(
+      duration: const Duration(seconds: 4),
+      persist: false,
+      content: const Text('Quitada de favoritos'),
+      action: SnackBarAction(
+        label: 'DESHACER',
+        onPressed: () async {
+          try {
+            await LibraryService.instance.toggleFavorite(s);
+          } catch (_) {}
+          PlaybackUi.instance.bumpLibrary();
+        },
+      ),
+    ));
   }
 
   Future<void> _confirmClearHistory() async {

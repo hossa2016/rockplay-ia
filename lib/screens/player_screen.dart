@@ -499,8 +499,73 @@ class _PlayerScreenState extends State<PlayerScreen>
         song.isRadio ? _liveBar() : _progress(),
         const SizedBox(height: 4),
         _controls(context, song),
-        const SizedBox(height: 20),
+        if (!song.isRadio) _extraControls(context, song),
+        const SizedBox(height: 12),
       ],
+    );
+  }
+
+  /// Fila de acciones a la vista: aleatorio, repetir, guardar en lista y
+  /// temporizador (antes escondidas en la cola o en el menú ⋮).
+  Widget _extraControls(BuildContext context, Song song) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+      child: ListenableBuilder(
+        listenable: Listenable.merge([pb.repeat, pb.sleepLabel]),
+        builder: (context, _) {
+          final rep = pb.repeat.value;
+          final sleeping = pb.sleepLabel.value != null;
+          Widget btn(IconData icon, String label, VoidCallback onTap,
+              {bool on = false}) {
+            final c = on ? AppColors.amber : AppColors.textDim;
+            return Expanded(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: onTap,
+                child: SizedBox(
+                  height: 56,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(icon, size: 24, color: c),
+                      const SizedBox(height: 2),
+                      Text(label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: c)),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return Row(
+            children: [
+              btn(Icons.shuffle_rounded, 'Mezclar',
+                  () => PlaybackService.instance.queueShuffle()),
+              btn(
+                  rep == 2 ? Icons.repeat_one_rounded : Icons.repeat_rounded,
+                  rep == 0
+                      ? 'Repetir'
+                      : rep == 1
+                          ? 'Repetir lista'
+                          : 'Repetir una',
+                  () => PlaybackService.instance.setRepeat((rep + 1) % 3),
+                  on: rep != 0),
+              btn(Icons.playlist_add_rounded, 'Guardar',
+                  () => showAddToPlaylist(context, song)),
+              btn(Icons.bedtime_outlined,
+                  sleeping ? (pb.sleepLabel.value ?? 'Dormir') : 'Dormir',
+                  _sleepSheet,
+                  on: sleeping),
+            ],
+          );
+        },
+      ),
     );
   }
 
