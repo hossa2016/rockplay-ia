@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/ai_settings.dart';
 import '../theme/app_theme.dart';
@@ -57,26 +59,112 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     Navigator.of(context).pop();
   }
 
-  Widget _keyField(String label, TextEditingController c, bool hide,
-      VoidCallback toggle, String hint) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: TextField(
-        controller: c,
-        obscureText: hide,
-        autocorrect: false,
-        enableSuggestions: false,
-        decoration: InputDecoration(
-          labelText: label,
-          hintText: hint,
-          suffixIcon: IconButton(
-            tooltip: hide ? 'Mostrar' : 'Ocultar',
-            icon: Icon(hide
-                ? Icons.visibility_outlined
-                : Icons.visibility_off_outlined),
-            onPressed: toggle,
+  Future<void> _open(String url) async {
+    try {
+      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+    } catch (_) {}
+  }
+
+  Future<void> _paste(TextEditingController c) async {
+    try {
+      final d = await Clipboard.getData(Clipboard.kTextPlain);
+      final t = (d?.text ?? '').trim();
+      if (t.isEmpty) return;
+      setState(() => c.text = t);
+    } catch (_) {}
+  }
+
+  /// Tarjeta de una clave: estado, pasos, abrir página, pegar y campo.
+  Widget _keyCard({
+    required String name,
+    required String subtitle,
+    required String url,
+    required String steps,
+    required TextEditingController c,
+    required bool hide,
+    required VoidCallback toggle,
+    required String hint,
+  }) {
+    final has = c.text.trim().isNotEmpty;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.outline),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(name,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w800)),
+              ),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: has
+                      ? const Color.fromRGBO(255, 176, 46, 0.16)
+                      : AppColors.surfaceHigh,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(has ? 'Clave puesta' : 'Falta la clave',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: has ? AppColors.amber : AppColors.textDim)),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 4),
+          Text(subtitle,
+              style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
+          const SizedBox(height: 12),
+          Text(steps,
+              style: const TextStyle(fontSize: 13, height: 1.45)),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 48,
+            child: OutlinedButton.icon(
+              onPressed: () => _open(url),
+              icon: const Icon(Icons.open_in_new_rounded, size: 18),
+              label: const Text('Abrir la página'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: c,
+            obscureText: hide,
+            autocorrect: false,
+            enableSuggestions: false,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: 'Pega aquí tu clave',
+              hintText: hint,
+              suffixIcon: IconButton(
+                tooltip: hide ? 'Mostrar' : 'Ocultar',
+                icon: Icon(hide
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined),
+                onPressed: toggle,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 48,
+            child: TextButton.icon(
+              onPressed: () => _paste(c),
+              icon: const Icon(Icons.content_paste_rounded, size: 18),
+              label: const Text('Pegar desde el portapapeles'),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -91,26 +179,39 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 const Text(
-                  'El asistente usa Groq primero y Gemini si Groq falla. Si no hay '
-                  'ninguna clave o se acaba el límite gratuito, usa reglas simples. '
+                  'El asistente usa primero Gemini y, si falla o se acaba el '
+                  'límite gratis, usa Groq. Sin ninguna clave usa reglas simples. '
                   'Las claves se guardan solo en este teléfono.',
                   style: TextStyle(color: AppColors.textDim, height: 1.45),
                 ),
-                const SizedBox(height: 20),
-                _keyField('Clave de Groq', _groq, _hideGroq,
-                    () => setState(() => _hideGroq = !_hideGroq), 'gsk_…'),
-                const Text(
-                  'Se crea gratis en console.groq.com → API Keys → Create API Key.',
-                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                const SizedBox(height: 16),
+                _keyCard(
+                  name: 'Gemini (Google)',
+                  subtitle: 'La principal. Gratis.',
+                  url: 'https://aistudio.google.com/apikey',
+                  steps:
+                      '1. Toca «Abrir la página» e inicia sesión con Google.\n'
+                      '2. Toca «Create API key» y copia la clave.\n'
+                      '3. Vuelve aquí y toca «Pegar».',
+                  c: _gemini,
+                  hide: _hideGemini,
+                  toggle: () => setState(() => _hideGemini = !_hideGemini),
+                  hint: 'AIza…',
                 ),
-                const SizedBox(height: 20),
-                _keyField('Clave de Gemini', _gemini, _hideGemini,
-                    () => setState(() => _hideGemini = !_hideGemini), 'AIza…'),
-                const Text(
-                  'Se crea gratis en aistudio.google.com → Get API key.',
-                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                _keyCard(
+                  name: 'Groq',
+                  subtitle: 'De respaldo. Gratis.',
+                  url: 'https://console.groq.com/keys',
+                  steps:
+                      '1. Toca «Abrir la página» y crea tu cuenta.\n'
+                      '2. Toca «Create API Key» y copia la clave.\n'
+                      '3. Vuelve aquí y toca «Pegar».',
+                  c: _groq,
+                  hide: _hideGroq,
+                  toggle: () => setState(() => _hideGroq = !_hideGroq),
+                  hint: 'gsk_…',
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 6),
                 const Text('Canciones por lista',
                     style: TextStyle(fontWeight: FontWeight.w700)),
                 const SizedBox(height: 4),
