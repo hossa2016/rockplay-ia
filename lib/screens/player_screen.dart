@@ -559,11 +559,18 @@ class _PlayerScreenState extends State<PlayerScreen>
                       const Icon(Icons.bedtime_outlined,
                           size: 16, color: AppColors.amber),
                       const SizedBox(width: 8),
-                      Text('Se apaga en $label',
-                          style: const TextStyle(
-                              color: AppColors.amber,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700)),
+                      Flexible(
+                        child: Text(
+                            label.toLowerCase().startsWith('al ')
+                                ? 'Se apaga ${label[0].toLowerCase()}${label.substring(1)}'
+                                : 'Se apaga en $label',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                color: AppColors.amber,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700)),
+                      ),
                     ]),
                   ),
                 ),
