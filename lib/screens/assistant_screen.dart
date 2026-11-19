@@ -167,12 +167,36 @@ class _AssistantScreenState extends State<AssistantScreen> {
   }
 
   void _close(_Msg m) {
+    final i = _msgs.indexOf(m);
+    if (i < 0) return;
+    _Msg? q;
     setState(() {
-      final i = _msgs.indexOf(m);
-      if (i < 0) return;
       _msgs.removeAt(i);
-      if (i - 1 >= 0 && _msgs[i - 1].fromUser) _msgs.removeAt(i - 1);
+      if (i - 1 >= 0 && _msgs[i - 1].fromUser) q = _msgs.removeAt(i - 1);
     });
+    final at = q != null ? i - 1 : i;
+    final mm = ScaffoldMessenger.of(context);
+    mm.clearSnackBars();
+    mm.showSnackBar(SnackBar(
+      duration: const Duration(seconds: 4),
+      persist: false,
+      content: const Text('Lista descartada'),
+      action: SnackBarAction(
+        label: 'DESHACER',
+        onPressed: () {
+          if (!mounted) return;
+          setState(() {
+            final pos = at.clamp(0, _msgs.length);
+            if (q != null) {
+              _msgs.insert(pos, q!);
+              _msgs.insert(pos + 1, m);
+            } else {
+              _msgs.insert(pos, m);
+            }
+          });
+        },
+      ),
+    ));
   }
 
   Future<void> _expand(AssistantResult cur) async {
@@ -220,11 +244,17 @@ class _AssistantScreenState extends State<AssistantScreen> {
         child: InkWell(
           customBorder: const StadiumBorder(),
           onTap: _busy ? null : onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-            child: Text(label,
-                style: const TextStyle(
-                    fontSize: 13, fontWeight: FontWeight.w600)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                widthFactor: 1,
+                child: Text(label,
+                    style: const TextStyle(
+                        fontSize: 13.5, fontWeight: FontWeight.w600)),
+              ),
+            ),
           ),
         ),
       );
@@ -451,8 +481,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
                         songs: r.songs,
                         emptyMessage: 'Lista vacía.',
                       ))),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Container(
+                height: 48,
+                alignment: Alignment.centerLeft,
                 child: Text('Ver las ${r.songs.length - 3} restantes',
                     style: const TextStyle(
                         color: AppColors.amber,
@@ -467,7 +498,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 style: FilledButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: AppColors.bg,
-                    minimumSize: const Size(0, 46),
+                    minimumSize: const Size(0, 48),
                     shape: const StadiumBorder()),
                 onPressed: () => playSongs(context, r.songs, 0),
                 icon: const Icon(Icons.play_arrow_rounded),
@@ -475,26 +506,30 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     fit: BoxFit.scaleDown, child: Text('Reproducir')),
               ),
             ),
-            const SizedBox(width: 10),
-            IconButton(
-              tooltip: 'Aleatorio',
-              style: IconButton.styleFrom(
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   side: const BorderSide(color: Color(0xFF3A3A46)),
-                  minimumSize: const Size(46, 46)),
+                  shape: const StadiumBorder()),
               onPressed: () {
                 final mix = List<Song>.of(r.songs)..shuffle();
                 playSongs(context, mix, 0);
               },
-              icon: const Icon(Icons.shuffle_rounded),
+              icon: const Icon(Icons.shuffle_rounded, size: 20),
+              label: const Text('Mezclar'),
             ),
-            const SizedBox(width: 10),
-            IconButton(
-              tooltip: 'Guardar lista',
-              style: IconButton.styleFrom(
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(0, 48),
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
                   side: const BorderSide(color: Color(0xFF3A3A46)),
-                  minimumSize: const Size(46, 46)),
+                  shape: const StadiumBorder()),
               onPressed: () => _save(r),
-              icon: const Icon(Icons.bookmark_border_rounded),
+              icon: const Icon(Icons.bookmark_border_rounded, size: 20),
+              label: const Text('Guardar'),
             ),
           ]),
         ],
@@ -506,7 +541,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
     ['Con energía', Color(0xFFC2331A), Color(0xFF2C0A05)],
     ['Melancólico', Color(0xFF3A4A8A), Color(0xFF0D1030)],
     ['Para concentrarme', Color(0xFF2A6F8A), Color(0xFF08202A)],
-    ['De carretera', Color(0xFFB8420F), Color(0xFF2A1005)],
+    ['De carretera', Color(0xFF8A2A24), Color(0xFF2A0D0B)],
     ['Quiero algo nuevo', Color(0xFF8A5A2A), Color(0xFF241608)],
   ];
 
