@@ -119,6 +119,95 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
     );
   }
 
+  Widget _chips(List<int> opts, int cur, void Function(int) on) => Wrap(
+        spacing: 8,
+        runSpacing: 4,
+        children: [
+          for (final n in opts)
+            ChoiceChip(
+              label: Text('$n'),
+              selected: cur == n,
+              onSelected: (_) => on(n),
+            ),
+        ],
+      );
+
+  void _pickListSize() {
+    showDialog<void>(
+      context: context,
+      builder: (c) => StatefulBuilder(builder: (c, set) {
+        final ai = AiSettings.instance;
+        return AlertDialog(
+          title: const Text('Canciones por lista'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                  'Máximo de canciones que trae el asistente. Menos canciones = respuesta más rápida y menos gasto de tu cuota gratis.',
+                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+              const SizedBox(height: 12),
+              _chips(AiSettings.maxOptions, ai.maxSongs, (n) {
+                set(() => ai.maxSongs = n);
+                ai.save();
+              }),
+            ],
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(c),
+                child: const Text('Listo')),
+          ],
+        );
+      }),
+    ).then((_) => _load());
+  }
+
+  void _pickMixSize() {
+    showDialog<void>(
+      context: context,
+      builder: (c) => StatefulBuilder(builder: (c, set) {
+        final ds = DataSaver.instance;
+        return AlertDialog(
+          title: const Text('Tamaño de los mixes'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                    'Aplica a Tu mix, los mixes por género y la emisora de artista. Menos = carga más rápida y menos datos.',
+                    style:
+                        TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                const SizedBox(height: 12),
+                const Text('Canciones (máximo)',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                _chips(DataSaver.mixSongOptions, ds.mixSongs, (n) {
+                  set(() => ds.mixSongs = n);
+                  ds.save();
+                }),
+                const SizedBox(height: 12),
+                const Text('Artistas (máximo)',
+                    style: TextStyle(fontWeight: FontWeight.w700)),
+                const SizedBox(height: 6),
+                _chips(DataSaver.mixArtistOptions, ds.mixArtists, (n) {
+                  set(() => ds.mixArtists = n);
+                  ds.save();
+                }),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(c),
+                child: const Text('Listo')),
+          ],
+        );
+      }),
+    ).then((_) => _load());
+  }
+
   void _showSkipped() {
     showDialog<void>(
       context: context,
@@ -204,8 +293,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 () => _go(const AiSettingsScreen()),
                 badge: aiOn ? null : '!'),
             _row(Icons.format_list_numbered_rounded, 'Canciones por lista',
-                '${ai.maxSongs} como máximo',
-                () => _go(const AiSettingsScreen())),
+                '${ai.maxSongs} como máximo', _pickListSize),
             _row(Icons.insights_rounded, 'Tu gusto',
                 'Aprende de lo que escuchas', () => _go(const TasteScreen())),
           ]),
@@ -216,7 +304,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 () => _go(const DataSettingsScreen())),
             _row(Icons.tune_rounded, 'Tamaño de los mixes',
                 'Hasta ${ds.mixSongs} canciones y ${ds.mixArtists} artistas',
-                () => _go(const DataSettingsScreen())),
+                _pickMixSize),
           ]),
           _group('REPRODUCCIÓN'),
           _box([

@@ -194,43 +194,6 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 22),
-          const Text('Tamaño de los mixes y la emisora',
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-          const SizedBox(height: 4),
-          const Text(
-              'Aplica a Tu mix, los mixes por género y la emisora de artista. Menos canciones y artistas = carga más rápida y menos datos.',
-              style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
-          const SizedBox(height: 12),
-          const Text('Canciones (máximo)',
-              style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Wrap(spacing: 8, children: [
-            for (final n in DataSaver.mixSongOptions)
-              ChoiceChip(
-                label: Text('$n'),
-                selected: _ds.mixSongs == n,
-                onSelected: (_) {
-                  setState(() => _ds.mixSongs = n);
-                  _apply();
-                },
-              ),
-          ]),
-          const SizedBox(height: 12),
-          const Text('Artistas (máximo)',
-              style: TextStyle(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 6),
-          Wrap(spacing: 8, children: [
-            for (final n in DataSaver.mixArtistOptions)
-              ChoiceChip(
-                label: Text('$n'),
-                selected: _ds.mixArtists == n,
-                onSelected: (_) {
-                  setState(() => _ds.mixArtists = n);
-                  _apply();
-                },
-              ),
-          ]),
         ],
       ),
     );
