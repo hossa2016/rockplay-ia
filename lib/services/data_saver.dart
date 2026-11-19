@@ -186,6 +186,13 @@ class DataSaver {
     }
   }
 
+  /// Para diagnóstico: estado de la carpeta del caché.
+  String debugInfo() {
+    final d = _dir;
+    if (d == null) return 'Carpeta del caché no disponible: no se está guardando nada.';
+    return '${_files().length} archivos guardados · ${mode.name}';
+  }
+
   Future<int> sizeBytes() async {
     var t = 0;
     for (final f in _files()) {

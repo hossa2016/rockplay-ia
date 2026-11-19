@@ -83,7 +83,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Datos y almacenamiento')),
+      appBar: AppBar(title: const Text('Almacenamiento')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
@@ -108,6 +108,12 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                 child: const Text('Borrar caché'),
               ),
             ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+            child: Text(_ds.debugInfo(),
+                style: const TextStyle(
+                    color: AppColors.textFaint, fontSize: 12)),
           ),
           const SizedBox(height: 14),
           const Text(
