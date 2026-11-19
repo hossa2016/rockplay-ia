@@ -405,14 +405,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(r.title,
-                        maxLines: 1,
-                        style: const TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w900)),
-                  ),
+                  Text(r.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 3),
                   Text('${r.songs.length} canciones',
                       style: const TextStyle(
@@ -565,13 +562,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
             height: 84,
             alignment: Alignment.bottomLeft,
             padding: const EdgeInsets.all(14),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.bottomLeft,
-              child: Text(t[0] as String,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 15)),
-            ),
+            child: Text(t[0] as String,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 15, height: 1.1)),
           ),
         ),
       ),
