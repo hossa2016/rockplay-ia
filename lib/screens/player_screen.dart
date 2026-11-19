@@ -9,6 +9,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/song.dart';
+import 'settings_hub_screen.dart';
 import '../services/embed_bridge.dart';
 import '../services/track_info_service.dart';
 import '../services/block_service.dart';
@@ -942,30 +943,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  void _showSkipped() {
-    showDialog<void>(
-      context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Canciones saltadas'),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SkipLog.entries.isEmpty
-              ? const Text('Todavía no se ha saltado ninguna.')
-              : ListView(shrinkWrap: true, children: [
-                  for (final e in SkipLog.entries)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Text(e, style: const TextStyle(fontSize: 12.5)),
-                    ),
-                ]),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(c), child: const Text('Cerrar')),
-        ],
-      ),
-    );
-  }
+  void _showSkipped() => showSkippedDialog(context);
 
   Widget _progress() {
     return ListenableBuilder(
