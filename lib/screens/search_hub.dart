@@ -24,7 +24,7 @@ class _SearchHubState extends State<SearchHub> {
           height: 40,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: on ? AppColors.red : Colors.transparent,
+            color: on ? AppColors.redBtn : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
           ),
           child: FittedBox(

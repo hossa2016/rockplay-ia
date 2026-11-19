@@ -213,7 +213,7 @@ class _HomeTabState extends State<_HomeTab> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: on ? AppColors.red : AppColors.surfaceHigh,
+                color: on ? AppColors.redBtn : AppColors.surfaceHigh,
                 borderRadius: BorderRadius.circular(999),
                 border: on ? null : Border.all(color: AppColors.outline),
               ),

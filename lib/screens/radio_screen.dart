@@ -274,7 +274,7 @@ class _RadioScreenState extends State<RadioScreen> {
       appBar: AppBar(title: const Text('Radio')),
       bottomNavigationBar: const MiniPlayer(),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.red,
+        backgroundColor: AppColors.redBtn,
         foregroundColor: Colors.white,
         onPressed: _addByLink,
         icon: const Icon(Icons.add_link_rounded),
