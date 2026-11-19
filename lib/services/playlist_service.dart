@@ -67,6 +67,14 @@ class PlaylistService {
     return p;
   }
 
+  Future<void> rename(String id, String name) async {
+    final lists = await all();
+    for (final p in lists) {
+      if (p.id == id && name.trim().isNotEmpty) p.name = name.trim();
+    }
+    await _save(lists);
+  }
+
   Future<void> delete(String id) async {
     final lists = await all();
     lists.removeWhere((p) => p.id == id);

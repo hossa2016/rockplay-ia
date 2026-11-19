@@ -67,6 +67,7 @@ class AppTheme {
     );
 
     return ThemeData(
+      materialTapTargetSize: MaterialTapTargetSize.padded,
       useMaterial3: true,
       brightness: Brightness.dark,
       colorScheme: scheme,

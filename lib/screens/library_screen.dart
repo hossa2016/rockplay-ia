@@ -5,7 +5,7 @@ import '../services/library_service.dart';
 import '../services/playlist_service.dart';
 import '../widgets/add_to_playlist.dart';
 import '../widgets/cover_art.dart';
-import 'data_settings_screen.dart';
+import 'settings_hub_screen.dart';
 import 'song_list_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
@@ -13,7 +13,6 @@ import '../widgets/playback_ui.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
 import '../widgets/state_views.dart';
-import 'stats_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -268,13 +267,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       children: [
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: _newList,
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Nueva lista'),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          minVerticalPadding: 8,
+          leading: Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.red),
+            ),
+            child: const Icon(Icons.add_rounded, color: AppColors.red),
           ),
+          title: const Text('Nueva lista',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          onTap: _newList,
         ),
         if (_lists.isEmpty)
           const Padding(
@@ -299,8 +307,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text('${p.songs.length} canciones',
                 style: const TextStyle(color: AppColors.textDim)),
-            trailing: const Icon(Icons.chevron_right_rounded,
-                color: AppColors.textDim),
+            trailing: PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert_rounded,
+                  color: AppColors.textDim),
+              onSelected: (v) async {
+                if (v == 'rename') {
+                  final n = await askPlaylistName(context);
+                  if (n == null || n.trim().isEmpty) return;
+                  await PlaylistService.instance.rename(p.id, n);
+                } else {
+                  await PlaylistService.instance.delete(p.id);
+                }
+                PlaybackUi.instance.bumpLibrary();
+              },
+              itemBuilder: (_) => const [
+                PopupMenuItem(value: 'rename', child: Text('Renombrar')),
+                PopupMenuItem(value: 'delete', child: Text('Borrar lista')),
+              ],
+            ),
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
               builder: (_) => SongListScreen(
                 title: p.name,
@@ -341,18 +365,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      tooltip: 'Datos y caché',
-                      icon: const Icon(Icons.data_saver_on_rounded),
+                      tooltip: 'Ajustes',
+                      icon: const Icon(Icons.settings_rounded),
                       onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
-                              builder: (_) => const DataSettingsScreen())),
-                    ),
-                    IconButton(
-                      tooltip: 'Tus estadísticas',
-                      icon: const Icon(Icons.insights_rounded),
-                      onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                              builder: (_) => const StatsScreen())),
+                              builder: (_) => const SettingsHubScreen())),
                     ),
                   ],
                 ),

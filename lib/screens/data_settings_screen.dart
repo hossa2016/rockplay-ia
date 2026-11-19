@@ -83,10 +83,33 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Datos y caché')),
+      appBar: AppBar(title: const Text('Datos y almacenamiento')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.outline),
+            ),
+            child: Row(children: [
+              Expanded(
+                child: Text('En uso: ${_size(_bytes)}',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800, fontSize: 15)),
+              ),
+              OutlinedButton(
+                onPressed: () async {
+                  await _ds.clear();
+                  await _refresh();
+                },
+                child: const Text('Borrar caché'),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 14),
           const Text(
             'El caché guarda portadas y datos de artistas en tu teléfono para no '
             'bajarlos otra vez. No guarda música.',
@@ -208,29 +231,6 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                 },
               ),
           ]),
-          const SizedBox(height: 10),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.outline),
-            ),
-            child: Row(children: [
-              Expanded(
-                child: Text('En uso: ${_size(_bytes)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 15)),
-              ),
-              OutlinedButton(
-                onPressed: () async {
-                  await _ds.clear();
-                  await _refresh();
-                },
-                child: const Text('Borrar caché'),
-              ),
-            ]),
-          ),
         ],
       ),
     );
