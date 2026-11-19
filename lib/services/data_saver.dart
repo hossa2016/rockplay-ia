@@ -29,6 +29,7 @@ class DataSaver {
   int mixArtists = 100;
 
   Directory? _dir;
+  String _dirError = '';
   bool _keepLoaded = false;
   Set<String> _keep = <String>{};
 
@@ -48,12 +49,27 @@ class DataSaver {
       mixArtists = sp.getInt('ds_mixartists') ?? 100;
       audioOnly = false; // función retirada (YouTube bloquea la extracción)
     } catch (_) {}
+    Directory? base;
     try {
-      final base = await getTemporaryDirectory();
+      base = await getTemporaryDirectory();
+    } catch (e) {
+      _dirError = '$e';
+    }
+    if (base == null) {
+      try {
+        base = await getApplicationCacheDirectory();
+      } catch (e) {
+        _dirError = '$_dirError | $e';
+      }
+    }
+    base ??= Directory.systemTemp;
+    try {
       final d = Directory('${base.path}/rp_cache');
       if (!d.existsSync()) d.createSync(recursive: true);
       _dir = d;
-    } catch (_) {}
+    } catch (e) {
+      _dirError = '$_dirError | crear: $e';
+    }
     prune();
   }
 
@@ -189,7 +205,7 @@ class DataSaver {
   /// Para diagnóstico: estado de la carpeta del caché.
   String debugInfo() {
     final d = _dir;
-    if (d == null) return 'Carpeta del caché no disponible: no se está guardando nada.';
+    if (d == null) return 'Carpeta del caché no disponible: $_dirError';
     return '${_files().length} archivos guardados · ${mode.name}';
   }
 
