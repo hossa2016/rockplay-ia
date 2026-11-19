@@ -206,7 +206,13 @@ class DataSaver {
   String debugInfo() {
     final d = _dir;
     if (d == null) return 'Carpeta del caché no disponible: $_dirError';
-    return '${_files().length} archivos guardados · ${mode.name}';
+    final m = {
+      CacheMode.off: 'sin caché',
+      CacheMode.unlimited: 'sin límite',
+      CacheMode.limit: 'hasta ${limitMb >= 1000 ? "1 GB" : "$limitMb MB"}',
+      CacheMode.favorites: 'solo favoritas',
+    }[mode];
+    return '${_files().length} archivos guardados · $m';
   }
 
   Future<int> sizeBytes() async {

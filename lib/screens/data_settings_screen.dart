@@ -96,9 +96,14 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
             ),
             child: Row(children: [
               Expanded(
-                child: Text('En uso: ${_size(_bytes)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w800, fontSize: 15)),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text('En uso: ${_size(_bytes)}',
+                      maxLines: 1,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 15)),
+                ),
               ),
               OutlinedButton(
                 onPressed: () async {
