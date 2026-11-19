@@ -246,7 +246,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
-      child: Scaffold(
+      child: _TabJump(child: Scaffold(
         backgroundColor: Colors.transparent,
         body: SafeArea(
           bottom: false,
@@ -287,7 +287,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: BoxDecoration(
-                    color: AppColors.red,
+                    color: AppColors.redBtn,
                     borderRadius: BorderRadius.circular(11),
                   ),
                   labelColor: Colors.white,
@@ -314,7 +314,45 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ],
           ),
         ),
-      ),
+      )),
     );
   }
+}
+
+/// Pide abrir una pestaña de Mi música desde fuera (0 favoritos, 1 listas,
+/// 2 historial).
+final ValueNotifier<int> libraryWantTab = ValueNotifier<int>(-1);
+
+class _TabJump extends StatefulWidget {
+  final Widget child;
+  const _TabJump({required this.child});
+
+  @override
+  State<_TabJump> createState() => _TabJumpState();
+}
+
+class _TabJumpState extends State<_TabJump> {
+  @override
+  void initState() {
+    super.initState();
+    libraryWantTab.addListener(_jump);
+  }
+
+  void _jump() {
+    final i = libraryWantTab.value;
+    if (i < 0) return;
+    libraryWantTab.value = -1;
+    try {
+      DefaultTabController.of(context).animateTo(i);
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    libraryWantTab.removeListener(_jump);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }

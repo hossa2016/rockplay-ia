@@ -144,7 +144,7 @@ class _SearchScreenState extends State<SearchScreen> {
     ['Rock en español', Color(0xFF3A4A8A), Color(0xFF0D1030)],
     ['Heavy metal', Color(0xFF7A1411), Color(0xFF1A1014)],
     ['Rock clásico', Color(0xFF8A5A2A), Color(0xFF241608)],
-    ['Hard rock', Color(0xFFB8420F), Color(0xFF2A1005)],
+    ['Hard rock', Color(0xFF8A2A24), Color(0xFF2A0D0B)],
     ['Punk rock', Color(0xFF2A6F8A), Color(0xFF08202A)],
     ['Rock alternativo', Color(0xFF5A3A8A), Color(0xFF150D30)],
     ['Indie rock', Color(0xFF2A7A5A), Color(0xFF08241A)],

@@ -9,6 +9,8 @@ class AppColors {
   static const Color surfaceHigh = Color(0xFF1E1E26);
   static const Color outline = Color(0xFF2B2B35);
   static const Color red = Color(0xFFE5332E);
+  /// Rojo para botones con texto blanco (contraste ≥ 4,5:1).
+  static const Color redBtn = Color(0xFFC92B26);
   static const Color redDeep = Color(0xFF7A1411);
   static const Color amber = Color(0xFFFFB02E);
   static const Color text = Color(0xFFF4F4F6);
@@ -113,7 +115,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          backgroundColor: AppColors.red,
+          backgroundColor: AppColors.redBtn,
           foregroundColor: Colors.white,
           minimumSize: const Size(0, 50),
           padding: const EdgeInsets.symmetric(horizontal: 24),

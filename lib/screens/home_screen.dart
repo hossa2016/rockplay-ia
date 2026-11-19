@@ -173,8 +173,11 @@ class _HomeTabState extends State<_HomeTab> {
             _personalMix(),
             SectionTitle(
               'Seguir escuchando',
-              actionLabel: _recent.isEmpty ? null : 'Ver todo',
-              onAction: () => widget.onNavigate(2),
+              actionLabel: _recent.isEmpty ? null : 'Ver historial',
+              onAction: () {
+                widget.onNavigate(2);
+                libraryWantTab.value = 2;
+              },
             ),
             _recentSection(),
             const SectionTitle('Descubrir'),
