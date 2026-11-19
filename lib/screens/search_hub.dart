@@ -49,14 +49,12 @@ class _SearchHubState extends State<SearchHub> {
             color: on ? AppColors.redBtn : Colors.transparent,
             borderRadius: BorderRadius.circular(11),
           ),
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(label,
-                style: TextStyle(
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w800,
-                    color: on ? Colors.white : AppColors.textDim)),
-          ),
+          child: Text(label,
+              maxLines: 1,
+              style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: on ? Colors.white : AppColors.textDim)),
         ),
       ),
     );
@@ -80,7 +78,7 @@ class _SearchHubState extends State<SearchHub> {
               ),
               child: Row(children: [
                 _seg('Canciones', 0),
-                _seg('Emisora de artista', 1),
+                _seg('Emisora', 1),
               ]),
             ),
             Expanded(

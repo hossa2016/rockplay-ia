@@ -179,13 +179,11 @@ class _SearchScreenState extends State<SearchScreen> {
           child: Container(
             alignment: Alignment.bottomLeft,
             padding: const EdgeInsets.all(14),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.bottomLeft,
-              child: Text(t[0] as String,
-                  style: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 15)),
-            ),
+            child: Text(t[0] as String,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 15, height: 1.1)),
           ),
         ),
       ),
