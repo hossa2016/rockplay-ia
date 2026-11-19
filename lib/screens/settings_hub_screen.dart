@@ -212,7 +212,14 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
     showDialog<void>(
       context: context,
       builder: (c) => StatefulBuilder(builder: (c, set) {
-        final saved = BadVideos.names.values.toList().reversed.toList();
+        final counts = <String, int>{};
+        for (final v in BadVideos.names.values.toList().reversed) {
+          counts[v] = (counts[v] ?? 0) + 1;
+        }
+        final saved = [
+          for (final e in counts.entries)
+            e.value > 1 ? '${e.key}  (${e.value} versiones)' : e.key
+        ];
         final unnamed = BadVideos.ids.length - BadVideos.names.length;
         return AlertDialog(
           title: const Text('Canciones que no sonaron'),
