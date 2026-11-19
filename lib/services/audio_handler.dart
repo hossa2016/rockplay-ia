@@ -113,6 +113,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
     eb.onEnded = () {
       if (_sleepEndOfSong) {
         _clearSleep();
+        unawaited(StopLog.record(
+            'El temporizador de dormir apagó la música (al terminar la canción).'));
         EmbedBridge.instance.pause();
         return;
       }
@@ -324,6 +326,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
       } catch (_) {}
       if (fails >= _maxConsecutiveFailures) {
         _emitError('Se detuvo. Último error: ${failure ?? "?"}');
+        unawaited(StopLog.record(
+            'Se detuvo por varios errores seguidos. Último: ${failure ?? "?"}'));
       }
       _broadcast();
       return;
@@ -395,6 +399,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
       _chainSkips = 0;
       _resolving = false;
       _broadcast();
+      unawaited(StopLog.record(
+          'Se detuvo: varias canciones seguidas están bloqueadas por YouTube.'));
       _emitError('Se detuvo: varias canciones seguidas no están disponibles. '
           'Toca siguiente para probar otra.',
           seconds: 3600);
@@ -1046,6 +1052,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
       final left = at.difference(DateTime.now());
       if (left <= Duration.zero) {
         _clearSleep();
+        unawaited(StopLog.record('El temporizador de dormir apagó la música.'));
         pause();
       } else {
         _s.sleepLabel.add(_fmt(left));

@@ -122,6 +122,7 @@ class _HomeTabState extends State<_HomeTab> {
   void initState() {
     super.initState();
     PlaybackUi.instance.libraryRevision.addListener(_load);
+    StopLog.load();
     _load();
   }
 
@@ -171,6 +172,7 @@ class _HomeTabState extends State<_HomeTab> {
           padding: const EdgeInsets.only(bottom: 24),
           children: [
             _header(context),
+            _stopNotice(),
             _personalMix(),
             _quickAccess(),
             SectionTitle(
@@ -298,6 +300,56 @@ class _HomeTabState extends State<_HomeTab> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _stopNotice() {
+    return ValueListenableBuilder<String?>(
+      valueListenable: StopLog.last,
+      builder: (context, v, _) {
+        if (v == null || !v.contains('|')) return const SizedBox.shrink();
+        final i = v.indexOf('|');
+        final hora = v.substring(0, i);
+        final motivo = v.substring(i + 1);
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
+            decoration: BoxDecoration(
+              color: const Color.fromRGBO(255, 176, 46, 0.10),
+              borderRadius: BorderRadius.circular(16),
+              border:
+                  Border.all(color: const Color.fromRGBO(255, 176, 46, 0.35)),
+            ),
+            child: Row(children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('La música se detuvo a las $hora',
+                        style: const TextStyle(
+                            color: AppColors.amber,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13)),
+                    const SizedBox(height: 2),
+                    Text(motivo,
+                        style: const TextStyle(fontSize: 13, height: 1.3)),
+                  ],
+                ),
+              ),
+              SizedBox(
+                width: 48,
+                height: 48,
+                child: IconButton(
+                  tooltip: 'Cerrar aviso',
+                  icon: const Icon(Icons.close_rounded, size: 20),
+                  onPressed: StopLog.clear,
+                ),
+              ),
+            ]),
+          ),
+        );
+      },
     );
   }
 

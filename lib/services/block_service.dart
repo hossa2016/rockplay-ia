@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Artistas que el usuario no quiere escuchar. Se filtran de búsquedas,
@@ -154,5 +155,40 @@ class SkipLog {
     final mm = t.minute.toString().padLeft(2, '0');
     entries.insert(0, '$hh:$mm  $s');
     if (entries.length > 40) entries.removeRange(40, entries.length);
+  }
+}
+
+
+/// Último motivo por el que la música se detuvo sola (se guarda para verlo
+/// después, aunque la app se haya cerrado).
+class StopLog {
+  static const String _key = 'last_stop_v1';
+  static final ValueNotifier<String?> last = ValueNotifier<String?>(null);
+
+  static Future<void> load() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      last.value = prefs.getString(_key);
+    } catch (_) {}
+  }
+
+  static Future<void> record(String reason) async {
+    final n = DateTime.now();
+    final h = n.hour.toString().padLeft(2, '0');
+    final m = n.minute.toString().padLeft(2, '0');
+    final text = '$h:$m|$reason';
+    last.value = text;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_key, text);
+    } catch (_) {}
+  }
+
+  static Future<void> clear() async {
+    last.value = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_key);
+    } catch (_) {}
   }
 }
