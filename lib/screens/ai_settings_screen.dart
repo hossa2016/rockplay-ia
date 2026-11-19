@@ -128,8 +128,8 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
           Text(steps,
               style: const TextStyle(fontSize: 13, height: 1.45)),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 48,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
             child: OutlinedButton.icon(
               onPressed: () => _open(url),
               icon: const Icon(Icons.open_in_new_rounded, size: 18),
@@ -137,6 +137,9 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
             ),
           ),
           const SizedBox(height: 12),
+          const Text('Pega aquí tu clave',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+          const SizedBox(height: 6),
           TextField(
             controller: c,
             obscureText: hide,
@@ -144,7 +147,6 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
             enableSuggestions: false,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              labelText: 'Pega aquí tu clave',
               hintText: hint,
               suffixIcon: IconButton(
                 tooltip: hide ? 'Mostrar' : 'Ocultar',
@@ -156,12 +158,12 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
             ),
           ),
           const SizedBox(height: 8),
-          SizedBox(
-            height: 48,
+          ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
             child: TextButton.icon(
               onPressed: () => _paste(c),
               icon: const Icon(Icons.content_paste_rounded, size: 18),
-              label: const Text('Pegar desde el portapapeles'),
+              label: const Text('Pegar clave'),
             ),
           ),
         ],
