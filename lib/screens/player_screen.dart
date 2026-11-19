@@ -324,29 +324,37 @@ class _PlayerScreenState extends State<PlayerScreen>
             icon: const Icon(Icons.keyboard_arrow_down_rounded),
             onPressed: () => Navigator.of(context).maybePop(),
           ),
-          const Expanded(
-            child: Column(
-              children: [
-                Text(
-                  'REPRODUCIENDO',
-                  style: TextStyle(
-                    fontSize: 11,
-                    letterSpacing: 2,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.amber,
-                  ),
-                ),
-              ],
+          Expanded(
+            child: ValueListenableBuilder<List<Song>>(
+              valueListenable: pb.queue,
+              builder: (context, q, _) {
+                final radio = pb.song.value?.isRadio ?? false;
+                return Column(
+                  children: [
+                    const Text(
+                      'SONANDO DESDE',
+                      style: TextStyle(
+                        fontSize: 12,
+                        letterSpacing: 1.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textDim,
+                      ),
+                    ),
+                    Text(
+                      radio
+                          ? 'Radio en vivo'
+                          : q.length > 1
+                              ? 'Tu cola · ${q.length} canciones'
+                              : 'Una canción',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 14, fontWeight: FontWeight.w800),
+                    ),
+                  ],
+                );
+              },
             ),
-          ),
-          if (!(pb.song.value?.isRadio ?? false))
-          IconButton(
-            iconSize: 24,
-            tooltip: _lyrics ? 'Ocultar letra' : 'Ver letra',
-            icon: Icon(_lyrics
-                ? Icons.lyrics_rounded
-                : Icons.lyrics_outlined),
-            onPressed: () => setState(() => _lyrics = !_lyrics),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded),
@@ -463,23 +471,36 @@ class _PlayerScreenState extends State<PlayerScreen>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                info?.title ?? song.title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                info?.artist ?? song.artist,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: AppColors.textDim,
-                  fontWeight: FontWeight.w500,
+              Row(children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        info?.title ?? song.title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            height: 1.15),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        info?.artist ?? song.artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: AppColors.textDim,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                if (!song.isRadio) FavoriteButton(song: song),
+              ]),
               if (info != null && info.meta.isNotEmpty) ...[
                 const SizedBox(height: 3),
                 Text(
@@ -497,7 +518,8 @@ class _PlayerScreenState extends State<PlayerScreen>
           ),
         ),
         _errorBanner(),
-        const SizedBox(height: 8),
+        _sleepChip(),
+        const SizedBox(height: 4),
         song.isRadio ? _liveBar() : _progress(),
         const SizedBox(height: 4),
         _controls(context, song),
@@ -507,66 +529,126 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  /// Fila de acciones a la vista: aleatorio, repetir, guardar en lista y
-  /// temporizador (antes escondidas en la cola o en el menú ⋮).
-  Widget _extraControls(BuildContext context, Song song) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-      child: ListenableBuilder(
-        listenable: Listenable.merge([pb.repeat, pb.sleepLabel]),
-        builder: (context, _) {
-          final rep = pb.repeat.value;
-          final sleeping = pb.sleepLabel.value != null;
-          Widget btn(IconData icon, String label, VoidCallback onTap,
-              {bool on = false}) {
-            final c = on ? AppColors.amber : AppColors.textDim;
-            return Expanded(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(14),
-                onTap: onTap,
-                child: SizedBox(
-                  height: 56,
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(icon, size: 24, color: c),
-                      const SizedBox(height: 2),
-                      Text(label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w600,
-                              color: c)),
-                    ],
+  Widget _sleepChip() {
+    return ValueListenableBuilder<String?>(
+      valueListenable: pb.sleepLabel,
+      builder: (context, label, _) {
+        if (label == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(28, 4, 28, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(999),
+              onTap: _sleepSheet,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Center(
+                  widthFactor: 1,
+                  child: Container(
+                    height: 34,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: const Color.fromRGBO(255, 176, 46, 0.10),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                          color: const Color.fromRGBO(255, 176, 46, 0.5)),
+                    ),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.bedtime_outlined,
+                          size: 16, color: AppColors.amber),
+                      const SizedBox(width: 8),
+                      Text('Se apaga en $label',
+                          style: const TextStyle(
+                              color: AppColors.amber,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700)),
+                    ]),
                   ),
                 ),
               ),
-            );
-          }
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-          return Row(
+  /// Acciones de abajo: guardar, letra, cola y dormir.
+  Widget _extraControls(BuildContext context, Song song) {
+    Widget btn(IconData icon, String label, VoidCallback onTap,
+        {bool on = false}) {
+      final c = on ? AppColors.amber : AppColors.textDim;
+      return InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: SizedBox(
+          width: 76,
+          height: 56,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              btn(Icons.shuffle_rounded, 'Mezclar',
-                  () => PlaybackService.instance.queueShuffle()),
-              btn(
-                  rep == 2 ? Icons.repeat_one_rounded : Icons.repeat_rounded,
-                  rep == 0
-                      ? 'Repetir'
-                      : rep == 1
-                          ? 'Repetir lista'
-                          : 'Repetir una',
-                  () => PlaybackService.instance.setRepeat((rep + 1) % 3),
-                  on: rep != 0),
-              btn(Icons.playlist_add_rounded, 'Guardar',
-                  () => showAddToPlaylist(context, song)),
-              btn(Icons.bedtime_outlined,
-                  sleeping ? (pb.sleepLabel.value ?? 'Dormir') : 'Dormir',
-                  _sleepSheet,
-                  on: sleeping),
+              Icon(icon, size: 24, color: c),
+              const SizedBox(height: 4),
+              Text(label,
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontSize: 12, fontWeight: FontWeight.w600, color: c)),
             ],
-          );
-        },
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: ListenableBuilder(
+        listenable: pb.sleepLabel,
+        builder: (context, _) => Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            btn(Icons.playlist_add_rounded, 'Guardar',
+                () => showAddToPlaylist(context, song)),
+            btn(_lyrics ? Icons.lyrics_rounded : Icons.lyrics_outlined,
+                'Letra', () => setState(() => _lyrics = !_lyrics),
+                on: _lyrics),
+            btn(Icons.queue_music_rounded, 'Cola', () => _showQueue(context)),
+            btn(Icons.bedtime_outlined, 'Dormir', _sleepSheet,
+                on: pb.sleepLabel.value != null),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _noCover(Song song) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      alignment: Alignment.bottomLeft,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF7A1411), Color(0xFF2A0A0A), Color(0xFF14141A)],
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('SIN PORTADA',
+              style: TextStyle(
+                  fontSize: 12,
+                  letterSpacing: 2,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.amber)),
+          const SizedBox(height: 6),
+          Text(song.artist.toUpperCase(),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: 32, fontWeight: FontWeight.w900, height: 1.0)),
+        ],
       ),
     );
   }
@@ -609,12 +691,12 @@ class _PlayerScreenState extends State<PlayerScreen>
                       child: child);
                 },
                 child: thumb.isEmpty
-                    ? const ColoredBox(color: Color(0xFF0B0B0E))
+                    ? _noCover(song)
                     : Image.network(
                         thumb,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => fallback.isEmpty
-                            ? const ColoredBox(color: Color(0xFF0B0B0E))
+                            ? _noCover(song)
                             : Image.network(fallback, fit: BoxFit.cover),
                       ),
               ),
@@ -937,11 +1019,11 @@ class _PlayerScreenState extends State<PlayerScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-                iconSize: 28,
-                tooltip: 'Cola de reproducción',
-                color: Colors.white,
-                icon: const Icon(Icons.queue_music_rounded),
-                onPressed: () => _showQueue(context),
+                iconSize: 26,
+                tooltip: 'Mezclar',
+                color: AppColors.textDim,
+                icon: const Icon(Icons.shuffle_rounded),
+                onPressed: song.isRadio ? null : () => svc.queueShuffle(),
               ),
               IconButton(
                 iconSize: 44,
@@ -958,9 +1040,23 @@ class _PlayerScreenState extends State<PlayerScreen>
                 icon: const Icon(Icons.skip_next_rounded),
                 onPressed: svc.hasNext ? () => svc.next() : null,
               ),
-              song.isRadio
-                  ? const SizedBox(width: 48)
-                  : FavoriteButton(song: song),
+              ValueListenableBuilder<int>(
+                valueListenable: pb.repeat,
+                builder: (context, rep, _) => IconButton(
+                  iconSize: 26,
+                  tooltip: rep == 0
+                      ? 'Repetir: no'
+                      : rep == 1
+                          ? 'Repetir lista'
+                          : 'Repetir una',
+                  color: rep == 0 ? AppColors.textDim : AppColors.amber,
+                  icon: Icon(rep == 2
+                      ? Icons.repeat_one_rounded
+                      : Icons.repeat_rounded),
+                  onPressed:
+                      song.isRadio ? null : () => svc.setRepeat((rep + 1) % 3),
+                ),
+              ),
             ],
           );
         },
