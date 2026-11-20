@@ -344,24 +344,17 @@ class ConcertService {
     throw 'No se pudo buscar en internet (${errors.first}). Intenta más tarde.';
   }
 
+  /// Detalle de la última búsqueda (para revisar qué encontró cada grupo).
+  final ValueNotifier<String> lastLog = ValueNotifier<String>('');
+
+  /// Busca por grupos, en orden de prioridad, y ordena cada grupo por
+  /// separado: así una respuesta larga no se corta y lo importante (tus
+  /// bandas, escenarios grandes, tus bares) nunca queda al final.
   Future<List<Concert>> _viaTavily(String key, String from, String to) async {
-    final y1 = DateTime.now().year;
+    final now = DateTime.now();
+    final y1 = now.year;
     final y2 = y1 + 1;
-    final queries = [
-      'conciertos de rock en Colombia $y1 $y2',
-      'conciertos de metal en Colombia $y1 $y2 Bogotá Medellín Cali',
-      'conciertos punk hardcore ska Colombia $y1 $y2',
-      'conciertos grunge rock alternativo Colombia $y1 $y2',
-      'conciertos indie rock post-punk Colombia $y1 $y2',
-      'rock en español gira Colombia $y1 $y2 conciertos',
-      'festivales de rock Colombia $y2 cartel confirmado',
-      'bandas internacionales de rock gira Colombia $y2 boletas',
-      // Escenarios grandes: ahí se anuncian las giras internacionales.
-      'Vive Claro Bogotá conciertos $y2 rock metal',
-      'Movistar Arena Bogotá conciertos $y2 rock',
-      'concierto confirmado Colombia $y2 metal gira Sudamérica',
-    ];
-    // Las bandas que más escuchas: busca si vienen a Colombia.
+    final mes = kMonthsLong[now.month - 1].toLowerCase();
     var favs = <String>[];
     try {
       final plays = await StatsService.instance.plays(days: 120);
@@ -370,91 +363,141 @@ class ConcertService {
           StatsService.cleanArtist(a.name)
       ].where((e) => e.trim().isNotEmpty).toList();
     } catch (_) {}
-    final found = <String>[];
-    final seen = <String>{};
-    String? lastErr;
-    const meses = kMonthsLong;
-    final mes = meses[DateTime.now().month - 1].toLowerCase();
-    final jobs = <Map<String, dynamic>>[
-      for (final q in queries) {'query': q},
-      // Escena local de Medellín: bares y toques pequeños.
-      {'query': 'toques de rock en bares de Medellín $mes $y1', 'max_results': 6},
-      {'query': 'agenda conciertos rock punk metal Medellín $mes $y1', 'max_results': 6},
-      for (final a in favs)
-        {'query': '$a concierto Colombia $y1 $y2', 'max_results': 4},
-      for (final b in bars)
-        {'query': '$b Medellín concierto toque rock $y1', 'max_results': 5},
-      {
-        'query': 'concierto rock metal Colombia boletas $y1 $y2',
-        'include_domains': Concert.ticketSites,
-      },
+
+    Map<String, dynamic> q(String text, [int n = 6]) =>
+        {'query': text, 'max_results': n};
+    final groups = <MapEntry<String, List<Map<String, dynamic>>>>[
+      MapEntry('Tus bandas', [
+        for (final a in favs) q('$a concierto Colombia $y1 $y2', 4),
+      ]),
+      MapEntry('Escenarios grandes', [
+        q('Vive Claro Bogotá conciertos $y2'),
+        q('Movistar Arena Bogotá conciertos $y2 rock metal'),
+        q('gira Sudamérica $y2 Bogotá confirmado rock metal'),
+        {
+          ...q('concierto rock metal Colombia $y1 $y2', 8),
+          'include_domains': Concert.ticketSites,
+        },
+      ]),
+      MapEntry('Bares de Medellín', [
+        for (final b in bars) q('"$b" Medellín rock', 4),
+        {
+          ...q('rock bar Medellín $mes $y1', 8),
+          'include_domains': const [
+            'eventbrite.co',
+            'eventbrite.com',
+            'passline.com',
+            'tuboleta.com',
+          ],
+        },
+        q('toques de rock en bares de Medellín $mes $y1'),
+      ]),
+      MapEntry('Medellín', [
+        q('agenda conciertos rock punk metal Medellín $mes $y1'),
+        q('conciertos rock Medellín $y1 $y2'),
+      ]),
+      MapEntry('Géneros', [
+        q('conciertos de rock en Colombia $y1 $y2'),
+        q('conciertos de metal en Colombia $y1 $y2'),
+        q('conciertos punk hardcore ska Colombia $y1 $y2'),
+        q('conciertos grunge rock alternativo indie Colombia $y1 $y2'),
+        q('rock en español gira Colombia $y1 $y2'),
+      ]),
+      MapEntry('Festivales', [
+        q('festivales de rock Colombia $y2 cartel confirmado'),
+        q('bandas internacionales de rock gira Colombia $y2 boletas'),
+      ]),
     ];
-    for (final job in jobs) {
-      final q = job['query'];
+
+    final seen = <String>{};
+    final all = <Concert>[];
+    final log = <String>[];
+    String? firstErr;
+    var okGroups = 0;
+    for (final g in groups) {
+      if (g.value.isEmpty) continue;
+      final found = <String>[];
+      String? searchErr;
+      for (final job in g.value) {
+        try {
+          final r = await http
+              .post(
+                Uri.parse('https://api.tavily.com/search'),
+                headers: {
+                  'Authorization': 'Bearer $key',
+                  'Content-Type': 'application/json',
+                },
+                body: jsonEncode({'search_depth': 'basic', ...job}),
+              )
+              .timeout(const Duration(seconds: 30));
+          if (r.statusCode != 200) {
+            searchErr = r.statusCode == 401 || r.statusCode == 403
+                ? 'clave de Tavily rechazada'
+                : r.statusCode == 429 || r.statusCode == 432
+                    ? 'se acabaron las búsquedas gratis de Tavily'
+                    : 'Tavily error ${r.statusCode}';
+            if (r.statusCode == 401 || r.statusCode == 403) {
+              lastLog.value = searchErr;
+              throw searchErr;
+            }
+            continue;
+          }
+          final j = jsonDecode(utf8.decode(r.bodyBytes));
+          for (final it in (j['results'] as List? ?? const [])) {
+            if (it is! Map) continue;
+            final url = (it['url'] ?? '').toString();
+            if (url.isEmpty || !seen.add(url)) continue;
+            var content = (it['content'] ?? '').toString();
+            if (content.length > 500) content = content.substring(0, 500);
+            found.add('- ${it['title'] ?? ''}\n  URL: $url\n  $content');
+          }
+        } on String {
+          rethrow;
+        } catch (_) {
+          searchErr = 'sin conexión';
+        }
+      }
+      if (found.isEmpty) {
+        log.add('${g.key}: 0 resultados${searchErr == null ? '' : ' ($searchErr)'}');
+        continue;
+      }
       try {
-        final r = await http
-            .post(
-              Uri.parse('https://api.tavily.com/search'),
-              headers: {
-                'Authorization': 'Bearer $key',
-                'Content-Type': 'application/json',
-              },
-              body: jsonEncode({
-                'search_depth': 'basic',
-                'max_results': 8,
-                ...job,
-                'query': q,
-              }),
-            )
-            .timeout(const Duration(seconds: 30));
-        if (r.statusCode != 200) {
-          lastErr = r.statusCode == 401 || r.statusCode == 403
-              ? 'clave rechazada'
-              : r.statusCode == 429 || r.statusCode == 432
-                  ? 'se acabaron las búsquedas gratis del mes'
-                  : 'error ${r.statusCode}';
-          if (r.statusCode == 401 || r.statusCode == 403) break;
-          continue;
-        }
-        final j = jsonDecode(utf8.decode(r.bodyBytes));
-        for (final it in (j['results'] as List? ?? const [])) {
-          if (it is! Map) continue;
-          final url = (it['url'] ?? '').toString();
-          if (url.isEmpty || !seen.add(url)) continue;
-          var content = (it['content'] ?? '').toString();
-          if (content.length > 450) content = content.substring(0, 450);
-          found.add('- ${it['title'] ?? ''}\n  URL: $url\n  $content');
-        }
-      } catch (_) {
-        lastErr = 'sin conexión o tardó demasiado';
+        final list = await _organize(found.join('\n'), from, to);
+        all.addAll(list);
+        okGroups++;
+        log.add('${g.key}: ${found.length} resultados → ${list.length} conciertos');
+      } catch (e) {
+        firstErr ??= '$e';
+        log.add('${g.key}: ${found.length} resultados → error: $e');
       }
     }
-    if (found.isEmpty) throw lastErr ?? 'sin resultados';
+    lastLog.value = log.join('\n');
+    if (okGroups == 0) {
+      throw firstErr ?? 'Tavily no encontró resultados';
+    }
+    return _upcoming(all);
+  }
 
+  /// Pide a Gemini (o Groq) que convierta resultados de búsqueda en la lista.
+  Future<List<Concert>> _organize(String results, String from, String to) async {
     final system =
-        'Eres un asistente que extrae conciertos de rock de resultados de '
-        'búsqueda. Hoy es $from. Usa SOLO la información de los resultados, '
-        'no inventes nada. Incluye conciertos y festivales de rock, metal, '
-        'punk, grunge, alternativo, indie y rock en español que se hagan en '
-        'Colombia entre $from y $to. Fíjate bien en el AÑO de cada evento: '
-        'los resultados pueden traer noticias de conciertos de años '
-        'anteriores de la misma banda; descarta solo los que ya pasaron y '
-        'conserva el anuncio nuevo (todos los géneros del rock: hard rock, '
-        'metal, punk, hardcore, ska punk, grunge, alternativo, indie, '
-        'post-punk, stoner y rock en español). Si un evento está anunciado sin fecha '
-        'exacta, deja "fecha" vacía y pon en "cuando" lo que se sepa. En '
-        '"fuente" pon la URL del resultado donde aparece. Si algún resultado '
-        'es de una boletería (Tuboleta, eTicket, Ticketmaster, Taquilla Live, '
-        'PrimeraFila u otra) y vende ese concierto, pon esa URL en "boletas". '
-        'Para festivales usa '
-        'como "banda" el nombre del festival y entre paréntesis las bandas '
-        'principales. Incluye también toques pequeños en bares y clubes, '
-        'por ejemplo en ${bars.join(', ')} (Medellín), aunque no tengan '
-        'boletería: en "lugar" pon el nombre del bar. '
-        'Responde solo con JSON con esta forma: '
-        '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío",'
-        '"cuando":"","hora":"","boletas":"","fuente":"","genero":"rock|metal|punk|grunge|alternativo|indie|rock en español|festival"}]}';
-    final results = found.join('\n');
+        'Extrae conciertos de rock de estos resultados de búsqueda. Hoy es '
+        '$from. Usa SOLO la información de los resultados, no inventes nada. '
+        'Incluye conciertos, festivales y toques en bares de cualquier género '
+        'del rock (hard rock, metal, punk, hardcore, ska punk, grunge, '
+        'alternativo, indie, post-punk, stoner, rock en español) que se hagan '
+        'en Colombia entre $from y $to. Fíjate bien en el AÑO: los resultados '
+        'pueden traer noticias viejas de la misma banda; descarta solo lo que '
+        'ya pasó y conserva el anuncio nuevo. Si un evento está anunciado sin '
+        'fecha exacta, deja "fecha" vacía y pon en "cuando" lo que se sepa. '
+        'En "fuente" pon la URL del resultado. Si la URL es de una boletería '
+        'o de Eventbrite, ponla también en "boletas". Para festivales usa como '
+        '"banda" el nombre del festival y entre paréntesis las bandas '
+        'principales. En "lugar" pon el escenario o el nombre del bar. Si no '
+        'hay ningún concierto, responde {"conciertos":[]}. Responde solo con '
+        'JSON: {"conciertos":[{"banda":"","ciudad":"","lugar":"",'
+        '"fecha":"AAAA-MM-DD o vacío","cuando":"","hora":"","boletas":"",'
+        '"fuente":"","genero":""}]}';
     final errs = <String>[];
     final s = AiSettings.instance;
     final gKey = s.geminiKey.trim();
@@ -471,7 +514,6 @@ class ConcertService {
     }
     final qKey = s.groqKey.trim();
     if (qKey.isNotEmpty) {
-      // El plan gratis de Groq admite poco texto por minuto: recorta.
       final short =
           results.length > 14000 ? results.substring(0, 14000) : results;
       for (final model in <String>{s.groqModel, 'openai/gpt-oss-20b'}) {
@@ -484,9 +526,7 @@ class ConcertService {
         }
       }
     }
-    throw errs.isEmpty
-        ? 'falta clave de Gemini o Groq para ordenar los resultados'
-        : 'Tavily encontró resultados pero no se pudieron ordenar: ${errs.join('; ')}';
+    throw errs.isEmpty ? 'falta clave de Gemini o Groq' : errs.join('; ');
   }
 
   static String _why(int code) {
@@ -522,6 +562,10 @@ class ConcertService {
                 'temperature': 0.2,
                 'maxOutputTokens': 16000,
                 if (!search) 'responseMimeType': 'application/json',
+                if (!search)
+                  'thinkingConfig': model.contains('2.5')
+                      ? {'thinkingBudget': 0}
+                      : {'thinkingLevel': 'low'},
               },
             }),
           )

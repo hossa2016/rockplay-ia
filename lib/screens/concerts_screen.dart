@@ -356,6 +356,29 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                               ),
                             _card(list[i]),
                           ],
+                          ValueListenableBuilder<String>(
+                            valueListenable: _svc.lastLog,
+                            builder: (_, log, __) => log.isEmpty
+                                ? const SizedBox.shrink()
+                                : ExpansionTile(
+                                    tilePadding: EdgeInsets.zero,
+                                    title: const Text(
+                                        'Detalles de la última búsqueda',
+                                        style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.textDim)),
+                                    children: [
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: SelectableText(log,
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                height: 1.5,
+                                                color: AppColors.textFaint)),
+                                      ),
+                                    ],
+                                  ),
+                          ),
                           const Padding(
                             padding: EdgeInsets.only(top: 4),
                             child: Text(
