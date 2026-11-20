@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'ai_client.dart';
 import 'ai_settings.dart';
 
 /// Un concierto encontrado en internet.
@@ -226,6 +227,14 @@ class ConcertService {
         'anunció"}]}';
 
     final errors = <String>[];
+    // 1) Tavily busca en la web y Gemini/Groq (sin búsqueda) ordenan.
+    if (s.tavilyKey.trim().isNotEmpty) {
+      try {
+        return _parse(await _viaTavily(s.tavilyKey.trim(), from, to));
+      } catch (e) {
+        errors.add('Tavily: $e');
+      }
+    }
     final geminiKey = s.geminiKey.trim();
     if (geminiKey.isNotEmpty) {
       for (final model in <String>{s.geminiModel, 'gemini-2.5-flash'}) {
@@ -249,6 +258,83 @@ class ConcertService {
     debugPrint('Conciertos: ${errors.join(' | ')}');
     if (errors.isEmpty) throw 'Falta una clave de Gemini o Groq.';
     throw 'No se pudo buscar en internet (${errors.last}). Intenta más tarde.';
+  }
+
+  Future<String> _viaTavily(String key, String from, String to) async {
+    final y1 = DateTime.now().year;
+    final y2 = y1 + 1;
+    final queries = [
+      'conciertos de rock en Colombia $y1 $y2',
+      'conciertos de metal en Colombia $y1 $y2 Bogotá Medellín Cali',
+      'festivales de rock Colombia $y2 cartel confirmado',
+      'bandas internacionales de rock gira Colombia $y2 boletas',
+    ];
+    final found = <String>[];
+    final seen = <String>{};
+    String? lastErr;
+    for (final q in queries) {
+      try {
+        final r = await http
+            .post(
+              Uri.parse('https://api.tavily.com/search'),
+              headers: {
+                'Authorization': 'Bearer $key',
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode({
+                'query': q,
+                'search_depth': 'basic',
+                'max_results': 10,
+              }),
+            )
+            .timeout(const Duration(seconds: 30));
+        if (r.statusCode != 200) {
+          lastErr = r.statusCode == 401 || r.statusCode == 403
+              ? 'clave rechazada'
+              : r.statusCode == 429 || r.statusCode == 432
+                  ? 'se acabaron las búsquedas gratis del mes'
+                  : 'error ${r.statusCode}';
+          if (r.statusCode == 401 || r.statusCode == 403) break;
+          continue;
+        }
+        final j = jsonDecode(utf8.decode(r.bodyBytes));
+        for (final it in (j['results'] as List? ?? const [])) {
+          if (it is! Map) continue;
+          final url = (it['url'] ?? '').toString();
+          if (url.isEmpty || !seen.add(url)) continue;
+          var content = (it['content'] ?? '').toString();
+          if (content.length > 700) content = content.substring(0, 700);
+          found.add('- ${it['title'] ?? ''}\n  URL: $url\n  $content');
+        }
+      } catch (_) {
+        lastErr = 'sin conexión o tardó demasiado';
+      }
+    }
+    if (found.isEmpty) throw lastErr ?? 'sin resultados';
+
+    final system =
+        'Eres un asistente que extrae conciertos de rock de resultados de '
+        'búsqueda. Hoy es $from. Usa SOLO la información de los resultados, '
+        'no inventes nada. Incluye conciertos y festivales de rock, metal, '
+        'punk, grunge, alternativo, indie y rock en español que se hagan en '
+        'Colombia entre $from y $to. Si un evento está anunciado sin fecha '
+        'exacta, deja "fecha" vacía y pon en "cuando" lo que se sepa. En '
+        '"fuente" pon la URL del resultado donde aparece. Para festivales usa '
+        'como "banda" el nombre del festival y entre paréntesis las bandas '
+        'principales. Responde solo con JSON con esta forma: '
+        '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío",'
+        '"cuando":"","hora":"","boletas":"","fuente":""}]}';
+    final msg = [AiMessage(true, 'Resultados de búsqueda:\n${found.join('\n')}')];
+    final s = AiSettings.instance;
+    if (s.geminiKey.trim().isNotEmpty) {
+      try {
+        return await AiClient.instance.gemini(system, msg);
+      } catch (_) {
+        if (s.groqKey.trim().isEmpty) rethrow;
+      }
+    }
+    if (s.groqKey.trim().isEmpty) throw 'falta clave de Gemini o Groq';
+    return AiClient.instance.groq(system, msg);
   }
 
   static String _why(int code) {

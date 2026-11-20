@@ -17,10 +17,12 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   final AiSettings _s = AiSettings.instance;
   final TextEditingController _groq = TextEditingController();
   final TextEditingController _gemini = TextEditingController();
+  final TextEditingController _tavily = TextEditingController();
   final TextEditingController _groqModel = TextEditingController();
   final TextEditingController _geminiModel = TextEditingController();
   bool _hideGroq = true;
   bool _hideGemini = true;
+  bool _hideTavily = true;
   bool _ready = false;
 
   @override
@@ -33,6 +35,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     await _s.load();
     _groq.text = _s.groqKey;
     _gemini.text = _s.geminiKey;
+    _tavily.text = _s.tavilyKey;
     _groqModel.text = _s.groqModel;
     _geminiModel.text = _s.geminiModel;
     if (mounted) setState(() => _ready = true);
@@ -42,6 +45,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   void dispose() {
     _groq.dispose();
     _gemini.dispose();
+    _tavily.dispose();
     _groqModel.dispose();
     _geminiModel.dispose();
     super.dispose();
@@ -50,6 +54,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   Future<void> _save() async {
     _s.groqKey = _groq.text;
     _s.geminiKey = _gemini.text;
+    _s.tavilyKey = _tavily.text;
     _s.groqModel = _groqModel.text;
     _s.geminiModel = _geminiModel.text;
     await _s.save();
@@ -212,6 +217,19 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   hide: _hideGroq,
                   toggle: () => setState(() => _hideGroq = !_hideGroq),
                   hint: 'gsk_…',
+                ),
+                _keyCard(
+                  name: 'Tavily (buscador web)',
+                  subtitle: 'Para los conciertos. Gratis: 1.000 búsquedas al mes.',
+                  url: 'https://app.tavily.com',
+                  steps:
+                      '1. Toca «Abrir la página» y crea tu cuenta (puedes usar Google).\n'
+                      '2. En «API Keys» copia la clave que empieza por tvly-.\n'
+                      '3. Vuelve aquí y toca «Pegar».',
+                  c: _tavily,
+                  hide: _hideTavily,
+                  toggle: () => setState(() => _hideTavily = !_hideTavily),
+                  hint: 'tvly-…',
                 ),
                 const SizedBox(height: 20),
                 ExpansionTile(

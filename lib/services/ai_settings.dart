@@ -10,6 +10,8 @@ class AiSettings {
 
   String groqKey = '';
   String geminiKey = '';
+  /// Buscador web gratuito (1.000 búsquedas al mes) para los conciertos.
+  String tavilyKey = '';
   String groqModel = defaultGroqModel;
   String geminiModel = defaultGeminiModel;
   bool learn = true;
@@ -23,6 +25,7 @@ class AiSettings {
       final sp = await SharedPreferences.getInstance();
       groqKey = sp.getString('ai_groq_key') ?? '';
       geminiKey = sp.getString('ai_gemini_key') ?? '';
+      tavilyKey = sp.getString('ai_tavily_key') ?? '';
       groqModel = sp.getString('ai_groq_model') ?? defaultGroqModel;
       // Modelos que Groq ya retiró: usa el actual.
       if (groqModel == 'llama-3.3-70b-versatile' ||
@@ -41,6 +44,7 @@ class AiSettings {
       final sp = await SharedPreferences.getInstance();
       await sp.setString('ai_groq_key', groqKey.trim());
       await sp.setString('ai_gemini_key', geminiKey.trim());
+      await sp.setString('ai_tavily_key', tavilyKey.trim());
       await sp.setString('ai_groq_model',
           groqModel.trim().isEmpty ? defaultGroqModel : groqModel.trim());
       await sp.setString('ai_gemini_model',
