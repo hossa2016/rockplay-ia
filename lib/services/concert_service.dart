@@ -587,31 +587,68 @@ class ConcertService {
   /// Gemini el texto y las imágenes de los flyers.
   Future<List<Concert>> _instagram(
       String token, List<String> handles, String from, String to) async {
+    // Se lanza la ejecución y se espera a que termine (puede tardar 1-3
+    // min); así se sabe si falló y por qué.
+    const actor = 'themineworks~instagram-post-scraper';
     http.Response r;
     try {
       r = await http
           .post(
-            Uri.parse('https://api.apify.com/v2/acts/'
-                'themineworks~instagram-post-scraper/run-sync-get-dataset-items'
-                '?token=$token&timeout=120'),
+            Uri.parse('https://api.apify.com/v2/acts/$actor/runs?token=$token'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'usernames': handles,
-              'maxPostsPerProfile': 10,
+              'maxPostsPerProfile': 12,
               'newerThan': '45 days',
-              'postTypes': ['image', 'carousel'],
               'skipPinned': false,
             }),
           )
-          .timeout(const Duration(seconds: 150));
+          .timeout(const Duration(seconds: 30));
     } catch (_) {
       throw 'Apify no respondió';
     }
     if (r.statusCode == 401 || r.statusCode == 403) throw 'token de Apify rechazado';
     if (r.statusCode == 402) throw 'se acabó el crédito gratis de Apify';
-    if (r.statusCode != 200 && r.statusCode != 201) throw 'Apify error ${r.statusCode}';
+    if (r.statusCode != 200 && r.statusCode != 201) {
+      throw 'Apify error ${r.statusCode}: ${_cut(utf8.decode(r.bodyBytes), 120)}';
+    }
+    var run = (jsonDecode(utf8.decode(r.bodyBytes)) as Map)['data'] as Map;
+    final runId = run['id'];
+    var status = (run['status'] ?? '').toString();
+    final until = DateTime.now().add(const Duration(minutes: 4));
+    while ((status == 'READY' || status == 'RUNNING') &&
+        DateTime.now().isBefore(until)) {
+      await Future<void>.delayed(const Duration(seconds: 8));
+      try {
+        final st = await http
+            .get(Uri.parse('https://api.apify.com/v2/actor-runs/$runId?token=$token'))
+            .timeout(const Duration(seconds: 20));
+        if (st.statusCode == 200) {
+          run = (jsonDecode(utf8.decode(st.bodyBytes)) as Map)['data'] as Map;
+          status = (run['status'] ?? '').toString();
+        }
+      } catch (_) {}
+    }
+    final msg = (run['statusMessage'] ?? '').toString();
+    if (status == 'RUNNING' || status == 'READY') {
+      throw 'Apify sigue trabajando; vuelve a actualizar en unos minutos';
+    }
+    final dsId = run['defaultDatasetId'];
+    try {
+      r = await http
+          .get(Uri.parse('https://api.apify.com/v2/datasets/$dsId/items'
+              '?token=$token&clean=true&format=json'))
+          .timeout(const Duration(seconds: 30));
+    } catch (_) {
+      throw 'no se pudieron descargar las publicaciones';
+    }
+    if (status != 'SUCCEEDED' && r.bodyBytes.length < 5) {
+      throw 'Apify terminó con estado $status${msg.isEmpty ? '' : ': ${_cut(msg, 150)}'}';
+    }
     final items = jsonDecode(utf8.decode(r.bodyBytes));
-    if (items is! List || items.isEmpty) throw 'sin publicaciones recientes';
+    if (items is! List || items.isEmpty) {
+      throw 'Apify no trajo publicaciones ($status${msg.isEmpty ? '' : ': ${_cut(msg, 150)}'})';
+    }
 
     _igStats = '';
     final texts = <String>[];
