@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 
 /// Cuadrito con mes y día.
 class ConcertDateBox extends StatelessWidget {
-  final DateTime date;
+  final DateTime? date;
   final double size;
   const ConcertDateBox({super.key, required this.date, this.size = 54});
 
@@ -19,16 +19,27 @@ class ConcertDateBox extends StatelessWidget {
         color: const Color(0xFF2A1512),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Column(
+      child: date == null
+          ? const Center(
+              child: Text('POR\nCONF.',
+                  textAlign: TextAlign.center,
+                  textScaler: TextScaler.linear(1.0),
+                  style: TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      color: Color(0xFFF08A7E))),
+            )
+          : Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(kMonthsShort[date.month - 1].toUpperCase(),
+          Text(kMonthsShort[date!.month - 1].toUpperCase(),
               textScaler: const TextScaler.linear(1.0),
               style: const TextStyle(
                   fontSize: 11.5,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFFF08A7E))),
-          Text('${date.day}',
+          Text('${date!.day}',
               textScaler: const TextScaler.linear(1.0),
               style: const TextStyle(
                   fontSize: 22, fontWeight: FontWeight.w900, height: 1.1)),
@@ -112,7 +123,13 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                             fontSize: 13.5,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textDim)),
-                  if (c.time.isNotEmpty)
+                  if (c.date == null)
+                    Text('Fecha: ${c.when}',
+                        style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.amber))
+                  else if (c.time.isNotEmpty)
                     Text(c.time,
                         style: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w700)),
@@ -167,6 +184,12 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     final inside = band.substring(i + 1).replaceAll(')', '');
     final first = inside.split(',').first.trim();
     return first.isEmpty ? band.substring(0, i).trim() : first;
+  }
+
+  static String _group(Concert c) {
+    final d = c.date;
+    if (d == null) return 'FECHA POR CONFIRMAR';
+    return '${kMonthsLong[d.month - 1]} ${d.year}'.toUpperCase();
   }
 
   Widget _chips() {
@@ -268,14 +291,11 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                         children: [
                           for (var i = 0; i < list.length; i++) ...[
                             if (i == 0 ||
-                                list[i].date.month != list[i - 1].date.month ||
-                                list[i].date.year != list[i - 1].date.year)
+                                _group(list[i]) != _group(list[i - 1]))
                               Padding(
                                 padding:
                                     const EdgeInsets.fromLTRB(4, 8, 4, 10),
-                                child: Text(
-                                    '${kMonthsLong[list[i].date.month - 1]} ${list[i].date.year}'
-                                        .toUpperCase(),
+                                child: Text(_group(list[i]),
                                     style: const TextStyle(
                                         fontSize: 12,
                                         letterSpacing: 1.5,

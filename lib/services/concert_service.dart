@@ -11,7 +11,10 @@ class Concert {
   final String band;
   final String city;
   final String venue;
-  final DateTime date;
+  /// Nula cuando el concierto está anunciado sin fecha exacta.
+  final DateTime? date;
+  /// Lo que se sabe de la fecha si no es exacta ("Marzo 2027").
+  final String when;
   final String time;
   final String tickets;
   final String source;
@@ -21,6 +24,7 @@ class Concert {
     required this.city,
     required this.venue,
     required this.date,
+    this.when = '',
     this.time = '',
     this.tickets = '',
     this.source = '',
@@ -30,7 +34,8 @@ class Concert {
         'banda': band,
         'ciudad': city,
         'lugar': venue,
-        'fecha': _ymd(date),
+        'fecha': date == null ? '' : _ymd(date!),
+        'cuando': when,
         'hora': time,
         'boletas': tickets,
         'fuente': source,
@@ -41,12 +46,13 @@ class Concert {
     String s(String k) => (j[k] ?? '').toString().trim();
     final band = s('banda');
     final date = DateTime.tryParse(s('fecha'));
-    if (band.isEmpty || date == null) return null;
+    if (band.isEmpty) return null;
     return Concert(
       band: band,
       city: s('ciudad'),
       venue: s('lugar'),
-      date: DateTime(date.year, date.month, date.day),
+      date: date == null ? null : DateTime(date.year, date.month, date.day),
+      when: date == null ? (s('cuando').isEmpty ? 'Por confirmar' : s('cuando')) : '',
       time: s('hora'),
       tickets: _url(s('boletas')),
       source: _url(s('fuente')),
@@ -174,20 +180,23 @@ class ConcertService {
     return DateTime(t.year + 1, t.month, t.day);
   }
 
-  /// Quita los que ya pasaron o están a más de 12 meses, ordena y quita
-  /// repetidos.
+  /// Quita los que ya pasaron o están a más de 12 meses, ordena por fecha,
+  /// deja al final los de fecha por confirmar y quita repetidos.
   static List<Concert> _upcoming(List<Concert> list) {
     final from = _today();
     final to = _limit();
     final seen = <String>{};
-    final out = <Concert>[];
+    final dated = <Concert>[];
+    final tbd = <Concert>[];
     for (final c in list) {
-      if (c.date.isBefore(from) || c.date.isAfter(to)) continue;
-      final k = '${c.band.toLowerCase()}|${_ymd(c.date)}';
-      if (seen.add(k)) out.add(c);
+      final d = c.date;
+      if (d != null && (d.isBefore(from) || d.isAfter(to))) continue;
+      final k = '${c.band.toLowerCase()}|${d == null ? '' : _ymd(d)}';
+      if (!seen.add(k)) continue;
+      (d == null ? tbd : dated).add(c);
     }
-    out.sort((a, b) => a.date.compareTo(b.date));
-    return out;
+    dated.sort((a, b) => a.date!.compareTo(b.date!));
+    return [...dated, ...tbd];
   }
 
   Future<List<Concert>> _search() async {
@@ -205,9 +214,13 @@ class ConcertService {
         'eventos anunciados oficialmente, con fecha dentro de ese rango. No '
         'inventes nada: si no conoces un dato, déjalo vacío. Para un festival '
         'usa como "banda" el nombre del festival seguido de las bandas '
-        'principales entre paréntesis.\n'
+        'principales entre paréntesis. Si un concierto ya está anunciado '
+        'pero aún no tiene fecha exacta, inclúyelo igual: deja "fecha" vacía '
+        'y pon en "cuando" lo que se sepa (por ejemplo "Marzo 2027" o '
+        '"Por confirmar"). Incluye también los que aún no tienen boletería '
+        'abierta.\n'
         'Responde SOLO con JSON válido, sin texto adicional, con esta forma:\n'
-        '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD",'
+        '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío","cuando":"",'
         '"hora":"","boletas":"url de compra o vacío","fuente":"url donde se '
         'anunció"}]}';
 
