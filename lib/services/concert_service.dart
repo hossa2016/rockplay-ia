@@ -290,7 +290,8 @@ class ConcertService {
     }
     debugPrint('Conciertos: ${errors.join(' | ')}');
     if (errors.isEmpty) throw 'Falta una clave de Gemini o Groq.';
-    throw 'No se pudo buscar en internet (${errors.last}). Intenta más tarde.';
+    // Muestra el error de la opción principal (Tavily si hay clave).
+    throw 'No se pudo buscar en internet (${errors.first}). Intenta más tarde.';
   }
 
   Future<String> _viaTavily(String key, String from, String to) async {
