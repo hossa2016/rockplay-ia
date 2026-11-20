@@ -19,6 +19,8 @@ class Concert {
   final String time;
   final String tickets;
   final String source;
+  /// Género principal (punk, grunge, metal…).
+  final String genre;
 
   const Concert({
     required this.band,
@@ -29,6 +31,7 @@ class Concert {
     this.time = '',
     this.tickets = '',
     this.source = '',
+    this.genre = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -40,6 +43,7 @@ class Concert {
         'hora': time,
         'boletas': tickets,
         'fuente': source,
+        'genero': genre,
       };
 
   static Concert? fromJson(dynamic j) {
@@ -59,6 +63,7 @@ class Concert {
           ? _url(s('boletas'))
           : (isTicketSite(s('fuente')) ? _url(s('fuente')) : ''),
       source: _url(s('fuente')),
+      genre: s('genero'),
     );
   }
 
@@ -234,8 +239,10 @@ class ConcertService {
     final prompt =
         'Hoy es $from. Busca en internet los conciertos y festivales de rock '
         'que se van a presentar en Colombia entre $from y $to (los próximos '
-        '12 meses). Incluye rock, metal, hard rock, punk, grunge, rock '
-        'alternativo, indie rock y rock en español; bandas internacionales y '
+        '12 meses). Incluye todos los géneros del rock: rock clásico, hard '
+        'rock, metal y sus variantes, punk, hardcore, ska punk, grunge, rock '
+        'alternativo, indie rock, post-punk, stoner y rock en español; '
+        'bandas internacionales y '
         'colombianas; en cualquier ciudad del país. Revisa varias fuentes '
         '(boleterías como Tuboleta, eTicket, Ticketmaster y Taquilla Live, '
         'medios de música y redes oficiales de los festivales). Incluye solo '
@@ -250,7 +257,7 @@ class ConcertService {
         'Responde SOLO con JSON válido, sin texto adicional, con esta forma:\n'
         '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío","cuando":"",'
         '"hora":"","boletas":"url de compra o vacío","fuente":"url donde se '
-        'anunció"}]}';
+        'anunció","genero":"rock|metal|punk|grunge|alternativo|indie|rock en español|festival"}]}';
 
     final errors = <String>[];
     // 1) Tavily busca en la web y Gemini/Groq (sin búsqueda) ordenan.
@@ -292,6 +299,10 @@ class ConcertService {
     final queries = [
       'conciertos de rock en Colombia $y1 $y2',
       'conciertos de metal en Colombia $y1 $y2 Bogotá Medellín Cali',
+      'conciertos punk hardcore ska Colombia $y1 $y2',
+      'conciertos grunge rock alternativo Colombia $y1 $y2',
+      'conciertos indie rock post-punk Colombia $y1 $y2',
+      'rock en español gira Colombia $y1 $y2 conciertos',
       'festivales de rock Colombia $y2 cartel confirmado',
       'bandas internacionales de rock gira Colombia $y2 boletas',
     ];
@@ -319,7 +330,7 @@ class ConcertService {
                 ...job,
                 'query': q,
                 'search_depth': 'basic',
-                'max_results': 10,
+                'max_results': 8,
               }),
             )
             .timeout(const Duration(seconds: 30));
@@ -338,7 +349,7 @@ class ConcertService {
           final url = (it['url'] ?? '').toString();
           if (url.isEmpty || !seen.add(url)) continue;
           var content = (it['content'] ?? '').toString();
-          if (content.length > 700) content = content.substring(0, 700);
+          if (content.length > 450) content = content.substring(0, 450);
           found.add('- ${it['title'] ?? ''}\n  URL: $url\n  $content');
         }
       } catch (_) {
@@ -352,7 +363,9 @@ class ConcertService {
         'búsqueda. Hoy es $from. Usa SOLO la información de los resultados, '
         'no inventes nada. Incluye conciertos y festivales de rock, metal, '
         'punk, grunge, alternativo, indie y rock en español que se hagan en '
-        'Colombia entre $from y $to. Si un evento está anunciado sin fecha '
+        'Colombia entre $from y $to (todos los géneros del rock: hard rock, '
+        'metal, punk, hardcore, ska punk, grunge, alternativo, indie, '
+        'post-punk, stoner y rock en español). Si un evento está anunciado sin fecha '
         'exacta, deja "fecha" vacía y pon en "cuando" lo que se sepa. En '
         '"fuente" pon la URL del resultado donde aparece. Si algún resultado '
         'es de una boletería (Tuboleta, eTicket, Ticketmaster, Taquilla Live, '
@@ -361,7 +374,7 @@ class ConcertService {
         'como "banda" el nombre del festival y entre paréntesis las bandas '
         'principales. Responde solo con JSON con esta forma: '
         '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío",'
-        '"cuando":"","hora":"","boletas":"","fuente":""}]}';
+        '"cuando":"","hora":"","boletas":"","fuente":"","genero":"rock|metal|punk|grunge|alternativo|indie|rock en español|festival"}]}';
     final msg = [AiMessage(true, 'Resultados de búsqueda:\n${found.join('\n')}')];
     final s = AiSettings.instance;
     if (s.geminiKey.trim().isNotEmpty) {

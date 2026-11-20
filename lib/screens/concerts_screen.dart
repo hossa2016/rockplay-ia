@@ -117,6 +117,13 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   Text(c.band,
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w800)),
+                  if (c.genre.isNotEmpty)
+                    Text(c.genre.toUpperCase(),
+                        style: const TextStyle(
+                            fontSize: 11,
+                            letterSpacing: 1.2,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.amber)),
                   if (concertPlace(c).isNotEmpty)
                     Text(concertPlace(c),
                         style: const TextStyle(
