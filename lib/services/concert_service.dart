@@ -153,12 +153,21 @@ class ConcertService {
   }
 
   /// Cada línea es "Nombre del bar @usuario" (el @usuario es opcional).
+  /// Acepta "Nombre @usuario", "Nombre instagram.com/usuario" o el enlace
+  /// que da Instagram al tocar «Copiar enlace del perfil».
+  static final RegExp _igLink =
+      RegExp(r'(?:https?://)?(?:www\.)?instagram\.com/([A-Za-z0-9._]+)[^\s]*');
+
   static String barName(String line) {
-    final i = line.indexOf('@');
-    return (i < 0 ? line : line.substring(0, i)).trim();
+    var t = line.replaceAll(_igLink, '');
+    final i = t.indexOf('@');
+    if (i >= 0) t = t.substring(0, i);
+    return t.trim();
   }
 
   static String? barHandle(String line) {
+    final l = _igLink.firstMatch(line);
+    if (l != null) return l.group(1);
     final m = RegExp(r'@([A-Za-z0-9._]+)').firstMatch(line);
     return m?.group(1);
   }

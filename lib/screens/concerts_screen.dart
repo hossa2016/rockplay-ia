@@ -204,7 +204,8 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-                'Uno por línea: nombre del bar y su @usuario de Instagram.\n'
+                'Uno por línea: nombre del bar y su @usuario de Instagram '
+                '(o el enlace del perfil).\n'
                 'Ejemplo: Kings Rock @kingsrockbar\n'
                 'Con el @usuario y el token de Apify, la app lee sus flyers.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
