@@ -203,7 +203,10 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Uno por línea. La búsqueda revisa cada uno.',
+            const Text(
+                'Uno por línea: nombre del bar y su @usuario de Instagram.\n'
+                'Ejemplo: Kings Rock @kingsrockbar\n'
+                'Con el @usuario y el token de Apify, la app lee sus flyers.',
                 style: TextStyle(color: AppColors.textDim, fontSize: 13)),
             const SizedBox(height: 12),
             TextField(
@@ -211,7 +214,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
               minLines: 4,
               maxLines: 10,
               autofocus: true,
-              decoration: const InputDecoration(hintText: 'Nombre del bar'),
+              decoration: const InputDecoration(hintText: 'Nombre del bar @usuario'),
             ),
           ],
         ),

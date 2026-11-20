@@ -12,6 +12,8 @@ class AiSettings {
   String geminiKey = '';
   /// Buscador web gratuito (1.000 búsquedas al mes) para los conciertos.
   String tavilyKey = '';
+  /// Apify: lee el Instagram de tus bares (crédito gratis mensual).
+  String apifyKey = '';
   String groqModel = defaultGroqModel;
   String geminiModel = defaultGeminiModel;
   bool learn = true;
@@ -26,6 +28,7 @@ class AiSettings {
       groqKey = sp.getString('ai_groq_key') ?? '';
       geminiKey = sp.getString('ai_gemini_key') ?? '';
       tavilyKey = sp.getString('ai_tavily_key') ?? '';
+      apifyKey = sp.getString('ai_apify_key') ?? '';
       groqModel = sp.getString('ai_groq_model') ?? defaultGroqModel;
       // Modelos que Groq ya retiró: usa el actual.
       if (groqModel == 'llama-3.3-70b-versatile' ||
@@ -45,6 +48,7 @@ class AiSettings {
       await sp.setString('ai_groq_key', groqKey.trim());
       await sp.setString('ai_gemini_key', geminiKey.trim());
       await sp.setString('ai_tavily_key', tavilyKey.trim());
+      await sp.setString('ai_apify_key', apifyKey.trim());
       await sp.setString('ai_groq_model',
           groqModel.trim().isEmpty ? defaultGroqModel : groqModel.trim());
       await sp.setString('ai_gemini_model',

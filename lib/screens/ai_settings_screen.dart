@@ -18,11 +18,13 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   final TextEditingController _groq = TextEditingController();
   final TextEditingController _gemini = TextEditingController();
   final TextEditingController _tavily = TextEditingController();
+  final TextEditingController _apify = TextEditingController();
   final TextEditingController _groqModel = TextEditingController();
   final TextEditingController _geminiModel = TextEditingController();
   bool _hideGroq = true;
   bool _hideGemini = true;
   bool _hideTavily = true;
+  bool _hideApify = true;
   bool _ready = false;
 
   @override
@@ -36,6 +38,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _groq.text = _s.groqKey;
     _gemini.text = _s.geminiKey;
     _tavily.text = _s.tavilyKey;
+    _apify.text = _s.apifyKey;
     _groqModel.text = _s.groqModel;
     _geminiModel.text = _s.geminiModel;
     if (mounted) setState(() => _ready = true);
@@ -46,6 +49,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _groq.dispose();
     _gemini.dispose();
     _tavily.dispose();
+    _apify.dispose();
     _groqModel.dispose();
     _geminiModel.dispose();
     super.dispose();
@@ -55,6 +59,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _s.groqKey = _groq.text;
     _s.geminiKey = _gemini.text;
     _s.tavilyKey = _tavily.text;
+    _s.apifyKey = _apify.text;
     _s.groqModel = _groqModel.text;
     _s.geminiModel = _geminiModel.text;
     await _s.save();
@@ -230,6 +235,20 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   hide: _hideTavily,
                   toggle: () => setState(() => _hideTavily = !_hideTavily),
                   hint: 'tvly-…',
+                ),
+                _keyCard(
+                  name: 'Apify (Instagram de tus bares)',
+                  subtitle: 'Opcional. Lee los flyers de tus bares. Gratis: 5 USD de crédito al mes.',
+                  url: 'https://console.apify.com/settings/integrations',
+                  steps:
+                      '1. Toca «Abrir la página» y crea tu cuenta gratis (puedes usar Google).\n'
+                      '2. En «API & Integrations» copia tu «Personal API token».\n'
+                      '3. Vuelve aquí y toca «Pegar».\n'
+                      '4. En Conciertos → Mis bares, escribe el @usuario de Instagram de cada bar.',
+                  c: _apify,
+                  hide: _hideApify,
+                  toggle: () => setState(() => _hideApify = !_hideApify),
+                  hint: 'apify_api_…',
                 ),
                 const SizedBox(height: 20),
                 ExpansionTile(

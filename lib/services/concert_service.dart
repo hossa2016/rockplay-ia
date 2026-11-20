@@ -152,10 +152,24 @@ class ConcertService {
     } catch (_) {}
   }
 
+  /// Cada línea es "Nombre del bar @usuario" (el @usuario es opcional).
+  static String barName(String line) {
+    final i = line.indexOf('@');
+    return (i < 0 ? line : line.substring(0, i)).trim();
+  }
+
+  static String? barHandle(String line) {
+    final m = RegExp(r'@([A-Za-z0-9._]+)').firstMatch(line);
+    return m?.group(1);
+  }
+
+  List<String> get barNames =>
+      bars.map(barName).where((e) => e.isNotEmpty).toList();
+
   /// ¿El lugar del concierto es uno de los bares guardados?
   bool isFavoriteBar(Concert c) {
     final v = '${c.venue} ${c.band}'.toLowerCase();
-    return bars.any((b) => b.isNotEmpty && v.contains(b.toLowerCase()));
+    return barNames.any((b) => v.contains(b.toLowerCase()));
   }
 
   final ValueNotifier<ConcertState> state =
@@ -380,7 +394,7 @@ class ConcertService {
         },
       ]),
       MapEntry('Bares de Medellín', [
-        for (final b in bars) q('"$b" Medellín rock', 4),
+        for (final b in barNames) q('"$b" Medellín rock', 4),
         {
           ...q('rock bar Medellín $mes $y1', 8),
           'include_domains': const [
@@ -391,6 +405,15 @@ class ConcertService {
           ],
         },
         q('toques de rock en bares de Medellín $mes $y1'),
+      ]),
+      MapEntry('Agendas de Medellín', const [
+        {
+          'extract': [
+            'https://www.eventworld.com/medellin/concerts/rock',
+            'https://www.bandsintown.com/c/medellin-colombia',
+            'https://www.songkick.com/metro-areas/28331-colombia-medellin',
+          ],
+        },
       ]),
       MapEntry('Medellín', [
         q('agenda conciertos rock punk metal Medellín $mes $y1'),
@@ -414,11 +437,35 @@ class ConcertService {
     final log = <String>[];
     String? firstErr;
     var okGroups = 0;
+    // Instagram de tus bares (Apify), si hay token y @usuarios.
+    final handles = [
+      for (final b in bars)
+        if (barHandle(b) != null) barHandle(b)!,
+    ];
+    final apify = AiSettings.instance.apifyKey.trim();
+    if (apify.isNotEmpty && handles.isNotEmpty) {
+      try {
+        final list = await _instagram(apify, handles, from, to);
+        all.addAll(list);
+        okGroups++;
+        log.add('Instagram de bares (${handles.length}): ${list.length} conciertos');
+      } catch (e) {
+        log.add('Instagram de bares: error: $e');
+      }
+    } else if (apify.isEmpty) {
+      log.add('Instagram de bares: falta el token de Apify');
+    } else {
+      log.add('Instagram de bares: escribe el @usuario en Mis bares');
+    }
     for (final g in groups) {
       if (g.value.isEmpty) continue;
       final found = <String>[];
       String? searchErr;
       for (final job in g.value) {
+        if (job['extract'] is List) {
+          found.addAll(await _extract(key, (job['extract'] as List).cast<String>()));
+          continue;
+        }
         try {
           final r = await http
               .post(
@@ -480,6 +527,135 @@ class ConcertService {
       throw firstErr ?? 'Tavily no encontró resultados';
     }
     return _upcoming(all);
+  }
+
+  /// Lee páginas de agenda con Tavily Extract.
+  Future<List<String>> _extract(String key, List<String> urls) async {
+    try {
+      final r = await http
+          .post(
+            Uri.parse('https://api.tavily.com/extract'),
+            headers: {
+              'Authorization': 'Bearer $key',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({'urls': urls}),
+          )
+          .timeout(const Duration(seconds: 45));
+      if (r.statusCode != 200) return const [];
+      final j = jsonDecode(utf8.decode(r.bodyBytes));
+      return [
+        for (final it in (j['results'] as List? ?? const []))
+          if (it is Map)
+            '- Agenda ${it['url']}\n  URL: ${it['url']}\n  ${_cut((it['raw_content'] ?? '').toString(), 6000)}',
+      ];
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static String _cut(String t, int n) => t.length > n ? t.substring(0, n) : t;
+
+  /// Lee las publicaciones recientes de los bares con Apify y le pasa a
+  /// Gemini el texto y las imágenes de los flyers.
+  Future<List<Concert>> _instagram(
+      String token, List<String> handles, String from, String to) async {
+    http.Response r;
+    try {
+      r = await http
+          .post(
+            Uri.parse('https://api.apify.com/v2/acts/'
+                'themineworks~instagram-post-scraper/run-sync-get-dataset-items'
+                '?token=$token&timeout=120'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'usernames': handles,
+              'maxPostsPerProfile': 10,
+              'newerThan': '30 days',
+              'postTypes': ['image', 'carousel'],
+              'skipPinned': false,
+            }),
+          )
+          .timeout(const Duration(seconds: 150));
+    } catch (_) {
+      throw 'Apify no respondió';
+    }
+    if (r.statusCode == 401 || r.statusCode == 403) throw 'token de Apify rechazado';
+    if (r.statusCode == 402) throw 'se acabó el crédito gratis de Apify';
+    if (r.statusCode != 200 && r.statusCode != 201) throw 'Apify error ${r.statusCode}';
+    final items = jsonDecode(utf8.decode(r.bodyBytes));
+    if (items is! List || items.isEmpty) throw 'sin publicaciones recientes';
+
+    final texts = <String>[];
+    final images = <Map<String, dynamic>>[];
+    var bytes = 0;
+    for (final it in items) {
+      if (it is! Map) continue;
+      final user = (it['ownerUsername'] ?? it['username'] ?? '').toString();
+      final when = (it['timestamp'] ?? '').toString();
+      final url = (it['url'] ?? '').toString();
+      final cap = _cut((it['caption'] ?? '').toString(), 700);
+      texts.add('- [${images.length < 14 ? 'IMAGEN ${images.length + 1}' : 'sin imagen'}] '
+          '@$user publicado $when\n  URL: $url\n  $cap');
+      final img = (it['displayUrl'] ?? '').toString();
+      if (img.isEmpty || images.length >= 14 || bytes > 5000000) continue;
+      try {
+        final ir = await http.get(Uri.parse(img)).timeout(const Duration(seconds: 15));
+        if (ir.statusCode == 200 && ir.bodyBytes.length < 1500000) {
+          bytes += ir.bodyBytes.length;
+          images.add({
+            'inline_data': {
+              'mime_type': ir.headers['content-type']?.split(';').first ?? 'image/jpeg',
+              'data': base64Encode(ir.bodyBytes),
+            }
+          });
+        }
+      } catch (_) {}
+    }
+    final prompt =
+        'Estas son publicaciones recientes de Instagram de bares de rock de '
+        'Medellín, con sus flyers como imágenes (IMAGEN 1, 2… en el mismo '
+        'orden). Hoy es $from. Extrae SOLO los toques, conciertos o eventos de '
+        'música en vivo anunciados entre $from y $to: lee la fecha, la hora, '
+        'las bandas y el cover en el texto o en la imagen del flyer. Si el '
+        'flyer no dice el año, asume el próximo que corresponda a esa fecha. '
+        'Ignora promociones de comida o tragos sin música en vivo. En '
+        '"ciudad" pon Medellín, en "lugar" el nombre del bar, en "fuente" la '
+        'URL de la publicación y en "hora" la hora y el cover si aparecen. '
+        'Si no hay ninguno, responde {"conciertos":[]}. Responde solo con '
+        'JSON: {"conciertos":[{"banda":"","ciudad":"","lugar":"",'
+        '"fecha":"AAAA-MM-DD o vacío","cuando":"","hora":"","boletas":"",'
+        '"fuente":"","genero":""}]}\n\nPublicaciones:\n${texts.join('\n')}';
+    final s = AiSettings.instance;
+    final gKey = s.geminiKey.trim();
+    final errs = <String>[];
+    if (gKey.isNotEmpty) {
+      for (final model in <String>{s.geminiModel, 'gemini-flash-lite-latest'}) {
+        for (var attempt = 0; attempt < 3; attempt++) {
+          try {
+            return _parse(await _gemini(model, gKey, prompt,
+                search: false, extraParts: images));
+          } catch (e) {
+            if ('$e'.contains('503') && attempt < 2) {
+              await Future<void>.delayed(Duration(seconds: 4 * (attempt + 1)));
+              continue;
+            }
+            errs.add('Gemini: $e');
+            break;
+          }
+        }
+      }
+    }
+    // Sin Gemini: Groq solo con el texto de las publicaciones.
+    final qKey = s.groqKey.trim();
+    if (qKey.isNotEmpty) {
+      try {
+        return _parse(await _groq(s.groqModel, qKey, _cut(prompt, 14000), json: true));
+      } catch (e) {
+        errs.add('Groq: $e');
+      }
+    }
+    throw errs.isEmpty ? 'falta clave de Gemini' : errs.join('; ');
   }
 
   /// Pide a Gemini (o Groq) que convierta resultados de búsqueda en la lista.
@@ -562,7 +738,8 @@ class ConcertService {
   }
 
   Future<String> _gemini(String model, String key, String prompt,
-      {bool search = true}) async {
+      {bool search = true,
+      List<Map<String, dynamic>> extraParts = const []}) async {
     http.Response r;
     try {
       r = await http
@@ -575,7 +752,8 @@ class ConcertService {
                 {
                   'role': 'user',
                   'parts': [
-                    {'text': prompt}
+                    {'text': prompt},
+                    ...extraParts,
                   ],
                 }
               ],
