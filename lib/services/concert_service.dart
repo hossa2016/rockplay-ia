@@ -262,7 +262,7 @@ class ConcertService {
     // 1) Tavily busca en la web y Gemini/Groq (sin búsqueda) ordenan.
     if (s.tavilyKey.trim().isNotEmpty) {
       try {
-        return _parse(await _viaTavily(s.tavilyKey.trim(), from, to));
+        return await _viaTavily(s.tavilyKey.trim(), from, to);
       } catch (e) {
         errors.add('Tavily: $e');
       }
@@ -293,7 +293,7 @@ class ConcertService {
     throw 'No se pudo buscar en internet (${errors.first}). Intenta más tarde.';
   }
 
-  Future<String> _viaTavily(String key, String from, String to) async {
+  Future<List<Concert>> _viaTavily(String key, String from, String to) async {
     final y1 = DateTime.now().year;
     final y2 = y1 + 1;
     final queries = [
@@ -382,9 +382,9 @@ class ConcertService {
     if (gKey.isNotEmpty) {
       for (final model in <String>{s.geminiModel, 'gemini-2.5-flash'}) {
         try {
-          return await _gemini(
+          return _parse(await _gemini(
               model, gKey, '$system\n\nResultados de búsqueda:\n$results',
-              search: false);
+              search: false));
         } catch (e) {
           errs.add('Gemini: $e');
         }
@@ -397,8 +397,9 @@ class ConcertService {
           results.length > 14000 ? results.substring(0, 14000) : results;
       for (final model in <String>{s.groqModel, 'openai/gpt-oss-20b'}) {
         try {
-          return await _groq(
-              model, qKey, '$system\n\nResultados de búsqueda:\n$short');
+          return _parse(await _groq(
+              model, qKey, '$system\n\nResultados de búsqueda:\n$short',
+              json: true));
         } catch (e) {
           errs.add('Groq: $e');
         }
@@ -406,7 +407,7 @@ class ConcertService {
     }
     throw errs.isEmpty
         ? 'falta clave de Gemini o Groq para ordenar los resultados'
-        : 'Tavily encontró resultados pero no se pudieron ordenar (${errs.first})';
+        : 'Tavily encontró resultados pero no se pudieron ordenar: ${errs.join('; ')}';
   }
 
   static String _why(int code) {
@@ -438,7 +439,11 @@ class ConcertService {
                 'tools': [
                   {'google_search': {}}
                 ],
-              'generationConfig': {'temperature': 0.2},
+              'generationConfig': {
+                'temperature': 0.2,
+                'maxOutputTokens': 16000,
+                if (!search) 'responseMimeType': 'application/json',
+              },
             }),
           )
           .timeout(const Duration(seconds: 90));
@@ -446,17 +451,26 @@ class ConcertService {
       throw 'sin conexión o tardó demasiado';
     }
     if (r.statusCode != 200) throw _why(r.statusCode);
+    String reason = '';
     try {
       final j = jsonDecode(utf8.decode(r.bodyBytes));
-      final parts = j['candidates'][0]['content']['parts'] as List;
-      return parts.map((p) => (p is Map ? p['text'] : null) ?? '').join('\n');
-    } catch (_) {
-      throw 'respuesta vacía';
-    }
+      final c = j['candidates'][0];
+      reason = (c['finishReason'] ?? '').toString();
+      final parts = c['content']['parts'] as List;
+      final t = parts
+          .where((p) => p is Map && p['thought'] != true)
+          .map((p) => (p as Map)['text'] ?? '')
+          .join('\n');
+      if (t.trim().isNotEmpty) return t;
+    } catch (_) {}
+    throw reason.isEmpty || reason == 'STOP'
+        ? 'respuesta vacía'
+        : 'respuesta cortada ($reason)';
   }
 
   /// Groq Compound busca en la web por su cuenta.
-  Future<String> _groq(String model, String key, String prompt) async {
+  Future<String> _groq(String model, String key, String prompt,
+      {bool json = false}) async {
     http.Response r;
     try {
       r = await http
@@ -469,6 +483,8 @@ class ConcertService {
             body: jsonEncode({
               'model': model,
               'temperature': 0.2,
+              if (json) 'response_format': {'type': 'json_object'},
+              if (model.startsWith('openai/gpt-oss')) 'reasoning_effort': 'low',
               'messages': [
                 {'role': 'user', 'content': prompt}
               ],
@@ -488,12 +504,26 @@ class ConcertService {
   }
 
   static List<Concert> _parse(String text) {
-    final start = text.indexOf('{');
-    final end = text.lastIndexOf('}');
-    if (start < 0 || end <= start) throw 'respuesta sin datos';
+    final t = text.trim();
+    final obj = t.indexOf('{');
+    final arr = t.indexOf('[');
+    final useArr = arr >= 0 && (obj < 0 || arr < obj);
+    final start = useArr ? arr : obj;
+    final end = useArr ? t.lastIndexOf(']') : t.lastIndexOf('}');
+    if (start < 0 || end <= start) {
+      final peek = t.length > 60 ? '${t.substring(0, 60)}…' : t;
+      throw 'respuesta sin datos: "$peek"';
+    }
     try {
-      final j = jsonDecode(text.substring(start, end + 1));
-      final raw = (j is Map ? j['conciertos'] : null) as List? ?? const [];
+      final j = jsonDecode(t.substring(start, end + 1));
+      List raw = const [];
+      if (j is List) {
+        raw = j;
+      } else if (j is Map) {
+        final v = j['conciertos'] ?? j['concerts'] ??
+            j.values.firstWhere((e) => e is List, orElse: () => null);
+        if (v is List) raw = v;
+      }
       return _upcoming(<Concert>[
         for (final e in raw)
           if (Concert.fromJson(e) != null) Concert.fromJson(e)!,
