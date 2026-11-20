@@ -3,6 +3,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -46,7 +48,18 @@ jobs:
           free -m
       - run: python3 tools/fix_signing.py
       - run: flutter build apk --release --target-platform android-arm64
+      - name: Publicar APK en Releases (no gasta el espacio de Actions)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp build/app/outputs/flutter-apk/app-release.apk RockPlayIA.apk
+          gh release delete ultima --yes --cleanup-tag || true
+          gh release create ultima RockPlayIA.apk --target "${{ github.sha }}" --prerelease \
+            --title "RockPlay IA (última versión)" \
+            --notes "Compilado automáticamente del commit ${{ github.sha }}"
       - uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: RockPlayIA-APK
           path: build/app/outputs/flutter-apk/app-release.apk
+          retention-days: 3
