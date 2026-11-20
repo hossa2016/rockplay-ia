@@ -583,25 +583,18 @@ class ConcertService {
 
   static String _cut(String t, int n) => t.length > n ? t.substring(0, n) : t;
 
-  /// Lee las publicaciones recientes de los bares con Apify y le pasa a
-  /// Gemini el texto y las imágenes de los flyers.
-  Future<List<Concert>> _instagram(
-      String token, List<String> handles, String from, String to) async {
+  /// Ejecuta un actor de Apify, espera a que termine y devuelve sus datos.
+  Future<List<dynamic>> _apifyRun(
+      String token, String actor, Map<String, dynamic> input) async {
     // Se lanza la ejecución y se espera a que termine (puede tardar 1-3
     // min); así se sabe si falló y por qué.
-    const actor = 'themineworks~instagram-post-scraper';
     http.Response r;
     try {
       r = await http
           .post(
             Uri.parse('https://api.apify.com/v2/acts/$actor/runs?token=$token'),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({
-              'usernames': handles,
-              'maxPostsPerProfile': 12,
-              'newerThan': '45 days',
-              'skipPinned': false,
-            }),
+            body: jsonEncode(input),
           )
           .timeout(const Duration(seconds: 30));
     } catch (_) {
@@ -646,8 +639,45 @@ class ConcertService {
       throw 'Apify terminó con estado $status${msg.isEmpty ? '' : ': ${_cut(msg, 150)}'}';
     }
     final items = jsonDecode(utf8.decode(r.bodyBytes));
-    if (items is! List || items.isEmpty) {
-      throw 'Apify no trajo publicaciones ($status${msg.isEmpty ? '' : ': ${_cut(msg, 150)}'})';
+    final posts = items is List
+        ? items.where((e) => e is Map && e['url'] != null && e['error'] == null).toList()
+        : <dynamic>[];
+    if (posts.isEmpty) {
+      throw 'sin publicaciones ($status${msg.isEmpty ? '' : ': ${_cut(msg, 150)}'})';
+    }
+    return posts;
+  }
+
+  /// Lee las publicaciones recientes de los bares con Apify y le pasa a
+  /// Gemini el texto y las imágenes de los flyers.
+  Future<List<Concert>> _instagram(
+      String token, List<String> handles, String from, String to) async {
+    // 1) Lector económico; 2) si Instagram lo bloquea, el lector oficial
+    //    de Apify (más caro, pero con conexiones que bloquean menos).
+    List<dynamic> items = const [];
+    var note = '';
+    try {
+      items = await _apifyRun(token, 'themineworks~instagram-post-scraper', {
+        'usernames': handles,
+        'maxPostsPerProfile': 12,
+        'newerThan': '45 days',
+        'skipPinned': false,
+      });
+    } catch (e) {
+      note = 'económico: $e';
+    }
+    if (items.isEmpty) {
+      try {
+        items = await _apifyRun(token, 'apify~instagram-scraper', {
+          'directUrls': [for (final h in handles) 'https://www.instagram.com/$h/'],
+          'resultsType': 'posts',
+          'resultsLimit': 12,
+          'onlyPostsNewerThan': '45 days',
+          'addParentData': false,
+        });
+      } catch (e) {
+        throw 'Instagram bloqueó la lectura (oficial: $e; $note)';
+      }
     }
 
     _igStats = '';
