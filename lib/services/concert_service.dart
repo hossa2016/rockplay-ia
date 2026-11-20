@@ -457,6 +457,10 @@ class ConcertService {
           searchErr = 'sin conexión';
         }
       }
+      // Pausa corta entre grupos para no saturar el plan gratis de la IA.
+      if (okGroups > 0 || log.isNotEmpty) {
+        await Future<void>.delayed(const Duration(seconds: 2));
+      }
       if (found.isEmpty) {
         log.add('${g.key}: 0 resultados${searchErr == null ? '' : ' ($searchErr)'}');
         continue;
@@ -502,13 +506,26 @@ class ConcertService {
     final s = AiSettings.instance;
     final gKey = s.geminiKey.trim();
     if (gKey.isNotEmpty) {
-      for (final model in <String>{s.geminiModel, 'gemini-2.5-flash'}) {
-        try {
-          return _parse(await _gemini(
-              model, gKey, '$system\n\nResultados de búsqueda:\n$results',
-              search: false));
-        } catch (e) {
-          errs.add('Gemini: $e');
+      for (final model in <String>{
+        s.geminiModel,
+        'gemini-flash-lite-latest',
+        'gemini-2.5-flash',
+      }) {
+        // 503 = servidores saturados: espera y reintenta hasta 2 veces.
+        for (var attempt = 0; attempt < 3; attempt++) {
+          try {
+            return _parse(await _gemini(
+                model, gKey, '$system\n\nResultados de búsqueda:\n$results',
+                search: false));
+          } catch (e) {
+            final busy = '$e'.contains('503') || '$e'.contains('límite');
+            if (busy && attempt < 2) {
+              await Future<void>.delayed(Duration(seconds: 4 * (attempt + 1)));
+              continue;
+            }
+            errs.add('Gemini ($model): $e');
+            break;
+          }
         }
       }
     }
@@ -517,12 +534,19 @@ class ConcertService {
       final short =
           results.length > 14000 ? results.substring(0, 14000) : results;
       for (final model in <String>{s.groqModel, 'openai/gpt-oss-20b'}) {
-        try {
-          return _parse(await _groq(
-              model, qKey, '$system\n\nResultados de búsqueda:\n$short',
-              json: true));
-        } catch (e) {
-          errs.add('Groq: $e');
+        for (var attempt = 0; attempt < 2; attempt++) {
+          try {
+            // Segundo intento sin modo JSON estricto (Groq lo rechaza si
+            // el modelo se desvía un poco).
+            return _parse(await _groq(
+                model, qKey, '$system\n\nResultados de búsqueda:\n$short',
+                json: attempt == 0));
+          } catch (e) {
+            if ('$e'.contains('límite') && attempt == 0) {
+              await Future<void>.delayed(const Duration(seconds: 8));
+            }
+            if (attempt == 1) errs.add('Groq ($model): $e');
+          }
         }
       }
     }
@@ -532,7 +556,8 @@ class ConcertService {
   static String _why(int code) {
     if (code == 429) return 'límite alcanzado o búsqueda no incluida en el plan gratis';
     if (code == 401 || code == 403) return 'clave rechazada';
-    if (code == 404 || code == 400) return 'modelo no disponible';
+    if (code == 404) return 'modelo no disponible';
+    if (code == 400) return 'solicitud rechazada (400)';
     return 'error $code';
   }
 
