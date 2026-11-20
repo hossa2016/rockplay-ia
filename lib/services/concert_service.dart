@@ -55,10 +55,36 @@ class Concert {
       date: date == null ? null : DateTime(date.year, date.month, date.day),
       when: date == null ? (s('cuando').isEmpty ? 'Por confirmar' : s('cuando')) : '',
       time: s('hora'),
-      tickets: _url(s('boletas')),
+      tickets: _url(s('boletas')).isNotEmpty
+          ? _url(s('boletas'))
+          : (isTicketSite(s('fuente')) ? _url(s('fuente')) : ''),
       source: _url(s('fuente')),
     );
   }
+
+  /// Boleterías conocidas: si la fuente es una de ellas, es el enlace de compra.
+  static const List<String> ticketSites = [
+    'tuboleta.com',
+    'eticket.co',
+    'ticketmaster.co',
+    'ticketmaster.com',
+    'taquillalive.com',
+    'primerafila.com.co',
+    'colboletos.com',
+    'passline.com',
+    'livepass.com',
+    'ticketshop.com.co',
+  ];
+
+  static bool isTicketSite(String url) {
+    final h = Uri.tryParse(url)?.host.toLowerCase() ?? '';
+    return h.isNotEmpty && ticketSites.any((t) => h == t || h.endsWith('.$t'));
+  }
+
+  /// Búsqueda en Google de boletas para cuando no hay enlace directo.
+  String get ticketSearchUrl => Uri.https('www.google.com', '/search', {
+        'q': '$band ${city.isEmpty ? 'Colombia' : city} boletas',
+      }).toString();
 
   static String _url(String u) =>
       u.startsWith('http://') || u.startsWith('https://') ? u : '';
@@ -272,7 +298,15 @@ class ConcertService {
     final found = <String>[];
     final seen = <String>{};
     String? lastErr;
-    for (final q in queries) {
+    final jobs = <Map<String, dynamic>>[
+      for (final q in queries) {'query': q},
+      {
+        'query': 'concierto rock metal Colombia boletas $y1 $y2',
+        'include_domains': Concert.ticketSites,
+      },
+    ];
+    for (final job in jobs) {
+      final q = job['query'];
       try {
         final r = await http
             .post(
@@ -282,6 +316,7 @@ class ConcertService {
                 'Content-Type': 'application/json',
               },
               body: jsonEncode({
+                ...job,
                 'query': q,
                 'search_depth': 'basic',
                 'max_results': 10,
@@ -319,7 +354,11 @@ class ConcertService {
         'punk, grunge, alternativo, indie y rock en español que se hagan en '
         'Colombia entre $from y $to. Si un evento está anunciado sin fecha '
         'exacta, deja "fecha" vacía y pon en "cuando" lo que se sepa. En '
-        '"fuente" pon la URL del resultado donde aparece. Para festivales usa '
+        '"fuente" pon la URL del resultado donde aparece. Si algún resultado '
+        'es de una boletería (Tuboleta, eTicket, Ticketmaster, Taquilla Live, '
+        'PrimeraFila u otra) y vende ese concierto, pon esa URL en "boletas". '
+        'Si los resultados dicen que la venta ya empezó, indícalo poniendo '
+        'la URL de la boletería aunque la venta sea en otra fuente. 'Para festivales usa '
         'como "banda" el nombre del festival y entre paréntesis las bandas '
         'principales. Responde solo con JSON con esta forma: '
         '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío",'

@@ -139,19 +139,17 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
           ]),
           const SizedBox(height: 12),
           Row(children: [
-            if (hasTickets || c.source.isNotEmpty) ...[
-              Expanded(
-                child: FilledButton(
-                  style: FilledButton.styleFrom(
-                      minimumSize: const Size(0, 44),
-                      backgroundColor: AppColors.redBtn),
-                  onPressed: () => openConcertLink(
-                      context, hasTickets ? c.tickets : c.source),
-                  child: Text(hasTickets ? 'Boletas' : 'Ver anuncio'),
-                ),
+            Expanded(
+              child: FilledButton(
+                style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 44),
+                    backgroundColor: AppColors.redBtn),
+                onPressed: () => openConcertLink(
+                    context, hasTickets ? c.tickets : c.ticketSearchUrl),
+                child: Text(hasTickets ? 'Boletas' : 'Buscar boletas'),
               ),
-              const SizedBox(width: 8),
-            ],
+            ),
+            const SizedBox(width: 8),
             Expanded(
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
@@ -160,7 +158,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
               ),
             ),
           ]),
-          if (c.source.isNotEmpty && hasTickets) ...[
+          if (c.source.isNotEmpty && c.source != c.tickets) ...[
             const SizedBox(height: 4),
             TextButton(
               style: TextButton.styleFrom(
