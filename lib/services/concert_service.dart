@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
-import 'ai_client.dart';
 import 'ai_settings.dart';
 
 /// Un concierto encontrado en internet.
@@ -376,17 +375,38 @@ class ConcertService {
         'principales. Responde solo con JSON con esta forma: '
         '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío",'
         '"cuando":"","hora":"","boletas":"","fuente":"","genero":"rock|metal|punk|grunge|alternativo|indie|rock en español|festival"}]}';
-    final msg = [AiMessage(true, 'Resultados de búsqueda:\n${found.join('\n')}')];
+    final results = found.join('\n');
+    final errs = <String>[];
     final s = AiSettings.instance;
-    if (s.geminiKey.trim().isNotEmpty) {
-      try {
-        return await AiClient.instance.gemini(system, msg);
-      } catch (_) {
-        if (s.groqKey.trim().isEmpty) rethrow;
+    final gKey = s.geminiKey.trim();
+    if (gKey.isNotEmpty) {
+      for (final model in <String>{s.geminiModel, 'gemini-2.5-flash'}) {
+        try {
+          return await _gemini(
+              model, gKey, '$system\n\nResultados de búsqueda:\n$results',
+              search: false);
+        } catch (e) {
+          errs.add('Gemini: $e');
+        }
       }
     }
-    if (s.groqKey.trim().isEmpty) throw 'falta clave de Gemini o Groq';
-    return AiClient.instance.groq(system, msg);
+    final qKey = s.groqKey.trim();
+    if (qKey.isNotEmpty) {
+      // El plan gratis de Groq admite poco texto por minuto: recorta.
+      final short =
+          results.length > 14000 ? results.substring(0, 14000) : results;
+      for (final model in <String>{s.groqModel, 'openai/gpt-oss-20b'}) {
+        try {
+          return await _groq(
+              model, qKey, '$system\n\nResultados de búsqueda:\n$short');
+        } catch (e) {
+          errs.add('Groq: $e');
+        }
+      }
+    }
+    throw errs.isEmpty
+        ? 'falta clave de Gemini o Groq para ordenar los resultados'
+        : 'Tavily encontró resultados pero no se pudieron ordenar (${errs.first})';
   }
 
   static String _why(int code) {
@@ -396,7 +416,8 @@ class ConcertService {
     return 'error $code';
   }
 
-  Future<String> _gemini(String model, String key, String prompt) async {
+  Future<String> _gemini(String model, String key, String prompt,
+      {bool search = true}) async {
     http.Response r;
     try {
       r = await http
@@ -413,9 +434,10 @@ class ConcertService {
                   ],
                 }
               ],
-              'tools': [
-                {'google_search': {}}
-              ],
+              if (search)
+                'tools': [
+                  {'google_search': {}}
+                ],
               'generationConfig': {'temperature': 0.2},
             }),
           )
