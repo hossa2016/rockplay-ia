@@ -187,7 +187,7 @@ class ConcertService {
       return;
     }
     try {
-      final list = await _search();
+      final list = _merge(await _search(), prev.items);
       final now = DateTime.now();
       state.value = ConcertState(items: list, updatedAt: now);
       _writeCache(list, now);
@@ -227,6 +227,29 @@ class ConcertService {
             'items': [for (final c in list) c.toJson()],
           }));
     } catch (_) {}
+  }
+
+  /// Une lo nuevo con lo que ya se había encontrado: una búsqueda nueva
+  /// puede dejar por fuera un concierto que sigue vigente (p. ej. Slipknot).
+  /// Los viejos se quedan hasta que pase su fecha.
+  static List<Concert> _merge(List<Concert> fresh, List<Concert> old) {
+    String key(Concert c) {
+      final b = c.band.toLowerCase().split('(').first.trim();
+      return c.date == null ? b : '$b|${_ymd(c.date!)}';
+    }
+    final have = {for (final c in fresh) key(c)};
+    final bands = {
+      for (final c in fresh) c.band.toLowerCase().split('(').first.trim()
+    };
+    return _upcoming([
+      ...fresh,
+      for (final c in old)
+        if (!have.contains(key(c)) &&
+            // Si ahora tiene fecha exacta, descarta el viejo "por confirmar".
+            !(c.date == null &&
+                bands.contains(c.band.toLowerCase().split('(').first.trim())))
+          c,
+    ]);
   }
 
   static DateTime _today() {
