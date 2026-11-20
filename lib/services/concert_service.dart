@@ -474,9 +474,10 @@ class ConcertService {
         final list = await _instagram(apify, handles, from, to);
         all.addAll(list);
         okGroups++;
-        log.add('Instagram de bares (${handles.length}): ${list.length} conciertos');
+        log.add('Instagram de bares: $_igStats → $_lastRaw eventos, '
+            '${list.length} vigentes');
       } catch (e) {
-        log.add('Instagram de bares: error: $e');
+        log.add('Instagram de bares: ${_igStats.isEmpty ? '' : '$_igStats → '}error: $e');
       }
     } else if (apify.isEmpty) {
       log.add('Instagram de bares: falta el token de Apify');
@@ -597,7 +598,7 @@ class ConcertService {
             body: jsonEncode({
               'usernames': handles,
               'maxPostsPerProfile': 10,
-              'newerThan': '30 days',
+              'newerThan': '45 days',
               'postTypes': ['image', 'carousel'],
               'skipPinned': false,
             }),
@@ -612,6 +613,7 @@ class ConcertService {
     final items = jsonDecode(utf8.decode(r.bodyBytes));
     if (items is! List || items.isEmpty) throw 'sin publicaciones recientes';
 
+    _igStats = '';
     final texts = <String>[];
     final images = <Map<String, dynamic>>[];
     var bytes = 0;
@@ -638,13 +640,23 @@ class ConcertService {
         }
       } catch (_) {}
     }
+    final users = <String>{
+      for (final it in items)
+        if (it is Map) (it['ownerUsername'] ?? it['username'] ?? '').toString()
+    }..remove('');
+    final missing = handles.where((h) => !users.contains(h)).toList();
+    _igStats = '${items.length} publicaciones de ${users.length} perfiles, '
+        '${images.length} flyers leídos'
+        '${missing.isEmpty ? '' : '; sin publicaciones: @${missing.join(', @')}'}';
     final prompt =
         'Estas son publicaciones recientes de Instagram de bares de rock de '
         'Medellín, con sus flyers como imágenes (IMAGEN 1, 2… en el mismo '
         'orden). Hoy es $from. Extrae SOLO los toques, conciertos o eventos de '
         'música en vivo anunciados entre $from y $to: lee la fecha, la hora, '
         'las bandas y el cover en el texto o en la imagen del flyer. Si el '
-        'flyer no dice el año, asume el próximo que corresponda a esa fecha. '
+        'flyer no dice el año, asume el próximo que corresponda a esa fecha; '
+        'si solo dice el día de la semana ("este sábado"), calcúlalo a partir '
+        'de la fecha de publicación. '
         'Ignora promociones de comida o tragos sin música en vivo. En '
         '"ciudad" pon Medellín, en "lugar" el nombre del bar, en "tipo" pon '
         '"bar", en "fuente" la '
@@ -858,6 +870,10 @@ class ConcertService {
     throw 'respuesta vacía';
   }
 
+  /// Eventos leídos en la última respuesta, antes de quitar los vencidos.
+  static int _lastRaw = 0;
+  String _igStats = '';
+
   static List<Concert> _parse(String text) {
     final t = text.trim();
     final obj = t.indexOf('{');
@@ -879,10 +895,12 @@ class ConcertService {
             j.values.firstWhere((e) => e is List, orElse: () => null);
         if (v is List) raw = v;
       }
-      return _upcoming(<Concert>[
+      final all = <Concert>[
         for (final e in raw)
           if (Concert.fromJson(e) != null) Concert.fromJson(e)!,
-      ]);
+      ];
+      _lastRaw = all.length;
+      return _upcoming(all);
     } catch (_) {
       throw 'respuesta incompleta';
     }
