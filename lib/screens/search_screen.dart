@@ -309,7 +309,7 @@ class _SearchScreenState extends State<SearchScreen> {
           if (s.loading) {
             msg = 'Buscando conciertos de rock en Colombia…';
           } else if (s.noKey) {
-            msg = 'Agrega tu clave de Gemini en Ajustes del asistente para ver los próximos conciertos.';
+            msg = 'Agrega tu clave de Gemini o Groq en Ajustes del asistente para ver los próximos conciertos.';
           } else if (s.error != null) {
             msg = s.error;
           } else {
@@ -374,7 +374,7 @@ class _SearchScreenState extends State<SearchScreen> {
               child: Text(
                 s.loading && items.isNotEmpty
                     ? 'Actualizando…'
-                    : '${concertsUpdatedLabel(s.updatedAt)} · búsqueda en internet con Gemini',
+                    : '${concertsUpdatedLabel(s.updatedAt)} · búsqueda en internet con IA',
                 style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,

@@ -246,7 +246,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
           final status = s.loading
               ? 'Buscando conciertos en internet…'
               : s.noKey
-                  ? 'Falta la clave de Gemini (Ajustes del asistente).'
+                  ? 'Falta una clave de Gemini o Groq (Ajustes del asistente).'
                   : s.error ?? concertsUpdatedLabel(s.updatedAt);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,7 +307,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                           const Padding(
                             padding: EdgeInsets.only(top: 4),
                             child: Text(
-                              'Datos buscados en internet con Gemini. Confirma la fecha en la fuente antes de comprar.',
+                              'Datos buscados en internet con IA. Confirma la fecha en la fuente antes de comprar.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                   fontSize: 12, color: AppColors.textFaint),

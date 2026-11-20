@@ -124,7 +124,8 @@ class ConcertService {
     state.value = ConcertState(
         items: prev.items, updatedAt: prev.updatedAt, loading: true);
     await AiSettings.instance.load();
-    if (AiSettings.instance.geminiKey.trim().isEmpty) {
+    if (AiSettings.instance.geminiKey.trim().isEmpty &&
+        AiSettings.instance.groqKey.trim().isEmpty) {
       state.value = ConcertState(
           items: prev.items, updatedAt: prev.updatedAt, noKey: true);
       return;
@@ -224,16 +225,47 @@ class ConcertService {
         '"hora":"","boletas":"url de compra o vacío","fuente":"url donde se '
         'anunció"}]}';
 
+    final errors = <String>[];
+    final geminiKey = s.geminiKey.trim();
+    if (geminiKey.isNotEmpty) {
+      for (final model in <String>{s.geminiModel, 'gemini-2.5-flash'}) {
+        try {
+          return _parse(await _gemini(model, geminiKey, prompt));
+        } catch (e) {
+          errors.add('Gemini ($model): $e');
+        }
+      }
+    }
+    final groqKey = s.groqKey.trim();
+    if (groqKey.isNotEmpty) {
+      for (final model in const ['groq/compound', 'groq/compound-mini']) {
+        try {
+          return _parse(await _groq(model, groqKey, prompt));
+        } catch (e) {
+          errors.add('Groq ($model): $e');
+        }
+      }
+    }
+    debugPrint('Conciertos: ${errors.join(' | ')}');
+    if (errors.isEmpty) throw 'Falta una clave de Gemini o Groq.';
+    throw 'No se pudo buscar en internet (${errors.last}). Intenta más tarde.';
+  }
+
+  static String _why(int code) {
+    if (code == 429) return 'límite alcanzado o búsqueda no incluida en el plan gratis';
+    if (code == 401 || code == 403) return 'clave rechazada';
+    if (code == 404 || code == 400) return 'modelo no disponible';
+    return 'error $code';
+  }
+
+  Future<String> _gemini(String model, String key, String prompt) async {
     http.Response r;
     try {
       r = await http
           .post(
             Uri.parse('https://generativelanguage.googleapis.com/v1beta/models/'
-                '${s.geminiModel}:generateContent'),
-            headers: {
-              'x-goog-api-key': s.geminiKey.trim(),
-              'Content-Type': 'application/json',
-            },
+                '$model:generateContent'),
+            headers: {'x-goog-api-key': key, 'Content-Type': 'application/json'},
             body: jsonEncode({
               'contents': [
                 {
@@ -251,39 +283,63 @@ class ConcertService {
           )
           .timeout(const Duration(seconds: 90));
     } catch (_) {
-      throw 'Sin conexión o la búsqueda tardó demasiado.';
+      throw 'sin conexión o tardó demasiado';
     }
-    if (r.statusCode == 429) {
-      throw 'Se alcanzó el límite gratuito de Gemini. Intenta más tarde.';
-    }
-    if (r.statusCode == 401 || r.statusCode == 403) {
-      throw 'Gemini rechazó la clave. Revísala en Ajustes del asistente.';
-    }
-    if (r.statusCode != 200) throw 'Gemini respondió con error ${r.statusCode}.';
-
-    String text = '';
+    if (r.statusCode != 200) throw _why(r.statusCode);
     try {
       final j = jsonDecode(utf8.decode(r.bodyBytes));
       final parts = j['candidates'][0]['content']['parts'] as List;
-      text = parts
-          .map((p) => (p is Map ? p['text'] : null) ?? '')
-          .join('\n');
+      return parts.map((p) => (p is Map ? p['text'] : null) ?? '').join('\n');
     } catch (_) {
-      throw 'Gemini no devolvió resultados.';
+      throw 'respuesta vacía';
     }
+  }
+
+  /// Groq Compound busca en la web por su cuenta.
+  Future<String> _groq(String model, String key, String prompt) async {
+    http.Response r;
+    try {
+      r = await http
+          .post(
+            Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
+            headers: {
+              'Authorization': 'Bearer $key',
+              'Content-Type': 'application/json',
+            },
+            body: jsonEncode({
+              'model': model,
+              'temperature': 0.2,
+              'messages': [
+                {'role': 'user', 'content': prompt}
+              ],
+            }),
+          )
+          .timeout(const Duration(seconds: 90));
+    } catch (_) {
+      throw 'sin conexión o tardó demasiado';
+    }
+    if (r.statusCode != 200) throw _why(r.statusCode);
+    try {
+      final j = jsonDecode(utf8.decode(r.bodyBytes));
+      final t = j['choices'][0]['message']['content'];
+      if (t is String && t.trim().isNotEmpty) return t;
+    } catch (_) {}
+    throw 'respuesta vacía';
+  }
+
+  static List<Concert> _parse(String text) {
     final start = text.indexOf('{');
     final end = text.lastIndexOf('}');
-    if (start < 0 || end <= start) throw 'No se encontraron conciertos.';
+    if (start < 0 || end <= start) throw 'respuesta sin datos';
     try {
       final j = jsonDecode(text.substring(start, end + 1));
       final raw = (j is Map ? j['conciertos'] : null) as List? ?? const [];
-      final list = <Concert>[
+      return _upcoming(<Concert>[
         for (final e in raw)
           if (Concert.fromJson(e) != null) Concert.fromJson(e)!,
-      ];
-      return _upcoming(list);
+      ]);
     } catch (_) {
-      throw 'La respuesta de Gemini llegó incompleta. Intenta de nuevo.';
+      throw 'respuesta incompleta';
     }
   }
 }
