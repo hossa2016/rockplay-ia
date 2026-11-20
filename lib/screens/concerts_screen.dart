@@ -90,7 +90,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
 
   List<Concert> _filter(List<Concert> all) {
     if (_city == 'Todas') return all;
-    if (_city == 'Bares') return all.where(_svc.isFavoriteBar).toList();
+    if (_city == 'Bares') return all.where(_svc.isBar).toList();
     if (_city == 'Otras') return all.where((c) => !_isMain(c.city)).toList();
     final k = _city.toLowerCase().substring(0, 4);
     return all.where((c) => c.city.toLowerCase().contains(k)).toList();

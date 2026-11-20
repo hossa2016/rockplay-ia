@@ -21,6 +21,8 @@ class Concert {
   final String source;
   /// Género principal (punk, grunge, metal…).
   final String genre;
+  /// "bar", "escenario" o "festival".
+  final String kind;
 
   const Concert({
     required this.band,
@@ -32,6 +34,7 @@ class Concert {
     this.tickets = '',
     this.source = '',
     this.genre = '',
+    this.kind = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -44,6 +47,7 @@ class Concert {
         'boletas': tickets,
         'fuente': source,
         'genero': genre,
+        'tipo': kind,
       };
 
   static Concert? fromJson(dynamic j) {
@@ -64,6 +68,7 @@ class Concert {
           : (isTicketSite(s('fuente')) ? _url(s('fuente')) : ''),
       source: _url(s('fuente')),
       genre: s('genero'),
+      kind: s('tipo').toLowerCase(),
     );
   }
 
@@ -180,6 +185,14 @@ class ConcertService {
     final v = '${c.venue} ${c.band}'.toLowerCase();
     return barNames.any((b) => v.contains(b.toLowerCase()));
   }
+
+  static final RegExp _barWords = RegExp(
+      r'\b(bar|pub|taberna|bodega|club|caf[eé]|cantina|pascasia)\b',
+      caseSensitive: false);
+
+  /// Toques en bares: tus bares o cualquier bar, pub o club.
+  bool isBar(Concert c) =>
+      c.kind == 'bar' || isFavoriteBar(c) || _barWords.hasMatch(c.venue);
 
   final ValueNotifier<ConcertState> state =
       ValueNotifier<ConcertState>(const ConcertState());
@@ -298,7 +311,11 @@ class ConcertService {
       final d = c.date;
       if (d != null && (d.isBefore(from) || d.isAfter(to))) continue;
       final k = '${c.band.toLowerCase()}|${d == null ? '' : _ymd(d)}';
+      // Mismo lugar y misma fecha = mismo evento aunque lo nombren distinto.
+      final v = c.venue.toLowerCase().trim();
+      final k2 = d != null && v.length > 3 && v != 'tba' ? '$v|${_ymd(d)}' : null;
       if (!seen.add(k)) continue;
+      if (k2 != null && !seen.add(k2)) continue;
       (d == null ? tbd : dated).add(c);
     }
     dated.sort((a, b) => a.date!.compareTo(b.date!));
@@ -330,7 +347,7 @@ class ConcertService {
         'Responde SOLO con JSON válido, sin texto adicional, con esta forma:\n'
         '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío","cuando":"",'
         '"hora":"","boletas":"url de compra o vacío","fuente":"url donde se '
-        'anunció","genero":"rock|metal|punk|grunge|alternativo|indie|rock en español|festival"}]}';
+        'anunció","genero":"rock|metal|punk|grunge|alternativo|indie|rock en español|festival","tipo":"bar|escenario|festival"}]}';
 
     final errors = <String>[];
     // 1) Tavily busca en la web y Gemini/Groq (sin búsqueda) ordenan.
@@ -629,12 +646,13 @@ class ConcertService {
         'las bandas y el cover en el texto o en la imagen del flyer. Si el '
         'flyer no dice el año, asume el próximo que corresponda a esa fecha. '
         'Ignora promociones de comida o tragos sin música en vivo. En '
-        '"ciudad" pon Medellín, en "lugar" el nombre del bar, en "fuente" la '
+        '"ciudad" pon Medellín, en "lugar" el nombre del bar, en "tipo" pon '
+        '"bar", en "fuente" la '
         'URL de la publicación y en "hora" la hora y el cover si aparecen. '
         'Si no hay ninguno, responde {"conciertos":[]}. Responde solo con '
         'JSON: {"conciertos":[{"banda":"","ciudad":"","lugar":"",'
         '"fecha":"AAAA-MM-DD o vacío","cuando":"","hora":"","boletas":"",'
-        '"fuente":"","genero":""}]}\n\nPublicaciones:\n${texts.join('\n')}';
+        '"fuente":"","genero":"","tipo":"bar|escenario|festival"}]}\n\nPublicaciones:\n${texts.join('\n')}';
     final s = AiSettings.instance;
     final gKey = s.geminiKey.trim();
     final errs = <String>[];
@@ -682,11 +700,13 @@ class ConcertService {
         'En "fuente" pon la URL del resultado. Si la URL es de una boletería '
         'o de Eventbrite, ponla también en "boletas". Para festivales usa como '
         '"banda" el nombre del festival y entre paréntesis las bandas '
-        'principales. En "lugar" pon el escenario o el nombre del bar. Si no '
+        'principales. En "lugar" pon el escenario o el nombre del bar. En '
+        '"tipo" pon "bar" si es en un bar, pub, club o café; "festival" si es '
+        'un festival; si no, "escenario". Si no '
         'hay ningún concierto, responde {"conciertos":[]}. Responde solo con '
         'JSON: {"conciertos":[{"banda":"","ciudad":"","lugar":"",'
         '"fecha":"AAAA-MM-DD o vacío","cuando":"","hora":"","boletas":"",'
-        '"fuente":"","genero":""}]}';
+        '"fuente":"","genero":"","tipo":"bar|escenario|festival"}]}';
     final errs = <String>[];
     final s = AiSettings.instance;
     final gKey = s.geminiKey.trim();
