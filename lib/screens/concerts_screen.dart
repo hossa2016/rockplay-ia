@@ -336,7 +336,9 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                           child: Text(
                             s.loading
                                 ? 'Esto puede tardar hasta un minuto.'
-                                : 'No hay conciertos encontrados${_city == 'Todas' ? '' : ' en esta ciudad'}.',
+                                : _city == 'Bares'
+                                    ? 'Todavía no hay toques en tus bares.\n\nPara leer sus flyers de Instagram, toca la copa de arriba y escribe el @usuario de cada bar.'
+                                    : 'No hay conciertos encontrados${_city == 'Todas' ? '' : ' en esta ciudad'}.',
                             textAlign: TextAlign.center,
                             style: const TextStyle(color: AppColors.textDim),
                           ),
