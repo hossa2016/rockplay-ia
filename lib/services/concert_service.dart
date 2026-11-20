@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ai_settings.dart';
+import 'stats_service.dart';
 
 /// Un concierto encontrado en internet.
 class Concert {
@@ -355,7 +356,20 @@ class ConcertService {
       'rock en español gira Colombia $y1 $y2 conciertos',
       'festivales de rock Colombia $y2 cartel confirmado',
       'bandas internacionales de rock gira Colombia $y2 boletas',
+      // Escenarios grandes: ahí se anuncian las giras internacionales.
+      'Vive Claro Bogotá conciertos $y2 rock metal',
+      'Movistar Arena Bogotá conciertos $y2 rock',
+      'concierto confirmado Colombia $y2 metal gira Sudamérica',
     ];
+    // Las bandas que más escuchas: busca si vienen a Colombia.
+    var favs = <String>[];
+    try {
+      final plays = await StatsService.instance.plays(days: 120);
+      favs = [
+        for (final a in StatsService.topArtists(plays, n: 8))
+          StatsService.cleanArtist(a.name)
+      ].where((e) => e.trim().isNotEmpty).toList();
+    } catch (_) {}
     final found = <String>[];
     final seen = <String>{};
     String? lastErr;
@@ -366,6 +380,8 @@ class ConcertService {
       // Escena local de Medellín: bares y toques pequeños.
       {'query': 'toques de rock en bares de Medellín $mes $y1', 'max_results': 6},
       {'query': 'agenda conciertos rock punk metal Medellín $mes $y1', 'max_results': 6},
+      for (final a in favs)
+        {'query': '$a concierto Colombia $y1 $y2', 'max_results': 4},
       for (final b in bars)
         {'query': '$b Medellín concierto toque rock $y1', 'max_results': 5},
       {
@@ -420,7 +436,10 @@ class ConcertService {
         'búsqueda. Hoy es $from. Usa SOLO la información de los resultados, '
         'no inventes nada. Incluye conciertos y festivales de rock, metal, '
         'punk, grunge, alternativo, indie y rock en español que se hagan en '
-        'Colombia entre $from y $to (todos los géneros del rock: hard rock, '
+        'Colombia entre $from y $to. Fíjate bien en el AÑO de cada evento: '
+        'los resultados pueden traer noticias de conciertos de años '
+        'anteriores de la misma banda; descarta solo los que ya pasaron y '
+        'conserva el anuncio nuevo (todos los géneros del rock: hard rock, '
         'metal, punk, hardcore, ska punk, grunge, alternativo, indie, '
         'post-punk, stoner y rock en español). Si un evento está anunciado sin fecha '
         'exacta, deja "fecha" vacía y pon en "cuando" lo que se sepa. En '
