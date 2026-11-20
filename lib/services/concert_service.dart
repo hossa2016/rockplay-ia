@@ -132,6 +132,31 @@ class ConcertService {
   static const Duration refreshEvery = Duration(days: 3);
   static const String _cacheKey = 'concerts_cache_v1';
 
+  /// Bares de rock que el usuario sigue; se buscan uno por uno.
+  static const List<String> defaultBars = [
+    'Barnaby Jones',
+    'Kings Rock',
+    'La Cúpula',
+    'Virus Pub',
+    'Jungle Burger',
+  ];
+  static const String _barsKey = 'concert_bars_v1';
+  List<String> bars = List<String>.of(defaultBars);
+
+  Future<void> saveBars(List<String> list) async {
+    bars = list.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setStringList(_barsKey, bars);
+    } catch (_) {}
+  }
+
+  /// ¿El lugar del concierto es uno de los bares guardados?
+  bool isFavoriteBar(Concert c) {
+    final v = '${c.venue} ${c.band}'.toLowerCase();
+    return bars.any((b) => b.isNotEmpty && v.contains(b.toLowerCase()));
+  }
+
   final ValueNotifier<ConcertState> state =
       ValueNotifier<ConcertState>(const ConcertState());
   bool _cacheRead = false;
@@ -178,6 +203,8 @@ class ConcertService {
   Future<void> _readCache() async {
     try {
       final sp = await SharedPreferences.getInstance();
+      final saved = sp.getStringList(_barsKey);
+      if (saved != null) bars = saved;
       final raw = sp.getString(_cacheKey);
       if (raw == null) return;
       final j = jsonDecode(raw);
@@ -309,8 +336,15 @@ class ConcertService {
     final found = <String>[];
     final seen = <String>{};
     String? lastErr;
+    const meses = kMonthsLong;
+    final mes = meses[DateTime.now().month - 1].toLowerCase();
     final jobs = <Map<String, dynamic>>[
       for (final q in queries) {'query': q},
+      // Escena local de Medellín: bares y toques pequeños.
+      {'query': 'toques de rock en bares de Medellín $mes $y1', 'max_results': 6},
+      {'query': 'agenda conciertos rock punk metal Medellín $mes $y1', 'max_results': 6},
+      for (final b in bars)
+        {'query': '$b Medellín concierto toque rock $y1', 'max_results': 5},
       {
         'query': 'concierto rock metal Colombia boletas $y1 $y2',
         'include_domains': Concert.ticketSites,
@@ -327,10 +361,10 @@ class ConcertService {
                 'Content-Type': 'application/json',
               },
               body: jsonEncode({
-                ...job,
-                'query': q,
                 'search_depth': 'basic',
                 'max_results': 8,
+                ...job,
+                'query': q,
               }),
             )
             .timeout(const Duration(seconds: 30));
@@ -372,7 +406,10 @@ class ConcertService {
         'PrimeraFila u otra) y vende ese concierto, pon esa URL en "boletas". '
         'Para festivales usa '
         'como "banda" el nombre del festival y entre paréntesis las bandas '
-        'principales. Responde solo con JSON con esta forma: '
+        'principales. Incluye también toques pequeños en bares y clubes, '
+        'por ejemplo en ${bars.join(', ')} (Medellín), aunque no tengan '
+        'boletería: en "lugar" pon el nombre del bar. '
+        'Responde solo con JSON con esta forma: '
         '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío",'
         '"cuando":"","hora":"","boletas":"","fuente":"","genero":"rock|metal|punk|grunge|alternativo|indie|rock en español|festival"}]}';
     final results = found.join('\n');

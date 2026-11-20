@@ -76,6 +76,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     'Bogotá',
     'Medellín',
     'Cali',
+    'Bares',
     'Otras'
   ];
   static const List<String> _main = ['bogot', 'medell', 'cali'];
@@ -89,6 +90,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
 
   List<Concert> _filter(List<Concert> all) {
     if (_city == 'Todas') return all;
+    if (_city == 'Bares') return all.where(_svc.isFavoriteBar).toList();
     if (_city == 'Otras') return all.where((c) => !_isMain(c.city)).toList();
     final k = _city.toLowerCase().substring(0, 4);
     return all.where((c) => c.city.toLowerCase().contains(k)).toList();
@@ -191,6 +193,46 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     return first.isEmpty ? band.substring(0, i).trim() : first;
   }
 
+  Future<void> _editBars() async {
+    final ctrl = TextEditingController(text: _svc.bars.join('\n'));
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Mis bares de rock'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Uno por línea. La búsqueda revisa cada uno.',
+                style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              minLines: 4,
+              maxLines: 10,
+              autofocus: true,
+              decoration: const InputDecoration(hintText: 'Nombre del bar'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Guardar y buscar')),
+        ],
+      ),
+    );
+    final text = ctrl.text;
+    ctrl.dispose();
+    if (ok != true) return;
+    await _svc.saveBars(text.split('\n'));
+    if (mounted) setState(() => _city = 'Bares');
+    _svc.refresh();
+  }
+
   static String _group(Concert c) {
     final d = c.date;
     if (d == null) return 'FECHA POR CONFIRMAR';
@@ -234,6 +276,11 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
         title: const Text('Conciertos en Colombia',
             style: TextStyle(fontWeight: FontWeight.w900)),
         actions: [
+          IconButton(
+            tooltip: 'Mis bares',
+            onPressed: _editBars,
+            icon: const Icon(Icons.local_bar_rounded),
+          ),
           ValueListenableBuilder<ConcertState>(
             valueListenable: _svc.state,
             builder: (_, s, __) => IconButton(
