@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'services/data_saver.dart';
+import 'services/block_service.dart';
 import 'services/eq_service.dart';
 import 'services/playback_service.dart';
 import 'widgets/playback_ui.dart';
@@ -19,6 +20,9 @@ Future<void> main() async {
   ));
   try {
     await DataSaver.instance.load();
+  } catch (_) {}
+  try {
+    await BlockService.instance.ensureLoaded();
   } catch (_) {}
   try {
     await PlaybackService.instance.init();

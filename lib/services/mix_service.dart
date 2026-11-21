@@ -8,6 +8,7 @@ import 'artist_pools.dart';
 import 'library_service.dart';
 import 'music_api_service.dart';
 import 'data_saver.dart';
+import 'block_service.dart';
 
 class MixDef {
   final String title;
@@ -236,7 +237,7 @@ class MixService {
         for (final l in got) {
           if (i < l.length) {
             any = true;
-            if (seen.add(l[i].videoId)) out.add(l[i]);
+            if (!BlockService.instance.isBlockedSong(l[i]) && seen.add(l[i].videoId)) out.add(l[i]);
           }
         }
         i++;

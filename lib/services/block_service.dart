@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../models/song.dart';
+
 /// Artistas que el usuario no quiere escuchar. Se filtran de búsquedas,
 /// mixes y DJ.
 class BlockService {
@@ -76,6 +78,32 @@ class BlockService {
   /// Quita "the/los/las/el/la" iniciales para comparar nombres de artistas.
   static String normName(String s) => norm(
       s.toLowerCase().replaceFirst(RegExp(r'^(the|los|las|el|la)\s+'), ''));
+
+  /// ¿La canción es de (o con) un artista bloqueado? Revisa también colaboraciones
+  /// como "Sido feat. Alpa Gun" o "A, B & C".
+  bool isBlockedSong(Song s) {
+    if (showBlocked || _names.isEmpty) return false;
+    if (isBlockedAuthor(s.artist)) return true;
+    final parts = s.artist.split(RegExp(r'\s*(,|&|/|\+|\bfeat\.?|\bft\.?|\bx\b|\by\b|\band\b)\s*', caseSensitive: false));
+    for (final p in parts) {
+      if (p.trim().isNotEmpty && isBlockedAuthor(p)) return true;
+    }
+    // Videos subidos por otro canal: "Alpa Gun - Canción"
+    final dash = s.title.split(RegExp(r'\s[-–—]\s'));
+    if (dash.length > 1) {
+      for (final p in dash.first.split(RegExp(r'\s*(,|&|/|\+|\bfeat\.?|\bft\.?|\bx\b)\s*', caseSensitive: false))) {
+        if (p.trim().isNotEmpty && isBlockedAuthor(p)) return true;
+      }
+    }
+    // Colaboraciones escritas en el título: "Canción (feat. Alpa Gun)"
+    final m = RegExp(r'\((?:feat\.?|ft\.?|con|with)\s+([^)]+)\)', caseSensitive: false).firstMatch(s.title);
+    if (m != null && isBlockedAuthor(m.group(1)!)) return true;
+    return false;
+  }
+
+  /// Quita de la lista las canciones de artistas bloqueados.
+  List<Song> filter(List<Song> songs) =>
+      (showBlocked || _names.isEmpty) ? songs : songs.where((s) => !isBlockedSong(s)).toList();
 
   /// ¿El canal [author] corresponde a un artista bloqueado?
   bool isBlockedAuthor(String author) {

@@ -182,8 +182,14 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   Future<void> playQueue(List<Song> songs, int index) async {
     if (songs.isEmpty) return;
-    _songs = List<Song>.of(songs);
-    final i = index.clamp(0, _songs.length - 1);
+    // Quita artistas bloqueados, pero respeta la canción que tocaste.
+    final chosen = songs[index.clamp(0, songs.length - 1)];
+    final bl = BlockService.instance;
+    _songs = [
+      for (final s in songs)
+        if (identical(s, chosen) || !bl.isBlockedSong(s)) s
+    ];
+    final i = _songs.indexOf(chosen).clamp(0, _songs.length - 1);
     _publishQueue();
     await _startAt(i);
   }

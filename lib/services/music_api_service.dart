@@ -82,14 +82,16 @@ class MusicApiService {
             !BlockService.norm('${v.title} ${v.author}').contains(needle)) {
           continue;
         }
-        songs.add(Song(
+        final song = Song(
           title: v.title,
           artist: v.author
               .replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), ''),
           image: v.thumbnails.mediumResUrl,
           url: 'https://www.youtube.com/watch?v=${v.id.value}',
           videoId: v.id.value,
-        ));
+        );
+        if (BlockService.instance.isBlockedSong(song)) continue;
+        songs.add(song);
       }
       pages++;
       yield List<Song>.of(songs);

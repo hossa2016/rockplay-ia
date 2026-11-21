@@ -3,6 +3,7 @@ import 'dart:convert';
 import '../models/song.dart';
 import 'ai_client.dart';
 import 'ai_settings.dart';
+import 'block_service.dart';
 import 'artist_info_service.dart';
 import 'artist_pools.dart';
 import 'mix_service.dart';
@@ -188,10 +189,12 @@ Reglas:
 
   /// Pide la lista y la recorta al máximo configurado.
   Future<AssistantResult> ask(String text, List<AiMessage> history) async {
+    await BlockService.instance.ensureLoaded();
     final r = await _ask(text, history);
     final mx = AiSettings.instance.maxSongs;
-    if (r.songs.length <= mx) return r;
-    return AssistantResult(r.reply, r.title, r.songs.take(mx).toList(),
+    final songs = BlockService.instance.filter(r.songs);
+    if (songs.length <= mx && songs.length == r.songs.length) return r;
+    return AssistantResult(r.reply, r.title, songs.take(mx).toList(),
         r.source, r.note);
   }
 

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/song.dart';
 import 'data_saver.dart';
+import 'block_service.dart';
 
 class RadioResult {
   final String artistName;
@@ -75,6 +76,7 @@ class DeezerService {
       final image =
           albumMap is Map ? (albumMap['cover_medium'] ?? '') as String : '';
       if (title.isEmpty) continue;
+      if (BlockService.instance.isBlockedAuthor(artist)) continue;
       out.add(Song(
         title: title,
         artist: artist,
