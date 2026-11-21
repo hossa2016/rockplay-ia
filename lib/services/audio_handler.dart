@@ -11,6 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 import 'deezer_service.dart';
 import 'embed_bridge.dart';
+import 'eq_service.dart';
 import 'library_service.dart';
 import 'music_api_service.dart';
 import 'stream_resolver.dart';
@@ -50,7 +51,9 @@ class RockPlayAudioHandler extends BaseAudioHandler
   }
 
   final PlaybackSubjects _s;
-  final AudioPlayer _player = AudioPlayer();
+  final AudioPlayer _player = AudioPlayer(
+    audioPipeline: AudioPipeline(androidAudioEffects: [EqService.instance.androidEq]),
+  );
   final MusicApiService _api = MusicApiService();
   final StreamResolver _resolver = StreamResolver.instance;
 
@@ -434,6 +437,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     final song = _songs[index];
     try {
       await _player.setUrl(song.url).timeout(const Duration(seconds: 25));
+      unawaited(EqService.instance.applyAndroid());
       if (gen != _gen) return;
       _resolving = false;
       await _icySub?.cancel();

@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'services/data_saver.dart';
+import 'services/eq_service.dart';
 import 'services/playback_service.dart';
 import 'widgets/playback_ui.dart';
 
@@ -20,6 +23,7 @@ Future<void> main() async {
   try {
     await PlaybackService.instance.init();
     PlaybackUi.instance.start();
+    unawaited(EqService.instance.init());
   } catch (_) {
     // La interfaz debe abrir aunque el audio falle al iniciar.
   }

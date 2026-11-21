@@ -21,6 +21,7 @@ import '../widgets/favorite_button.dart';
 import '../widgets/music_card.dart';
 import '../widgets/lyrics_view.dart';
 import 'artist_screen.dart';
+import 'eq_screen.dart';
 import '../widgets/playback_ui.dart';
 
 /// Pantalla de reproducción inmersiva. Lee todo de [PlaybackUi].
@@ -356,6 +357,12 @@ class _PlayerScreenState extends State<PlayerScreen>
                 );
               },
             ),
+          ),
+          IconButton(
+            tooltip: 'Ecualizador',
+            icon: const Icon(Icons.equalizer_rounded),
+            onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const EqScreen())),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert_rounded),

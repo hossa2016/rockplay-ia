@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/eq_service.dart';
+import 'eq_screen.dart';
 
 import '../services/ai_settings.dart';
 import '../services/block_service.dart';
@@ -310,6 +312,10 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
           ]),
           _group('REPRODUCCIÓN'),
           _box([
+            _row(Icons.equalizer_rounded, 'Ecualizador',
+                EqService.instance.enabled ? 'Activo · ${EqService.instance.preset}' : 'Apagado',
+                () => _go(const EqScreen()),
+                tip: 'Ajusta graves y agudos con preajustes de rock; el asistente sugiere el mejor para cada canción.'),
             _row(Icons.bug_report_outlined, 'Canciones que no sonaron',
                 bad == 0
                     ? 'Ninguna por ahora'
