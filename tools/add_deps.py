@@ -36,6 +36,7 @@ FREE = [
     "webview_flutter",
     "webview_flutter_android",
     "url_launcher",
+    "package_info_plus",
 ]
 
 try:

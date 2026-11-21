@@ -57,6 +57,34 @@ class EqService extends ChangeNotifier {
   bool suggesting = false;
 
   final Map<String, EqSuggestion> _cache = {};
+
+  /// Consultas de IA hechas hoy por el ecualizador.
+  int aiToday = 0;
+
+  static String _today() {
+    final d = DateTime.now();
+    return '${d.year}-${d.month}-${d.day}';
+  }
+
+  Future<void> _countAi() async {
+    aiToday++;
+    try {
+      final p = await SharedPreferences.getInstance();
+      await p.setString('eq_ai_day', _today());
+      await p.setInt('eq_ai_count', aiToday);
+    } catch (_) {}
+  }
+
+  Future<void> _saveCache() async {
+    try {
+      final entries = _cache.entries.toList();
+      final keep = entries.length > 400 ? entries.sublist(entries.length - 400) : entries;
+      final p = await SharedPreferences.getInstance();
+      await p.setString('eq_cache', jsonEncode({
+        for (final e in keep) e.key: [e.value.preset, e.value.reason, e.value.source]
+      }));
+    } catch (_) {}
+  }
   Timer? _timer;
   bool _inited = false;
 
@@ -68,6 +96,17 @@ class EqService extends ChangeNotifier {
       enabled = p.getBool('eq_on') ?? true;
       auto = p.getBool('eq_auto') ?? false;
       preset = p.getString('eq_preset') ?? 'Rock';
+      final c = p.getString('eq_cache');
+      if (c != null) {
+        final m = jsonDecode(c) as Map<String, dynamic>;
+        m.forEach((k, v) {
+          if (v is List && v.length == 3) {
+            _cache[k] = EqSuggestion(v[0].toString(), v[1].toString(), v[2].toString());
+          }
+        });
+      }
+      final today = _today();
+      aiToday = p.getString('eq_ai_day') == today ? (p.getInt('eq_ai_count') ?? 0) : 0;
       final g = p.getString('eq_gains');
       if (g != null) {
         final l = (jsonDecode(g) as List).map((e) => (e as num).toDouble()).toList();
@@ -258,9 +297,19 @@ class EqService extends ChangeNotifier {
       notifyListeners();
       return cached;
     }
+    // Reglas primero: si el artista o el título ya lo dicen, no se gasta IA.
+    EqSuggestion? out = _rules(s, known: true);
+    if (out != null) {
+      _cache[key] = out;
+      unawaited(_saveCache());
+      suggestion = out;
+      suggestionFor = key;
+      notifyListeners();
+      return out;
+    }
     suggesting = true;
     notifyListeners();
-    EqSuggestion? out;
+    var counted = false;
     const system =
         'Eres un ingeniero de sonido experto en rock. Elige el mejor preajuste de ecualizador '
         'para escuchar la canción con audífonos inalámbricos. Opciones exactas: Rock, Metal, '
@@ -272,6 +321,7 @@ class EqService extends ChangeNotifier {
       MapEntry('Groq', () => AiClient.instance.groq(system, msgs)),
     ]) {
       try {
+        if (!counted) { counted = true; unawaited(_countAi()); }
         final raw = await entry.value().timeout(const Duration(seconds: 20));
         final a = raw.indexOf('{');
         final z = raw.lastIndexOf('}');
@@ -283,8 +333,9 @@ class EqService extends ChangeNotifier {
         break;
       } catch (_) {}
     }
-    out ??= _rules(s);
+    out ??= _rules(s)!;
     _cache[key] = out;
+    unawaited(_saveCache());
     suggestion = out;
     suggestionFor = key;
     suggesting = false;
@@ -309,7 +360,8 @@ class EqService extends ChangeNotifier {
       'rush', 'def leppard', 'whitesnake', 'soda stereo', 'héroes del silencio', 'heroes del silencio'],
   };
 
-  EqSuggestion _rules(Song s) {
+  /// Con [known] = true devuelve null si no reconoce nada (para preguntar a la IA).
+  EqSuggestion? _rules(Song s, {bool known = false}) {
     final t = s.title.toLowerCase();
     final a = s.artist.toLowerCase();
     if (t.contains('live') || t.contains('en vivo') || t.contains('directo')) {
@@ -329,6 +381,7 @@ class EqService extends ChangeNotifier {
         return EqSuggestion(e.key, why, 'Reglas');
       }
     }
+    if (known) return null;
     return const EqSuggestion('Rock', 'Graves y agudos realzados, el sonido rock de siempre.', 'Reglas');
   }
 

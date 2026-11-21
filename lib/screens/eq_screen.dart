@@ -131,6 +131,16 @@ class _EqScreenState extends State<EqScreen> {
             ],
           ),
           const SizedBox(height: 6),
+          Row(children: [
+            const Icon(Icons.auto_awesome_outlined, size: 16, color: AppColors.textFaint),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Consultas de IA del ecualizador hoy: ${eq.aiToday}. Los artistas conocidos y las canciones repetidas no gastan IA.',
+                style: const TextStyle(fontSize: 12, color: AppColors.textFaint)),
+            ),
+          ]),
+          const SizedBox(height: 6),
           const Text('Si en algún momento el sonido falla, apaga el ecualizador con el interruptor de arriba.',
               style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
         ],

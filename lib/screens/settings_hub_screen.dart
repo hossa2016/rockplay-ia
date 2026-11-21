@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/eq_service.dart';
 import 'eq_screen.dart';
 
@@ -383,6 +384,19 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
               ),
             ),
           ]),
+          const SizedBox(height: 18),
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snap) {
+              final p = snap.data;
+              return Center(
+                child: Text(
+                  p == null ? 'RockPlay IA' : 'RockPlay IA ${p.version} · compilación ${p.buildNumber}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textFaint),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );

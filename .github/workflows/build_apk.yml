@@ -47,15 +47,16 @@ jobs:
           echo "kotlin.daemon.jvmargs=-Xmx2g" >> android/gradle.properties
           free -m
       - run: python3 tools/fix_signing.py
-      - run: flutter build apk --release --target-platform android-arm64
+      - run: flutter build apk --release --target-platform android-arm64 --build-number=${{ github.run_number }}
       - name: Publicar APK en Releases (no gasta el espacio de Actions)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp build/app/outputs/flutter-apk/app-release.apk RockPlayIA.apk
           gh release delete ultima --yes --cleanup-tag || true
+          VER=$(grep -m1 '^version:' pubspec.yaml | sed 's/version: *//; s/+.*//')
           gh release create ultima RockPlayIA.apk --target "${{ github.sha }}" --prerelease \
-            --title "RockPlay IA (última versión)" \
+            --title "RockPlay IA v$VER (compilación ${{ github.run_number }})" \
             --notes "Compilado automáticamente del commit ${{ github.sha }}"
       - uses: actions/upload-artifact@v4
         continue-on-error: true
