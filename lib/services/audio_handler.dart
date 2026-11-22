@@ -200,14 +200,30 @@ class RockPlayAudioHandler extends BaseAudioHandler
     queue.add([for (var i = 0; i < _songs.length; i++) _item(_songs[i], i)]);
   }
 
-  MediaItem _item(Song s, int i, {Duration? duration}) => MediaItem(
-        id: s.videoId.isNotEmpty ? s.videoId : 'q$i:${s.query}',
-        title: s.title,
-        artist: s.artist,
-        album: s.album.isEmpty ? null : s.album,
-        artUri: s.image.isEmpty ? null : Uri.tryParse(s.image),
-        duration: duration,
-      );
+  /// Los títulos de YouTube traen códigos HTML (I&#39;m → I'm).
+  static String _unescape(String t) => t
+      .replaceAll('&#39;', "'")
+      .replaceAll('&#039;', "'")
+      .replaceAll('&quot;', '"')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&amp;', '&');
+
+  MediaItem _item(Song s, int i, {Duration? duration}) {
+    // Carátula: la de la canción o, si no hay, la miniatura del video
+    // (así se ve también en la notificación, la pantalla de bloqueo y widgets).
+    final art = s.image.isNotEmpty
+        ? s.image
+        : (s.videoId.isNotEmpty ? 'https://i.ytimg.com/vi/${s.videoId}/hqdefault.jpg' : '');
+    return MediaItem(
+      id: s.videoId.isNotEmpty ? s.videoId : 'q$i:${s.query}',
+      title: _unescape(s.title),
+      artist: _unescape(s.artist),
+      album: s.album.isEmpty ? null : s.album,
+      artUri: art.isEmpty ? null : Uri.tryParse(art),
+      duration: duration,
+    );
+  }
 
   void _setIndex(int i) {
     _index = i;
