@@ -86,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   top: BorderSide(color: Color(0x66E5332E), width: 1),
                 ),
               ),
-              child: NavigationBar(
+              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: NavigationBar(
               selectedIndex: _tab,
               onDestinationSelected: _go,
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -112,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   label: 'Asistente',
                 ),
               ],
-            ),
+            )),
             ),
           ],
         ),
@@ -1088,14 +1088,16 @@ class _QuickTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
           child: Column(
             children: [
               Icon(icon, color: AppColors.red, size: 26),
               const SizedBox(height: 8),
               Text(
                 label,
-                maxLines: 1,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                textScaler: TextScaler.noScaling,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 13,

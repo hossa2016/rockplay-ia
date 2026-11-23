@@ -94,7 +94,7 @@ class AppTheme {
         height: 66,
         elevation: 0,
         labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
-          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+          TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
