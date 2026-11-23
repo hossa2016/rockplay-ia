@@ -14,7 +14,7 @@ class ShareService {
   static Future<void> song(Song s) async {
     final text = '🎸 ${s.title} — ${s.artist}\n${_link(s)}';
     try {
-      await SharePlus.instance.share(ShareParams(text: text));
+      await Share.share(text);
     } catch (_) {}
   }
 
@@ -25,7 +25,7 @@ class ShareService {
       if (songs.length > 15) '…y ${songs.length - 15} más',
     ];
     try {
-      await SharePlus.instance.share(ShareParams(text: lines.join('\n')));
+      await Share.share(lines.join('\n'));
     } catch (_) {}
   }
 }

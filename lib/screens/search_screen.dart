@@ -87,7 +87,7 @@ class _SearchScreenState extends State<SearchScreen> {
     });
   }
 
-  Widget _suggestions() {
+  Widget _suggestBox() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
       child: Material(
@@ -435,7 +435,7 @@ class _SearchScreenState extends State<SearchScreen> {
               hint: widget.hint,
               onSubmit: _search,
             ),
-            if (_showSugs) _suggestions(),
+            if (_showSugs) _suggestBox(),
             const TipCard(
                 id: 'buscar',
                 text:
