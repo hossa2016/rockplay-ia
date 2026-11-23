@@ -344,8 +344,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
   }
 
   static const List<List<Color>> _grads = [
-    [Color(0xFF3A4A8A), Color(0xFF0D1030)],
-    [Color(0xFF2A6F8A), Color(0xFF08202A)],
+    [Color(0xFF4A4A56), Color(0xFF16161C)],
+    [Color(0xFF5A5A66), Color(0xFF1C1C22)],
     [Color(0xFF8A5A2A), Color(0xFF241608)],
     [Color(0xFFC2331A), Color(0xFF2C0A05)],
     [Color(0xFF7A1411), Color(0xFF1A1014)],
@@ -543,8 +543,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
   static const List<List<Object>> _moodTiles = [
     ['Con energía', Color(0xFFC2331A), Color(0xFF2C0A05)],
-    ['Melancólico', Color(0xFF3A4A8A), Color(0xFF0D1030)],
-    ['Para concentrarme', Color(0xFF2A6F8A), Color(0xFF08202A)],
+    ['Melancólico', Color(0xFF4A4A56), Color(0xFF16161C)],
+    ['Para concentrarme', Color(0xFF5A5A66), Color(0xFF1C1C22)],
     ['De carretera', Color(0xFF8A2A24), Color(0xFF2A0D0B)],
     ['Quiero algo nuevo', Color(0xFF8A5A2A), Color(0xFF241608)],
   ];

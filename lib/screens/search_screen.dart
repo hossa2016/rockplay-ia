@@ -144,13 +144,13 @@ class _SearchScreenState extends State<SearchScreen> {
 
   static const List<List<Object>> _tiles = [
     ['Grunge', Color(0xFFC2331A), Color(0xFF2C0A05)],
-    ['Rock en español', Color(0xFF3A4A8A), Color(0xFF0D1030)],
+    ['Rock en español', Color(0xFF4A4A56), Color(0xFF16161C)],
     ['Heavy metal', Color(0xFF7A1411), Color(0xFF1A1014)],
     ['Rock clásico', Color(0xFF8A5A2A), Color(0xFF241608)],
     ['Hard rock', Color(0xFF8A2A24), Color(0xFF2A0D0B)],
-    ['Punk rock', Color(0xFF2A6F8A), Color(0xFF08202A)],
-    ['Rock alternativo', Color(0xFF5A3A8A), Color(0xFF150D30)],
-    ['Indie rock', Color(0xFF2A7A5A), Color(0xFF08241A)],
+    ['Punk rock', Color(0xFF5A5A66), Color(0xFF1C1C22)],
+    ['Rock alternativo', Color(0xFF6B2A3A), Color(0xFF220A12)],
+    ['Indie rock', Color(0xFF7A6A2A), Color(0xFF241E08)],
   ];
 
   Widget _label(String t) => Padding(
