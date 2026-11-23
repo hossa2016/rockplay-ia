@@ -24,6 +24,7 @@ import '../widgets/music_card.dart';
 import '../widgets/lyrics_view.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/pressable.dart';
+import '../widgets/sleep_wake_sheet.dart';
 import 'artist_screen.dart';
 import 'eq_screen.dart';
 import 'radio_screen.dart';
@@ -109,51 +110,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     _syncAnim();
   }
 
-  void _sleepSheet() {
-    final svc = PlaybackService.instance;
-    Widget opt(BuildContext ctx, String label, VoidCallback go) => ListTile(
-          title: Text(label),
-          onTap: () {
-            go();
-            Navigator.of(ctx).pop();
-          },
-        );
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 4),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('Apagar la música en…',
-                    style:
-                        TextStyle(fontSize: AppType.titleSm, fontWeight: FontWeight.w700)),
-              ),
-            ),
-            opt(ctx, '15 minutos',
-                () => svc.setSleep(const Duration(minutes: 15))),
-            opt(ctx, '30 minutos',
-                () => svc.setSleep(const Duration(minutes: 30))),
-            opt(ctx, '45 minutos',
-                () => svc.setSleep(const Duration(minutes: 45))),
-            opt(ctx, '1 hora', () => svc.setSleep(const Duration(hours: 1))),
-            opt(ctx, 'Al terminar la canción',
-                () => svc.setSleep(null, endOfSong: true)),
-            if (pb.sleepLabel.value != null)
-              opt(ctx, 'Cancelar temporizador', () => svc.setSleep(null)),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+  void _sleepSheet() => showSleepWakeSheet(context);
 
   Future<void> _confirmBlock() async {
     final s = pb.song.value;

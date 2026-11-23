@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import 'ai_settings_screen.dart';
 import 'data_settings_screen.dart';
 import '../widgets/undo.dart';
+import '../widgets/sleep_wake_sheet.dart';
 import 'onboarding_screen.dart';
 import '../services/help_settings.dart';
 
@@ -363,6 +364,10 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 EqService.instance.enabled ? 'Activo · ${EqService.instance.preset}' : 'Apagado',
                 () => _go(const EqScreen()),
                 tip: 'Ajusta graves y agudos con preajustes de rock; el asistente sugiere el mejor para cada canción.'),
+            _row(Icons.alarm_rounded, 'Despertador',
+                'Despierta con Tu mix, una lista o la radio',
+                () => showSleepWakeSheet(context, showTimer: false),
+                tip: 'Alarmas que suenan con tu música a la hora que elijas.'),
             _row(Icons.filter_alt_outlined, 'Filtros',
                 '${blocked == 0 ? 'Ningún artista bloqueado' : '$blocked ${blocked == 1 ? 'artista bloqueado' : 'artistas bloqueados'}'} · ${bad == 0 ? 'ninguna canción saltada' : '$bad ${bad == 1 ? 'canción saltada' : 'canciones saltadas'}'}',
                 _showFilters,

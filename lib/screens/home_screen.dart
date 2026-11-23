@@ -25,6 +25,8 @@ import '../widgets/state_views.dart';
 import 'artist_screen.dart';
 import 'assistant_screen.dart';
 import 'search_screen.dart';
+import 'alarm_ring_screen.dart';
+import '../services/alarm_service.dart';
 import '../widgets/concerts_card.dart';
 import '../widgets/pressable.dart';
 import 'library_screen.dart';
@@ -41,8 +43,38 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   int _tab = 0;
+  bool _ringOpen = false;
+
+  /// Si hay una alarma sonando, abre su pantalla (al abrir o volver a la app).
+  Future<void> _checkAlarm() async {
+    if (_ringOpen) return;
+    _ringOpen = true;
+    final id = await AlarmService.instance.dueAlarm();
+    final a = id == null ? null : await AlarmService.instance.byId(id);
+    if (a == null || !mounted || AlarmService.instance.ringingId == id) {
+      _ringOpen = false;
+      return;
+    }
+    await Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+            fullscreenDialog: true,
+            builder: (_) => AlarmRingScreen(alarm: a)));
+    _ringOpen = false;
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _checkAlarm();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    AlarmService.instance.ringRequest.removeListener(_checkAlarm);
+    super.dispose();
+  }
 
   /// Atajos al mantener pulsado el ícono de la app.
   void _setupShortcuts() {
@@ -72,8 +104,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _setupShortcuts();
+    WidgetsBinding.instance.addObserver(this);
+    AlarmService.instance.ringRequest.addListener(_checkAlarm);
     HelpSettings.load();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkAlarm();
+      if (_ringOpen || !mounted) return;
       final seen = await HelpSettings.onboardingSeen();
       if (!seen && mounted) {
         await Navigator.of(context).push(MaterialPageRoute<void>(

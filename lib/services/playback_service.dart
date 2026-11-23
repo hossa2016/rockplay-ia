@@ -59,6 +59,8 @@ class PlaybackService {
   Future<void> next() async => (await _h()).skipToNext();
   Future<void> previous() async => (await _h()).skipToPrevious();
   Future<void> seek(Duration position) async => (await _h()).seek(position);
+  /// Despertador: sube el volumen poco a poco durante [d].
+  Future<void> rampUp(Duration d) async => (await _h()).rampUp(d);
 
   // Cola editable, repetir, temporizador.
   Future<void> queueRemove(int i) async => (await _h()).qRemove(i);

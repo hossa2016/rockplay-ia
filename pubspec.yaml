@@ -23,6 +23,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/icon/logo.png
+    - assets/sounds/rock_riff.wav
   fonts:
     - family: Oswald
       fonts:

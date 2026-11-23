@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
+import 'services/alarm_service.dart';
 import 'services/data_saver.dart';
 import 'services/block_service.dart';
 import 'services/eq_service.dart';
@@ -31,5 +32,9 @@ Future<void> main() async {
   } catch (_) {
     // La interfaz debe abrir aunque el audio falle al iniciar.
   }
+  try {
+    await AlarmService.instance.init();
+    unawaited(AlarmService.instance.scheduleAll());
+  } catch (_) {}
   runApp(const RockPlayApp());
 }

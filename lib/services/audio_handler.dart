@@ -87,11 +87,28 @@ class RockPlayAudioHandler extends BaseAudioHandler
   bool _radio = false; // sonando una emisora en vivo con just_audio
 
   // ---- Volumen suave: fundido entre canciones y al apagar con el temporizador.
-  double _sleepVol = 1, _edgeVol = 1, _appliedVol = 1;
+  double _sleepVol = 1, _edgeVol = 1, _rampVol = 1, _appliedVol = 1;
   bool _fadeIn = false;
+  Timer? _rampTimer;
+
+  /// Despertador: el volumen empieza bajo y sube hasta el máximo en [d].
+  void rampUp(Duration d) {
+    _rampTimer?.cancel();
+    _rampVol = 0.15;
+    _applyVol();
+    final start = DateTime.now();
+    _rampTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
+      final f = DateTime.now().difference(start).inMilliseconds /
+          d.inMilliseconds;
+      _rampVol = f >= 1 ? 1 : 0.15 + 0.85 * f;
+      _applyVol();
+      if (f >= 1) t.cancel();
+    });
+  }
 
   void _applyVol() {
     var v = _sleepVol < _edgeVol ? _sleepVol : _edgeVol;
+    if (_rampVol < v) v = _rampVol;
     if (v < 0) v = 0;
     if (v > 1) v = 1;
     if ((v - _appliedVol).abs() < 0.04 && v != 1 && v != 0) return;

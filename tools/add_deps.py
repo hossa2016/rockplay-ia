@@ -24,6 +24,7 @@ PINNED = [
     "audio_service:^0.18.18",
     "flutter_inappwebview:^6.1.5",
     "share_plus:^10.1.4",
+    "flutter_local_notifications:^19.4.2",
 ]
 # Sin versión: pub elige la compatible con las anteriores.
 FREE = [
@@ -40,6 +41,9 @@ FREE = [
     "package_info_plus",
     "quick_actions",
     "home_widget",
+    "timezone",
+    "file_picker",
+    "flutter_volume_controller",
 ]
 
 try:
