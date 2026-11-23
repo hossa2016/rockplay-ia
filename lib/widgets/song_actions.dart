@@ -4,6 +4,7 @@ import '../models/song.dart';
 import '../services/playback_service.dart';
 import '../theme/app_theme.dart';
 import 'add_to_playlist.dart';
+import '../services/share_service.dart';
 
 /// Menú al mantener pulsada una canción: cola y listas.
 void showSongActions(BuildContext context, Song song) {
@@ -57,6 +58,14 @@ void showSongActions(BuildContext context, Song song) {
               onTap: () {
                 Navigator.of(sheet).pop();
                 showAddToPlaylist(context, song);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share_rounded),
+              title: const Text('Compartir'),
+              onTap: () {
+                Navigator.of(sheet).pop();
+                ShareService.song(song);
               },
             ),
             const SizedBox(height: 8),

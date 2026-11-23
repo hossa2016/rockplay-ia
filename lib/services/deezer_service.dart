@@ -47,6 +47,37 @@ class DeezerService {
     return null;
   }
 
+  /// Sugerencias mientras escribes: artistas y canciones (máx. 8).
+  /// Cada entrada es el texto que se buscará.
+  Future<List<String>> suggest(String query) async {
+    final q = query.trim();
+    if (q.length < 2) return const <String>[];
+    final out = <String>[];
+    final seen = <String>{};
+    void add(String v) {
+      final t = v.trim();
+      if (t.isNotEmpty && seen.add(t.toLowerCase())) out.add(t);
+    }
+
+    try {
+      final a = await _get('/search/artist', {'q': q, 'limit': '3'},
+          ttl: const Duration(hours: 6));
+      for (final x in (a['data'] as List?) ?? <dynamic>[]) {
+        if (x is Map && x['name'] is String) add(x['name'] as String);
+      }
+    } catch (_) {}
+    try {
+      final t = await _get('/search', {'q': q, 'limit': '6'},
+          ttl: const Duration(hours: 6));
+      for (final x in (t['data'] as List?) ?? <dynamic>[]) {
+        if (x is Map && x['title'] is String && x['artist'] is Map) {
+          add('${x['artist']['name']} - ${x['title']}');
+        }
+      }
+    } catch (_) {}
+    return out.take(8).toList();
+  }
+
   /// Portada de la mejor coincidencia (vacía si no hay).
   Future<String> coverFor(String query) async {
     final q = query

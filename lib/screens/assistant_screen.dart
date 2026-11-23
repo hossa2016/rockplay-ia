@@ -23,6 +23,9 @@ class _Msg {
   _Msg(this.fromUser, this.text, [this.result]);
 }
 
+/// Pide al asistente algo desde fuera (ej. la tarjeta de Inicio).
+final ValueNotifier<String?> assistantWantPrompt = ValueNotifier<String?>(null);
+
 /// Chat con el asistente: pide listas por ánimo o con tus propias palabras.
 class AssistantScreen extends StatefulWidget {
   const AssistantScreen({super.key});
@@ -45,9 +48,19 @@ class _AssistantScreenState extends State<AssistantScreen> {
   bool _busy = false;
   bool _noKeys = false;
 
+  void _wantPrompt() {
+    final p = assistantWantPrompt.value;
+    if (p == null || p.isEmpty) return;
+    assistantWantPrompt.value = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _send(p);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
+    assistantWantPrompt.addListener(_wantPrompt);
     AiSettings.instance.load().then((_) {
       final s = AiSettings.instance;
       if (mounted) {
@@ -59,6 +72,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
   @override
   void dispose() {
+    assistantWantPrompt.removeListener(_wantPrompt);
     _input.dispose();
     _scroll.dispose();
     super.dispose();

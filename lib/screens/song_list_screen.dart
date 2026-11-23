@@ -10,6 +10,7 @@ import '../widgets/state_views.dart';
 import '../widgets/undo.dart';
 import '../widgets/playback_ui.dart';
 import '../services/playlist_service.dart';
+import '../services/share_service.dart';
 
 /// Lista de canciones con botones Aleatorio / En orden. Sirve para mixes
 /// (llegan por [stream]) y para listas propias ([songs] + [onRemove]).
@@ -119,6 +120,12 @@ class _SongListScreenState extends State<SongListScreen> {
                   onPressed: () => Navigator.of(context).maybePop(),
                 ),
                 const Spacer(),
+                if (_songs.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Compartir lista',
+                    icon: const Icon(Icons.share_rounded),
+                    onPressed: () => ShareService.list(widget.title, _songs),
+                  ),
                 if (widget.onDeleteList != null)
                   IconButton(
                     tooltip: 'Borrar lista',

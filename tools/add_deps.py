@@ -23,6 +23,7 @@ PINNED = [
     "just_audio:^0.10.5",
     "audio_service:^0.18.18",
     "flutter_inappwebview:^6.1.5",
+    "share_plus:^10.1.4",
 ]
 # Sin versión: pub elige la compatible con las anteriores.
 FREE = [
@@ -37,6 +38,8 @@ FREE = [
     "webview_flutter_android",
     "url_launcher",
     "package_info_plus",
+    "quick_actions",
+    "home_widget",
 ]
 
 try:

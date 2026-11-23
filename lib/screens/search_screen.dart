@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import '../services/deezer_service.dart';
 import '../widgets/tip_card.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -53,11 +56,88 @@ class _SearchScreenState extends State<SearchScreen> {
   bool _more = false;
   List<String> _history = [];
 
+  // Sugerencias instantáneas mientras escribes (Deezer, sin pulsar Enter).
+  final DeezerService _dz = DeezerService();
+  List<String> _sugs = const <String>[];
+  bool _showSugs = false;
+  Timer? _debounce;
+  String _lastTyped = '';
+
+  void _onTyping() {
+    final q = _controller.text.trim();
+    if (q == _lastTyped) return;
+    _lastTyped = q;
+    _debounce?.cancel();
+    if (q.length < 2) {
+      if (_sugs.isNotEmpty || _showSugs) {
+        setState(() {
+          _sugs = const <String>[];
+          _showSugs = false;
+        });
+      }
+      return;
+    }
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
+      final r = await _dz.suggest(q);
+      if (!mounted || _controller.text.trim() != q) return;
+      setState(() {
+        _sugs = r;
+        _showSugs = r.isNotEmpty;
+      });
+    });
+  }
+
+  Widget _suggestions() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Material(
+        color: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          side: const BorderSide(color: AppColors.outline),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          for (final t in _sugs.take(6))
+            InkWell(
+              onTap: () => _useSuggestion(t),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 48),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(children: [
+                    Icon(
+                        t.contains(' - ')
+                            ? Icons.music_note_rounded
+                            : Icons.person_rounded,
+                        size: 20,
+                        color: AppColors.textDim),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(t,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: AppType.bodySm,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                    const Icon(Icons.north_west_rounded,
+                        size: 18, color: AppColors.textFaint),
+                  ]),
+                ),
+              ),
+            ),
+        ]),
+      ),
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _loadHistory();
     searchWantQuery.addListener(_wantQuery);
+    _controller.addListener(_onTyping);
   }
 
   String get _histKey => 'search_hist_${widget.title}';
@@ -99,6 +179,7 @@ class _SearchScreenState extends State<SearchScreen> {
   @override
   void dispose() {
     searchWantQuery.removeListener(_wantQuery);
+    _debounce?.cancel();
     _controller.dispose();
     _api.dispose();
     super.dispose();
@@ -109,7 +190,10 @@ class _SearchScreenState extends State<SearchScreen> {
     if (q.isEmpty) return;
     FocusScope.of(context).unfocus();
     _saveHistory(q);
+    _debounce?.cancel();
+    _lastTyped = q;
     setState(() {
+      _showSugs = false;
       _loading = true;
       _searched = true;
       _error = null;
@@ -351,6 +435,7 @@ class _SearchScreenState extends State<SearchScreen> {
               hint: widget.hint,
               onSubmit: _search,
             ),
+            if (_showSugs) _suggestions(),
             const TipCard(
                 id: 'buscar',
                 text:

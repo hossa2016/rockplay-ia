@@ -85,6 +85,49 @@ class RockPlayAudioHandler extends BaseAudioHandler
   DateTime? _sleepAt;
   bool _sleepEndOfSong = false;
   bool _radio = false; // sonando una emisora en vivo con just_audio
+
+  // ---- Volumen suave: fundido entre canciones y al apagar con el temporizador.
+  double _sleepVol = 1, _edgeVol = 1, _appliedVol = 1;
+  bool _fadeIn = false;
+
+  void _applyVol() {
+    var v = _sleepVol < _edgeVol ? _sleepVol : _edgeVol;
+    if (v < 0) v = 0;
+    if (v > 1) v = 1;
+    if ((v - _appliedVol).abs() < 0.04 && v != 1 && v != 0) return;
+    if (v == _appliedVol) return;
+    _appliedVol = v;
+    try {
+      unawaited(_player.setVolume(v));
+    } catch (_) {}
+    unawaited(EmbedBridge.instance.setVolume((v * 100).round()));
+  }
+
+  /// Baja el volumen en los últimos segundos y lo sube al empezar la
+  /// siguiente, para que el cambio no sea un corte seco.
+  void _edgeFade(Duration pos, Duration? dur) {
+    const outMs = 2500, inMs = 1500;
+    var e = 1.0;
+    final p = pos.inMilliseconds;
+    if (_fadeIn) {
+      e = p / inMs;
+      if (e < 0.3) e = 0.3;
+      if (e >= 1) {
+        e = 1;
+        _fadeIn = false;
+      }
+    }
+    final d = dur?.inMilliseconds ?? 0;
+    if (d > 20000 && hasNextTrack && _s.repeat.value != 2) {
+      final left = d - p;
+      if (left < outMs) {
+        final o = left <= 0 ? 0.3 : 0.3 + 0.7 * left / outMs;
+        if (o < e) e = o;
+      }
+    }
+    _edgeVol = e;
+    _applyVol();
+  }
   StreamSubscription<IcyMetadata?>? _icySub;
 
   // ------------------------------------------------------------------ init
@@ -101,6 +144,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     };
     eb.onTick = (pos, dur) {
       _embedPos = pos;
+      if (_embedPlaying) _edgeFade(pos, dur ?? _s.duration.valueOrNull);
       if (!_resolving) {
         _s.position.add(pos);
         if (dur != null && _s.duration.valueOrNull != dur) {
@@ -254,6 +298,10 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   Future<void> _startAt(int index,
       {Duration? resumeAt, bool fresh = false}) async {
+    final live = index >= 0 && index < _songs.length && _songs[index].isRadio;
+    _fadeIn = !live && resumeAt == null;
+    _edgeVol = _fadeIn ? 0.3 : 1;
+    _applyVol();
     if (!DataSaver.instance.audioOnly ||
         _audioFails >= 2 ||
         (index >= 0 && index < _songs.length && _songs[index].isRadio)) {
@@ -1056,6 +1104,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
     _sleepAt = null;
     _sleepEndOfSong = false;
     _s.sleepLabel.add(null);
+    _sleepVol = 1;
+    _applyVol();
   }
 
   /// [d] null y endOfSong false = apagar.
@@ -1077,10 +1127,19 @@ class RockPlayAudioHandler extends BaseAudioHandler
       }
       final left = at.difference(DateTime.now());
       if (left <= Duration.zero) {
-        _clearSleep();
         unawaited(StopLog.record('El temporizador de dormir apagó la música.'));
-        pause();
+        // Pausa ya en silencio y luego deja el volumen normal para mañana.
+        pause().whenComplete(() {
+          Future<void>.delayed(const Duration(milliseconds: 600), _clearSleep);
+        });
+        t.cancel();
+        _sleepAt = null;
       } else {
+        // Últimos 30 s: baja el volumen poco a poco.
+        if (left.inSeconds < 30) {
+          _sleepVol = left.inMilliseconds / 30000;
+          _applyVol();
+        }
         _s.sleepLabel.add(_fmt(left));
       }
     });

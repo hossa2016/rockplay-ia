@@ -12,6 +12,7 @@ import '../models/song.dart';
 import '../services/cover_color.dart';
 import 'settings_hub_screen.dart';
 import '../services/embed_bridge.dart';
+import '../services/share_service.dart';
 import '../services/track_info_service.dart';
 import '../services/block_service.dart';
 import '../widgets/add_to_playlist.dart';
@@ -22,6 +23,7 @@ import '../widgets/favorite_button.dart';
 import '../widgets/music_card.dart';
 import '../widgets/lyrics_view.dart';
 import '../widgets/mini_player.dart';
+import '../widgets/pressable.dart';
 import 'artist_screen.dart';
 import 'eq_screen.dart';
 import 'radio_screen.dart';
@@ -43,6 +45,8 @@ class _PlayerScreenState extends State<PlayerScreen>
   late final Ticker _ticker;
   late final AnimationController _spin;
   late final AnimationController _eq;
+  /// Fondo que «respira» muy despacio (1,0 → 1,08 cada 20 s).
+  late final AnimationController _breath;
   final bool _showVideo = false;
   bool _disc = false;
   bool _lyrics = false;
@@ -99,6 +103,8 @@ class _PlayerScreenState extends State<PlayerScreen>
         vsync: this, duration: const Duration(seconds: 14));
     _eq = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 1600));
+    _breath = AnimationController(
+        vsync: this, duration: const Duration(seconds: 20));
     pb.playing.addListener(_syncAnim);
     _syncAnim();
   }
@@ -218,9 +224,11 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (pb.playing.value && !_reduced) {
       if (!_spin.isAnimating) _spin.repeat();
       if (!_eq.isAnimating) _eq.repeat();
+      if (!_breath.isAnimating) _breath.repeat(reverse: true);
     } else {
       _spin.stop();
       _eq.stop();
+      _breath.stop();
     }
   }
 
@@ -245,6 +253,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     pb.playing.removeListener(_syncAnim);
     _spin.dispose();
     _eq.dispose();
+    _breath.dispose();
     _ticker.dispose();
     EmbedBridge.instance.slot.value = null;
     if (EmbedBridge.instance.fullscreen.value) {
@@ -291,16 +300,22 @@ class _PlayerScreenState extends State<PlayerScreen>
           },
         ),
         if (url.isNotEmpty)
-          ImageFiltered(
-            imageFilter: ui.ImageFilter.blur(sigmaX: 48, sigmaY: 48),
-            child: Opacity(
-              opacity: 0.55,
-              child: Image.network(
-                url,
-                cacheWidth: 96,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stack) =>
-                    const SizedBox.shrink(),
+          AnimatedBuilder(
+            animation: _breath,
+            builder: (context, child) => Transform.scale(
+                scale: 1.0 + 0.08 * Curves.easeInOut.transform(_breath.value),
+                child: child),
+            child: ImageFiltered(
+              imageFilter: ui.ImageFilter.blur(sigmaX: 48, sigmaY: 48),
+              child: Opacity(
+                opacity: 0.55,
+                child: Image.network(
+                  url,
+                  cacheWidth: 96,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stack) =>
+                      const SizedBox.shrink(),
+                ),
               ),
             ),
           ),
@@ -448,6 +463,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                       builder: (_) => ArtistScreen(
                           name: _info?.artist ?? s.artist)));
                 }
+              } else if (v == 'share') {
+                final s = pb.song.value;
+                if (s != null) ShareService.song(s);
               } else if (v == 'view') {
                 setState(() => _disc = !_disc);
               } else if (v == 'block') {
@@ -469,6 +487,14 @@ class _PlayerScreenState extends State<PlayerScreen>
                   dense: true,
                   leading: Icon(Icons.person_outline_rounded),
                   title: Text('Ver artista y discos'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'share',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.share_rounded),
+                  title: Text('Compartir'),
                 ),
               ),
               const PopupMenuItem(
@@ -573,7 +599,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ],
                   ),
                 ),
-                if (!song.isRadio) FavoriteButton(song: song),
+                if (!song.isRadio) Pressable(child: FavoriteButton(song: song)),
               ]),
               if (info != null && info.meta.isNotEmpty) ...[
                 const SizedBox(height: 3),
@@ -1060,7 +1086,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 icon: const Icon(Icons.skip_previous_rounded),
                 onPressed: svc.hasPrevious ? () => svc.previous() : null,
               ),
-              _playButton(svc, loading, playing),
+              Pressable(child: _playButton(svc, loading, playing)),
               IconButton(
                 iconSize: 44,
                 color: Colors.white,
@@ -1128,7 +1154,12 @@ class _PlayerScreenState extends State<PlayerScreen>
           },
           child: Center(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 180),
+              duration: AppMotion.of(context, AppMotion.fast),
+              transitionBuilder: (c, a) => ScaleTransition(
+                  scale: a,
+                  child: RotationTransition(
+                      turns: Tween<double>(begin: -0.12, end: 0).animate(a),
+                      child: c)),
               child: loading
                   ? const SizedBox(
                       key: ValueKey<String>('load'),

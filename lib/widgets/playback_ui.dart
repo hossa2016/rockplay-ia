@@ -1,5 +1,6 @@
 
 import 'package:flutter/foundation.dart';
+import 'package:home_widget/home_widget.dart';
 
 import '../models/song.dart';
 import '../services/library_service.dart';
@@ -42,6 +43,7 @@ class PlaybackUi {
     p.currentSong.listen((s) {
       song.value = s;
       _logHistory(s);
+      _updateWidget(s);
     }, onError: (Object _) {});
     p.playing.listen((v) => playing.value = v, onError: (Object _) {});
     p.loading.listen((v) => loading.value = v, onError: (Object _) {});
@@ -52,6 +54,22 @@ class PlaybackUi {
     p.currentIndex.listen((v) => index.value = v, onError: (Object _) {});
     p.repeat.listen((v) => repeat.value = v, onError: (Object _) {});
     p.sleepLabel.listen((v) => sleepLabel.value = v, onError: (Object _) {});
+  }
+
+  String _widgetKey = '';
+
+  /// Widget de pantalla de inicio «Seguir escuchando».
+  Future<void> _updateWidget(Song? s) async {
+    if (s == null) return;
+    final k = '${s.title}|${s.artist}';
+    if (k == _widgetKey) return;
+    _widgetKey = k;
+    try {
+      await HomeWidget.saveWidgetData<String>('np_title', s.title);
+      await HomeWidget.saveWidgetData<String>(
+          'np_artist', s.isRadio ? 'Radio en vivo' : s.artist);
+      await HomeWidget.updateWidget(androidName: 'NowPlayingWidget');
+    } catch (_) {}
   }
 
   Future<void> _logHistory(Song? s) async {

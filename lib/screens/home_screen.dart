@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'dart:math' as math;
+
+import 'package:quick_actions/quick_actions.dart';
+
+import '../services/concert_service.dart';
+import '../services/stats_service.dart';
+import 'concerts_screen.dart';
 
 import '../models/song.dart';
 import '../services/artist_info_service.dart';
@@ -19,6 +26,7 @@ import 'artist_screen.dart';
 import 'assistant_screen.dart';
 import 'search_screen.dart';
 import '../widgets/concerts_card.dart';
+import '../widgets/pressable.dart';
 import 'library_screen.dart';
 import 'search_hub.dart';
 import '../services/help_settings.dart';
@@ -36,9 +44,34 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _tab = 0;
 
+  /// Atajos al mantener pulsado el ícono de la app.
+  void _setupShortcuts() {
+    try {
+      const qa = QuickActions();
+      qa.initialize((type) {
+        if (!mounted) return;
+        if (type == 'mix') {
+          _go(0);
+          homeWantAction.value = 'mix';
+        } else if (type == 'radio') {
+          _go(1);
+          searchHubWantMode.value = 2;
+        } else if (type == 'asistente') {
+          _go(3);
+        }
+      });
+      qa.setShortcutItems(const [
+        ShortcutItem(type: 'mix', localizedTitle: 'Tu mix'),
+        ShortcutItem(type: 'radio', localizedTitle: 'Radio en vivo'),
+        ShortcutItem(type: 'asistente', localizedTitle: 'Asistente'),
+      ]);
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
+    _setupShortcuts();
     HelpSettings.load();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final seen = await HelpSettings.onboardingSeen();
@@ -118,6 +151,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
+/// Acción pedida desde un atajo del ícono (ej. 'mix').
+final ValueNotifier<String?> homeWantAction = ValueNotifier<String?>(null);
+
 class _HomeTab extends StatefulWidget {
   final ValueChanged<int> onNavigate;
   const _HomeTab({required this.onNavigate});
@@ -134,6 +170,7 @@ class _HomeTabState extends State<_HomeTab> {
   void initState() {
     super.initState();
     PlaybackUi.instance.libraryRevision.addListener(_load);
+    homeWantAction.addListener(_wantAction);
     StopLog.load();
     _load();
   }
@@ -141,7 +178,15 @@ class _HomeTabState extends State<_HomeTab> {
   @override
   void dispose() {
     PlaybackUi.instance.libraryRevision.removeListener(_load);
+    homeWantAction.removeListener(_wantAction);
     super.dispose();
+  }
+
+  void _wantAction() {
+    final a = homeWantAction.value;
+    if (a == null) return;
+    homeWantAction.value = null;
+    if (a == 'mix') _playMix();
   }
 
   Future<void> _load() async {
@@ -163,35 +208,345 @@ class _HomeTabState extends State<_HomeTab> {
     return 'Buenas noches';
   }
 
+  /// Frase grande de portada según la hora (estilo revista).
+  String _coverLine() {
+    final now = DateTime.now();
+    final h = now.hour;
+    final weekend = now.weekday >= DateTime.saturday;
+    if (h >= 5 && h < 12) return weekend ? 'MAÑANA DE\nCARRETERA' : 'ARRANCA\nCON RIFFS';
+    if (h >= 12 && h < 19) return weekend ? 'TARDE DE\nCARRETERA' : 'TARDE\nDE GUITARRAS';
+    if (h >= 19 && h < 23) return 'NOCHE\nDE RIFFS';
+    return 'MADRUGADA\nEN CALMA';
+  }
+
+  /// Mixes de ánimo ordenados para esta hora: tranquilo de noche, con
+  /// energía de mañana, de carretera el fin de semana.
+  List<MixDef> _hourMixes() {
+    final now = DateTime.now();
+    final h = now.hour;
+    final weekend = now.weekday >= DateTime.saturday;
+    String first;
+    if (h >= 22 || h < 5) {
+      first = 'Tranquilo';
+    } else if (weekend && h >= 8 && h < 19) {
+      first = 'Para manejar';
+    } else if (h >= 5 && h < 12) {
+      first = 'Energía';
+    } else if (h >= 17 && h < 22) {
+      first = 'Para entrenar';
+    } else {
+      first = 'Nostalgia';
+    }
+    final l = List<MixDef>.of(MixService.mood);
+    l.sort((x, y) => (x.title == first ? 0 : 1) - (y.title == first ? 0 : 1));
+    return l;
+  }
+
+  String _hourTitle() {
+    final h = DateTime.now().hour;
+    if (h >= 22 || h < 5) return 'Para esta noche';
+    if (h < 12) return 'Para esta mañana';
+    if (h < 19) return 'Para esta tarde';
+    return 'Para esta noche';
+  }
+
+  Future<List<MixDef>>? _dailyFuture;
+
+  /// 3 o 4 mixes diarios que se renuevan solos cada mañana (5 a. m.).
+  Future<List<MixDef>> _loadDaily() async {
+    var arts = <String>[];
+    try {
+      arts = await MixService.personalArtists();
+    } catch (_) {}
+    final uniq = <String>[];
+    final seen = <String>{};
+    for (final a in arts) {
+      if (seen.add(a.toLowerCase())) uniq.add(a);
+    }
+    if (uniq.length < 3) return const <MixDef>[];
+    final d = DateTime.now().subtract(const Duration(hours: 5));
+    final seed = d.year * 400 + d.month * 32 + d.day;
+    uniq.shuffle(math.Random(seed));
+    final n = uniq.length >= 12 ? 4 : (uniq.length >= 6 ? 3 : 1);
+    final per = (uniq.length / n).ceil().clamp(3, 10).toInt();
+    return [
+      for (var i = 0; i < n; i++)
+        if (uniq.skip(i * per).isNotEmpty)
+          MixDef(
+            'Mix diario ${i + 1}',
+            '${uniq[i * per]} y afines',
+            const [Icons.today_rounded, Icons.bolt_rounded, Icons.album_rounded, Icons.graphic_eq_rounded][i % 4],
+            AppPalettes.cards[i % AppPalettes.cards.length],
+            uniq.skip(i * per).take(per).toList(),
+          ),
+    ];
+  }
+
+  Widget _dailyRow() {
+    _dailyFuture ??= _loadDaily();
+    return FutureBuilder<List<MixDef>>(
+      future: _dailyFuture,
+      builder: (context, snap) {
+        final l = snap.data ?? const <MixDef>[];
+        if (snap.connectionState != ConnectionState.done) {
+          return const SizedBox(height: 176, child: SkeletonRow(itemWidth: 150, coverHeight: 150));
+        }
+        if (l.isEmpty) return const SizedBox.shrink();
+        return SizedBox(
+          height: 176,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: l.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 12),
+            itemBuilder: (context, i) {
+              final m = l[i];
+              return _MixCard(
+                def: m,
+                onTap: () => _openMix(m.title, m.subtitle, m.colors,
+                    MixService.buildMix(m.artists, pick: 40, perArtist: 6)),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Future<_Nudge?>? _nudgeFuture;
+
+  /// Tarjeta del asistente que toma la iniciativa: concierto de una banda
+  /// que escuchas, o algo parecido a lo que más suena esta semana.
+  Future<_Nudge?> _loadNudge() async {
+    try {
+      final plays = await StatsService.instance.plays(days: 7);
+      final top = StatsService.topArtists(plays, n: 5);
+      if (top.isEmpty) return null;
+      await ConcertService.instance.ensureLoaded();
+      final concerts = ConcertService.instance.state.value.items;
+      for (final a in top) {
+        final k = a.name.toLowerCase();
+        for (final c in concerts) {
+          if (c.band.toLowerCase().contains(k)) {
+            return _Nudge(
+              '${a.name} toca en ${c.city.isEmpty ? 'Colombia' : c.city}',
+              '${c.date != null ? '${c.date!.day} de ${kMonthsLong[c.date!.month - 1]}' : (c.when.isEmpty ? 'Fecha por confirmar' : c.when)}${c.venue.isEmpty ? '' : ' · ${c.venue}'}. Toca para ver el concierto.',
+              Icons.confirmation_number_outlined,
+              concert: true,
+            );
+          }
+        }
+      }
+      final a = top.first;
+      if (a.count < 5) return null;
+      return _Nudge(
+        'Llevas una semana con ${a.name}',
+        '¿Te armo algo parecido pero de bandas que no conoces?',
+        Icons.auto_awesome_rounded,
+        prompt:
+            'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con bandas que probablemente no conozco.',
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Widget _nudgeCard() {
+    _nudgeFuture ??= _loadNudge();
+    return FutureBuilder<_Nudge?>(
+      future: _nudgeFuture,
+      builder: (context, snap) {
+        final n = snap.data;
+        if (n == null || _nudgeClosed) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          child: Material(
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              side: const BorderSide(color: AppColors.borderAccent),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: () {
+                if (n.concert) {
+                  Navigator.of(context).push(MaterialPageRoute<String>(
+                      builder: (_) => const ConcertsScreen())).then((band) {
+                    if (band != null && band.isNotEmpty) _listenBand(band);
+                  });
+                } else {
+                  widget.onNavigate(3);
+                  assistantWantPrompt.value = n.prompt;
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
+                child: Row(children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: const BoxDecoration(
+                        shape: BoxShape.circle, gradient: AppColors.accent),
+                    child: Icon(n.icon, color: Colors.white, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(n.title,
+                            style: const TextStyle(
+                                fontSize: AppType.body,
+                                fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 2),
+                        Text(n.text,
+                            style: const TextStyle(
+                                fontSize: AppType.label,
+                                height: 1.3,
+                                color: AppColors.textDim)),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: 'Ocultar sugerencia',
+                    icon: const Icon(Icons.close_rounded,
+                        color: AppColors.textDim, size: 20),
+                    onPressed: () => setState(() => _nudgeClosed = true),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  bool _nudgeClosed = false;
+
+  /// Cabecera que se encoge al hacer scroll: frase grande + última portada.
+  Widget _sliverHeader(BuildContext context) {
+    final top = MediaQuery.paddingOf(context).top;
+    const minH = 64.0, maxH = 190.0;
+    final cover = _recent.isEmpty ? '' : _recent.first.image;
+    return SliverAppBar(
+      pinned: true,
+      automaticallyImplyLeading: false,
+      backgroundColor: AppColors.bg,
+      surfaceTintColor: Colors.transparent,
+      toolbarHeight: minH,
+      collapsedHeight: minH,
+      expandedHeight: maxH,
+      titleSpacing: 16,
+      title: Row(children: [
+        const PickLogo(size: 34),
+        const SizedBox(width: 10),
+        Text('ROCKPLAY', style: AppType.oswald(AppType.title)),
+      ]),
+      actions: [
+        IconButton(
+          tooltip: 'Ajustes',
+          icon: const Icon(Icons.settings_rounded),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+              builder: (_) => const SettingsHubScreen())),
+        ),
+        const SizedBox(width: 4),
+      ],
+      flexibleSpace: LayoutBuilder(builder: (context, box) {
+        final t = ((box.maxHeight - minH - top) / (maxH - minH))
+            .clamp(0.0, 1.0);
+        return Stack(fit: StackFit.expand, children: [
+          if (cover.isNotEmpty)
+            Positioned(
+              right: 20,
+              bottom: 16,
+              child: Opacity(
+                opacity: t,
+                child: Transform.rotate(
+                  angle: 0.06,
+                  child: CoverArt(
+                      url: cover,
+                      size: 92,
+                      radius: AppRadius.md,
+                      shadow: true,
+                      seed: _recent.first.artist),
+                ),
+              ),
+            ),
+          Positioned(
+            left: 20,
+            right: cover.isEmpty ? 20 : 128,
+            bottom: 16,
+            child: Opacity(
+              opacity: t,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(_greeting().toUpperCase(), style: AppType.overline),
+                  const SizedBox(height: 4),
+                  Text(_coverLine(),
+                      maxLines: 2,
+                      style: AppType.oswald(AppType.display, height: 1.0)),
+                ],
+              ),
+            ),
+          ),
+        ]);
+      }),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SafeArea(
-        bottom: false,
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 24),
-          children: [
-            _header(context),
-            _stopNotice(),
-            _personalMix(),
-            _quickAccess(),
-            const SizedBox(height: 4),
-            SectionTitle(
-              'Seguir escuchando',
-              actionLabel: _recent.isEmpty ? null : 'Ver historial',
-              onAction: () {
-                widget.onNavigate(2);
-                libraryWantTab.value = 2;
-              },
+      body: RefreshIndicator(
+        color: AppColors.red,
+        onRefresh: () async {
+          setState(() {
+            _dailyFuture = null;
+            _nudgeFuture = null;
+            _nudgeClosed = false;
+            _releasesFuture = null;
+            _emergingFuture = null;
+          });
+          await _load();
+        },
+        child: CustomScrollView(
+          slivers: [
+            _sliverHeader(context),
+            SliverPadding(
+              padding: const EdgeInsets.only(top: 8, bottom: 24),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  _stopNotice(),
+                  _nudgeCard(),
+                  _personalMix(),
+                  const SectionTitle('Tus mixes diarios'),
+                  _dailyRow(),
+                  _quickAccess(),
+                  const SizedBox(height: 4),
+                  SectionTitle(
+                    'Seguir escuchando',
+                    actionLabel: _recent.isEmpty ? null : 'Ver historial',
+                    onAction: () {
+                      widget.onNavigate(2);
+                      libraryWantTab.value = 2;
+                    },
+                  ),
+                  _recentSection(),
+                  SectionTitle(_hourTitle()),
+                  _mixRow(_hourMixes()),
+                  const SectionTitle('Conciertos'),
+                  ConcertsCard(onListen: _listenBand),
+                  const SectionTitle('Descubrir'),
+                  _discoverChips(),
+                  const SizedBox(height: 14),
+                  _discoverBody(),
+                ]),
+              ),
             ),
-            _recentSection(),
-            const SectionTitle('Conciertos'),
-            ConcertsCard(onListen: _listenBand),
-            const SectionTitle('Descubrir'),
-            _discoverChips(),
-            const SizedBox(height: 14),
-            _discoverBody(),
           ],
         ),
       ),
@@ -249,40 +604,6 @@ class _HomeTabState extends State<_HomeTab> {
       default:
         return _mixRow(MixService.genre);
     }
-  }
-
-  Widget _header(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 26, 20, 14),
-      child: Row(
-        children: [
-          const PickLogo(size: 44),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _greeting(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      color: AppColors.textDim, fontSize: AppType.label),
-                ),
-                Text('ROCKPLAY', style: AppType.oswald(AppType.headline)),
-              ],
-            ),
-          ),
-          IconButton(
-            tooltip: 'Ajustes',
-            icon: const Icon(Icons.settings_rounded),
-            onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                    builder: (_) => const SettingsHubScreen())),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _stopNotice() {
@@ -787,6 +1108,10 @@ class _RecentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Pressable(child: _card());
+  }
+
+  Widget _card() {
     return SizedBox(
       width: 140,
       child: InkWell(
@@ -831,6 +1156,10 @@ class _MixCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Pressable(child: _card(context));
+  }
+
+  Widget _card(BuildContext context) {
     return SizedBox(
       width: 150,
       child: Material(
@@ -902,4 +1231,12 @@ class _MixCard extends StatelessWidget {
   }
 }
 
-
+class _Nudge {
+  final String title;
+  final String text;
+  final IconData icon;
+  final bool concert;
+  final String prompt;
+  const _Nudge(this.title, this.text, this.icon,
+      {this.concert = false, this.prompt = ''});
+}

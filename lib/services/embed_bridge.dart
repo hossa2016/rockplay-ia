@@ -109,6 +109,12 @@ class EmbedBridge {
 
   Future<void> play() async => controller?.playVideo();
   Future<void> pause() async => controller?.pauseVideo();
+  /// 0–100. Lo usa el fundido entre canciones y el temporizador.
+  Future<void> setVolume(int v) async {
+    try {
+      await controller?.setVolume(v.clamp(0, 100));
+    } catch (_) {}
+  }
   Future<void> seek(Duration p) async =>
       controller?.seekTo(seconds: p.inMilliseconds / 1000.0, allowSeekAhead: true);
 
