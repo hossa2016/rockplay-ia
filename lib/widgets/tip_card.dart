@@ -40,10 +40,10 @@ class _TipCardState extends State<TipCard> {
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 8, 2, 8),
             decoration: BoxDecoration(
-              color: const Color.fromRGBO(255, 176, 46, 0.10),
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.amberTint,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               border:
-                  Border.all(color: const Color.fromRGBO(255, 176, 46, 0.35)),
+                  Border.all(color: AppColors.amberLine),
             ),
             child: Row(children: [
               const Icon(Icons.lightbulb_outline_rounded,
@@ -51,7 +51,7 @@ class _TipCardState extends State<TipCard> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(widget.text,
-                    style: const TextStyle(fontSize: 13.5, height: 1.35)),
+                    style: const TextStyle(fontSize: AppType.bodySm, height: 1.35)),
               ),
               SizedBox(
                 width: 48,

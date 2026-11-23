@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/help_settings.dart';
 import '../theme/app_theme.dart';
+import '../widgets/rock_decor.dart';
 
 /// Guía de bienvenida: pantallas deslizables con lo que hace la app.
 class OnboardingScreen extends StatefulWidget {
@@ -26,15 +27,15 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     _Page(Icons.music_note_rounded, 'Bienvenido a RockPlay IA',
         'Tu música rock en un solo lugar, con un asistente que te ayuda a elegir qué escuchar.'),
     _Page(Icons.home_rounded, 'Inicio: tu mix',
-        'Arriba está Tu mix, armado con los artistas que más escuchas. Un toque y suena. Debajo sigues donde lo dejaste y descubres música nueva.'),
+        'Arriba está Tu mix, armado con los artistas que más escuchas. Un toque y suena. Debajo sigues donde lo dejaste, ves los próximos conciertos y descubres música nueva.'),
     _Page(Icons.search_rounded, 'Buscar',
-        'Busca por artista o canción, explora por género, arma una emisora con un artista o sintoniza radios de rock en vivo.'),
+        'Busca por artista o canción, explora por género, arma un mix de artista o sintoniza radio en vivo.'),
     _Page(Icons.auto_awesome_rounded, 'Asistente',
         'Elige un ánimo o escribe lo que quieres, por ejemplo «rock para estudiar de noche», y el asistente arma la lista por ti.'),
     _Page(Icons.library_music_rounded, 'Mi música',
-        'Guarda tus favoritas con el corazón, crea tus listas y revisa tu historial. En el reproductor puedes ver la letra y programar que se apague sola.'),
+        'Guarda tus favoritas con el corazón, crea tus listas, revisa tu historial y mira Tus números. En el reproductor puedes ver la letra y programar que se apague sola.'),
     _Page(Icons.info_outline_rounded, 'Si una canción no suena',
-        'A veces YouTube no permite reproducir una canción en apps. La app la salta sola y te avisa. Todo se configura en Ajustes, con el engranaje.'),
+        'A veces YouTube no permite reproducir una canción en apps. La app la salta sola y te avisa. Todo se configura en Ajustes, con el engranaje de Inicio.'),
   ];
 
   Future<void> _finish() async {
@@ -83,6 +84,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      if (k == 0)
+                        const PickLogo(size: 140)
+                      else
                       Container(
                         width: 140,
                         height: 140,
@@ -100,12 +104,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Text(p.title,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontSize: 26, fontWeight: FontWeight.w900)),
+                              fontSize: AppType.headline, fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700)),
                       const SizedBox(height: 14),
                       Text(p.text,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: AppType.body,
                               height: 1.45,
                               color: AppColors.textDim)),
                     ],
@@ -125,7 +129,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   height: 8,
                   decoration: BoxDecoration(
                     color: k == _i ? AppColors.red : const Color(0xFF3A3A44),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(AppRadius.xs),
                   ),
                 ),
             ],

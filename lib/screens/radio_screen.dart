@@ -185,7 +185,7 @@ class _RadioScreenState extends State<RadioScreen> {
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
       builder: (_) => const _AddSheet(),
     );
     if (r != null) {
@@ -213,10 +213,10 @@ class _RadioScreenState extends State<RadioScreen> {
               border: Border.all(
                   color: current || failed ? AppColors.red : AppColors.outline,
                   width: current ? 1.5 : 1),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
             ),
             child: InkWell(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               onTap: () => playStation(context, s),
               child: SizedBox(
                 height: 72,
@@ -233,7 +233,7 @@ class _RadioScreenState extends State<RadioScreen> {
                             height: 48,
                             decoration: BoxDecoration(
                               color: const Color.fromRGBO(0, 0, 0, 0.55),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                             child: const Icon(Icons.graphic_eq_rounded,
                                 color: AppColors.amber),
@@ -250,10 +250,10 @@ class _RadioScreenState extends State<RadioScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontSize: 15,
+                                  fontSize: AppType.body,
                                   fontWeight: FontWeight.w700,
                                   color: current
-                                      ? AppColors.red
+                                      ? AppColors.redText
                                       : AppColors.text)),
                           const SizedBox(height: 2),
                           Text(
@@ -263,7 +263,7 @@ class _RadioScreenState extends State<RadioScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppType.caption,
                                   color: failed
                                       ? AppColors.amber
                                       : AppColors.textDim)),
@@ -295,7 +295,7 @@ class _RadioScreenState extends State<RadioScreen> {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
         child: Text(t,
             style: const TextStyle(
-                fontSize: 12,
+                fontSize: AppType.caption,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 1.4,
                 color: AppColors.textDim)),
@@ -459,7 +459,7 @@ class _AddSheetState extends State<_AddSheet> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Agregar emisora',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+              style: TextStyle(fontSize: AppType.titleSm, fontWeight: FontWeight.w900)),
           const SizedBox(height: 14),
           TextField(
             controller: _name,
@@ -482,7 +482,7 @@ class _AddSheetState extends State<_AddSheet> {
             padding: EdgeInsets.only(top: 8, bottom: 14),
             child: Text(
                 'Pega el enlace directo del audio (suele estar en la web de la emisora).',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
           ),
           SizedBox(
             width: double.infinity,

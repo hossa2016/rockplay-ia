@@ -105,7 +105,7 @@ class _MiniBody extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 14,
+                              fontSize: AppType.bodySm,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -119,7 +119,7 @@ class _MiniBody extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppType.caption,
                                   color: hasErr
                                       ? AppColors.amber
                                       : AppColors.textDim,

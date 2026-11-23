@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../services/artist_info_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/state_views.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
@@ -99,23 +100,14 @@ class _ArtistScreenState extends State<ArtistScreen> {
     return Scaffold(
       body: SafeArea(
         child: _loading
-            ? const Center(child: CircularProgressIndicator())
+            ? const SkeletonList()
             : _notFound || a == null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('No encontré información de este artista.',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: AppColors.textDim)),
-                          TextButton(
-                              onPressed: () => Navigator.of(context).pop(),
-                              child: const Text('Volver')),
-                        ],
-                      ),
-                    ),
+                ? StateMessage(
+                    icon: Icons.person_search_rounded,
+                    title: 'Artista no encontrado',
+                    message: 'No encontré información de este artista.',
+                    actionLabel: 'Volver',
+                    onAction: () => Navigator.of(context).pop(),
                   )
                 : ListView(
                     padding: const EdgeInsets.only(bottom: 32),
@@ -124,6 +116,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                         padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                         child: Row(children: [
                           IconButton(
+                            tooltip: 'Volver',
                             icon: const Icon(Icons.arrow_back_rounded),
                             onPressed: () => Navigator.of(context).pop(),
                           ),
@@ -135,7 +128,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                             width: 150,
                             height: 150,
                             child: a.picture.isEmpty
-                                ? const ColoredBox(color: Color(0xFF1A1014))
+                                ? const ColoredBox(color: AppColors.surfaceWarm)
                                 : Image.network(a.picture, fit: BoxFit.cover),
                           ),
                         ),
@@ -155,7 +148,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                           child: Text('${_fmt(a.fans)} seguidores en Deezer',
                               textAlign: TextAlign.center,
                               style: const TextStyle(
-                                  color: AppColors.textDim, fontSize: 13)),
+                                  color: AppColors.textDim, fontSize: AppType.label)),
                         ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -188,17 +181,17 @@ class _ArtistScreenState extends State<ArtistScreen> {
                                       ? TextOverflow.visible
                                       : TextOverflow.ellipsis,
                                   style: const TextStyle(
-                                      height: 1.45, color: Color(0xFFD0D0D8)),
+                                      height: 1.45, color: AppColors.textBody),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(_bioOpen ? 'Ver menos' : 'Leer más',
                                     style: const TextStyle(
-                                        color: AppColors.amber, fontSize: 13)),
+                                        color: AppColors.amber, fontSize: AppType.label)),
                                 const SizedBox(height: 2),
                                 const Text('Fuente: Wikipedia',
                                     style: TextStyle(
                                         color: AppColors.textFaint,
-                                        fontSize: 12)),
+                                        fontSize: AppType.caption)),
                               ],
                             ),
                           ),
@@ -231,12 +224,12 @@ class _ArtistScreenState extends State<ArtistScreen> {
                                           overflow: TextOverflow.ellipsis,
                                           style: const TextStyle(
                                               fontWeight: FontWeight.w600,
-                                              fontSize: 13)),
+                                              fontSize: AppType.label)),
                                       if (al.year != null)
                                         Text('${al.year}',
                                             style: const TextStyle(
                                                 color: AppColors.textDim,
-                                                fontSize: 12)),
+                                                fontSize: AppType.caption)),
                                     ],
                                   ),
                                 ),

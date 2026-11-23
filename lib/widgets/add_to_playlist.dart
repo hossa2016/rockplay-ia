@@ -48,7 +48,7 @@ Future<void> showAddToPlaylist(BuildContext context, Song song) async {
     context: context,
     backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
     ),
     builder: (sheetCtx) {
       return StatefulBuilder(builder: (ctx, _) {

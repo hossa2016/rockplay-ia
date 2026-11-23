@@ -28,6 +28,8 @@ class AppColors {
   static const Color scrim = Color(0x66000000);
   static const Color amberTint = Color(0x1AFFB02E);
   static const Color amberLine = Color(0x59FFB02E);
+  /// Línea roja sobre la barra de navegación.
+  static const Color navLine = Color(0x66E5332E);
 
   static const LinearGradient accent = LinearGradient(
     begin: Alignment.topLeft,
@@ -48,6 +50,23 @@ class AppColors {
     end: Alignment.bottomCenter,
     colors: [Color(0x00000000), Color(0x40000000)],
   );
+}
+
+/// Única paleta de tarjetas (mixes, géneros, ánimos): rojo, ámbar y grafito.
+class AppPalettes {
+  AppPalettes._();
+  static const List<Color> fire = [Color(0xFFC2331A), Color(0xFF2C0A05)];
+  static const List<Color> graphite = [Color(0xFF4A4A56), Color(0xFF16161C)];
+  static const List<Color> wine = [Color(0xFF7A1411), Color(0xFF1A1014)];
+  static const List<Color> amber = [Color(0xFF8A5A2A), Color(0xFF241608)];
+  static const List<Color> rust = [Color(0xFF8A2A24), Color(0xFF2A0D0B)];
+  static const List<Color> steel = [Color(0xFF5A5A66), Color(0xFF1C1C22)];
+  static const List<Color> burgundy = [Color(0xFF6B2A3A), Color(0xFF220A12)];
+  static const List<Color> brass = [Color(0xFF7A6A2A), Color(0xFF241E08)];
+
+  static const List<List<Color>> cards = [
+    fire, graphite, wine, amber, rust, steel, burgundy, brass,
+  ];
 }
 
 /// Escala tipográfica: Oswald en títulos, Roboto en cuerpo.
@@ -181,10 +200,10 @@ class AppTheme {
         backgroundColor: AppColors.surface,
         indicatorColor: const Color.fromRGBO(255, 176, 46, 0.20),
         indicatorShape: const StadiumBorder(),
-        height: 66,
+        height: 68,
         elevation: 0,
         labelTextStyle: const WidgetStatePropertyAll<TextStyle>(
-          TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -194,15 +213,15 @@ class AppTheme {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(28),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
           borderSide: const BorderSide(color: AppColors.red, width: 1.5),
         ),
       ),
@@ -242,7 +261,7 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.surfaceHigh,
         contentTextStyle: const TextStyle(color: AppColors.text),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.md)),
       ),
       dividerColor: AppColors.outline,
     );

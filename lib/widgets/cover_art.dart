@@ -91,15 +91,7 @@ class CoverArt extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(radius),
         color: AppColors.surfaceHigh,
-        boxShadow: shadow
-            ? const [
-                BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.55),
-                  blurRadius: 40,
-                  offset: Offset(0, 20),
-                ),
-              ]
-            : null,
+        boxShadow: shadow ? AppShadow.card : null,
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(radius),

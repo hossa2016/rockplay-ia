@@ -151,53 +151,54 @@ class _SearchScreenState extends State<SearchScreen> {
     _search();
   }
 
-  static const List<List<Object>> _tiles = [
-    ['Grunge', Color(0xFFC2331A), Color(0xFF2C0A05)],
-    ['Rock en español', Color(0xFF4A4A56), Color(0xFF16161C)],
-    ['Heavy metal', Color(0xFF7A1411), Color(0xFF1A1014)],
-    ['Rock clásico', Color(0xFF8A5A2A), Color(0xFF241608)],
-    ['Hard rock', Color(0xFF8A2A24), Color(0xFF2A0D0B)],
-    ['Punk rock', Color(0xFF5A5A66), Color(0xFF1C1C22)],
-    ['Rock alternativo', Color(0xFF6B2A3A), Color(0xFF220A12)],
-    ['Indie rock', Color(0xFF7A6A2A), Color(0xFF241E08)],
+  static const List<String> _genres = [
+    'Grunge',
+    'Rock en español',
+    'Heavy metal',
+    'Rock clásico',
+    'Hard rock',
+    'Punk rock',
+    'Rock alternativo',
+    'Indie rock',
   ];
 
   Widget _label(String t) => Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 10),
         child: Text(t,
             style: const TextStyle(
-                fontSize: 12,
+                fontSize: AppType.caption,
                 letterSpacing: 1.5,
                 fontWeight: FontWeight.w700,
                 color: AppColors.amber)),
       );
 
-  Widget _genreTile(List<Object> t) {
+  Widget _genreTile(int i) {
+    final name = _genres[i];
+    final c = AppPalettes.cards[i % AppPalettes.cards.length];
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: Ink(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [t[1] as Color, t[2] as Color],
+            colors: c,
           ),
         ),
         child: InkWell(
-          onTap: () => _useSuggestion(t[0] as String),
+          onTap: () => _useSuggestion(name),
           child: Container(
             alignment: Alignment.center,
             padding: const EdgeInsets.all(14),
-            child: Text(t[0] as String,
+            child: Text(name,
                 textAlign: TextAlign.center,
-                textScaler: const TextScaler.linear(1.0),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 15, height: 1.1)),
+                    fontWeight: FontWeight.w800, fontSize: AppType.body, height: 1.1)),
           ),
         ),
       ),
@@ -234,7 +235,7 @@ class _SearchScreenState extends State<SearchScreen> {
                           horizontal: 14, vertical: 10),
                       child: Text(h,
                           style: const TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600)),
+                              fontSize: AppType.label, fontWeight: FontWeight.w600)),
                     ),
                   ),
                 ),
@@ -250,7 +251,7 @@ class _SearchScreenState extends State<SearchScreen> {
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           childAspectRatio: 2.3,
-          children: [for (final t in _tiles) _genreTile(t)],
+          children: [for (var i = 0; i < _genres.length; i++) _genreTile(i)],
         ),
       ],
     );

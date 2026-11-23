@@ -116,7 +116,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       context: context,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       builder: (ctx) => SafeArea(
         child: Column(
@@ -128,7 +128,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 alignment: Alignment.centerLeft,
                 child: Text('Apagar la música en…',
                     style:
-                        TextStyle(fontSize: 18, fontWeight: FontWeight.w700)),
+                        TextStyle(fontSize: AppType.titleSm, fontWeight: FontWeight.w700)),
               ),
             ),
             opt(ctx, '15 minutos',
@@ -201,8 +201,21 @@ class _PlayerScreenState extends State<PlayerScreen>
     if (PlaybackService.instance.hasNext) PlaybackService.instance.next();
   }
 
+  /// Sistema pidió menos animaciones: disco, ondas y fondo quedan quietos.
+  bool _reduced = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final r = AppMotion.reduced(context);
+    if (r != _reduced) {
+      _reduced = r;
+      _syncAnim();
+    }
+  }
+
   void _syncAnim() {
-    if (pb.playing.value) {
+    if (pb.playing.value && !_reduced) {
       if (!_spin.isAnimating) _spin.repeat();
       if (!_eq.isAnimating) _eq.repeat();
     } else {
@@ -394,7 +407,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     const Text(
                       'SONANDO DESDE',
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.caption,
                         letterSpacing: 1.5,
                         fontWeight: FontWeight.w700,
                         color: AppColors.textDim,
@@ -409,7 +422,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w800),
+                          fontSize: AppType.bodySm, fontWeight: FontWeight.w800),
                     ),
                   ],
                 );
@@ -488,7 +501,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               SizedBox(width: 8),
               Text('EN VIVO',
                   style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.label,
                       letterSpacing: 2,
                       fontWeight: FontWeight.w800)),
             ],
@@ -541,8 +554,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
+                            fontSize: AppType.headline,
+                            fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700,
+                            letterSpacing: 0.3,
                             height: 1.15),
                       ),
                       const SizedBox(height: 2),
@@ -568,7 +582,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
+                    fontSize: AppType.label,
                     color: AppColors.textFaint,
                     fontWeight: FontWeight.w500,
                   ),
@@ -594,7 +608,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         {bool on = false}) {
       final c = on ? AppColors.amber : AppColors.textDim;
       return InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         onTap: onTap,
         child: SizedBox(
           width: 76,
@@ -608,7 +622,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                      fontSize: 12, fontWeight: FontWeight.w600, color: c)),
+                      fontSize: AppType.caption, fontWeight: FontWeight.w600, color: c)),
             ],
           ),
         ),
@@ -657,7 +671,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         children: [
           const Text('SIN PORTADA',
               style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.caption,
                   letterSpacing: 2,
                   fontWeight: FontWeight.w700,
                   color: AppColors.amber)),
@@ -666,7 +680,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                  fontSize: 32, fontWeight: FontWeight.w900, height: 1.0)),
+                  fontSize: AppType.display, fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700, height: 1.0)),
         ],
       ),
     );
@@ -695,13 +709,13 @@ class _PlayerScreenState extends State<PlayerScreen>
             width: w,
             height: h,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               boxShadow: [
                 BoxShadow(color: _accent.withValues(alpha: 0.35), blurRadius: 40),
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               child: AnimatedBuilder(
                 animation: _spin,
                 builder: (context, child) {
@@ -818,10 +832,10 @@ class _PlayerScreenState extends State<PlayerScreen>
             width: double.infinity,
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color.fromRGBO(255, 176, 46, 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.amberTint,
+              borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(
-                color: const Color.fromRGBO(255, 176, 46, 0.35),
+                color: AppColors.amberLine,
               ),
             ),
             child: Column(
@@ -837,7 +851,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     err,
                     style: const TextStyle(
                       color: AppColors.amber,
-                      fontSize: 13,
+                      fontSize: AppType.label,
                       height: 1.3,
                     ),
                   ),
@@ -881,10 +895,10 @@ class _PlayerScreenState extends State<PlayerScreen>
         width: double.infinity,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: const Color.fromRGBO(255, 176, 46, 0.12),
-          borderRadius: BorderRadius.circular(16),
+          color: AppColors.amberTint,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border:
-              Border.all(color: const Color.fromRGBO(255, 176, 46, 0.35)),
+              Border.all(color: AppColors.amberLine),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -894,7 +908,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 child: Text('LA MÚSICA SE DETUVO',
                     style: TextStyle(
                         color: AppColors.amber,
-                        fontSize: 12,
+                        fontSize: AppType.caption,
                         letterSpacing: 1.5,
                         fontWeight: FontWeight.w800)),
               ),
@@ -914,7 +928,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 'Las últimas canciones no se pueden reproducir en apps porque '
                 'YouTube las bloquea. No es un problema de tu teléfono ni de '
                 'tu internet.',
-                style: TextStyle(fontSize: 13, height: 1.35)),
+                style: TextStyle(fontSize: AppType.label, height: 1.35)),
             const SizedBox(height: 8),
             for (final e in last)
               ConstrainedBox(
@@ -925,12 +939,12 @@ class _PlayerScreenState extends State<PlayerScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 14, fontWeight: FontWeight.w700)),
+                            fontSize: AppType.bodySm, fontWeight: FontWeight.w700)),
                   ),
                   const Text('Bloqueada',
                       style: TextStyle(
                           color: AppColors.amber,
-                          fontSize: 12,
+                          fontSize: AppType.caption,
                           fontWeight: FontWeight.w700)),
                 ]),
               ),
@@ -1013,7 +1027,7 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   static const TextStyle _timeStyle = TextStyle(
-    fontSize: 12,
+    fontSize: AppType.caption,
     color: AppColors.textDim,
     fontWeight: FontWeight.w500,
     fontFeatures: [ui.FontFeature.tabularFigures()],
@@ -1147,7 +1161,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       isScrollControlled: true,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       builder: (sheetContext) {
         return DraggableScrollableSheet(
@@ -1212,7 +1226,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                         child: Text(
                           'Mantén pulsada una fila para moverla · desliza para quitarla',
                           style: TextStyle(
-                              fontSize: 12, color: AppColors.textFaint),
+                              fontSize: AppType.caption, color: AppColors.textFaint),
                         ),
                       ),
                     ),

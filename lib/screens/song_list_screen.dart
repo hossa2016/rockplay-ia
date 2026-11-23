@@ -29,7 +29,7 @@ class SongListScreen extends StatefulWidget {
     super.key,
     required this.title,
     this.subtitle = '',
-    this.colors = const [Color(0xFF7A1411), Color(0xFF14141A)],
+    this.colors = AppPalettes.wine,
     this.stream,
     this.songs,
     this.onRemove,
@@ -142,7 +142,7 @@ class _SongListScreenState extends State<SongListScreen> {
               _loading
                   ? '${_songs.length} canciones · cargando más…'
                   : '${_songs.length} canciones',
-              style: const TextStyle(color: AppColors.textDim, fontSize: 12),
+              style: const TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
             ),
             const SizedBox(height: 14),
             Wrap(

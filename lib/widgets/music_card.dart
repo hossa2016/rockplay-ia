@@ -60,7 +60,7 @@ class MusicCard extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                            fontSize: 15,
+                            fontSize: AppType.body,
                             fontWeight: FontWeight.w600,
                             height: 1.2,
                             color: isCurrent ? AppColors.amber : AppColors.text,
@@ -72,7 +72,7 @@ class MusicCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: AppType.label,
                             color: AppColors.textDim,
                           ),
                         ),

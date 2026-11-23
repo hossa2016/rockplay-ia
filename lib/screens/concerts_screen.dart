@@ -16,8 +16,8 @@ class ConcertDateBox extends StatelessWidget {
       width: size,
       height: size * 1.15,
       decoration: BoxDecoration(
-        color: const Color(0xFF2A1512),
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surfaceWarm,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: date == null
           ? const Center(
@@ -25,10 +25,10 @@ class ConcertDateBox extends StatelessWidget {
                   textAlign: TextAlign.center,
                   textScaler: TextScaler.linear(1.0),
                   style: TextStyle(
-                      fontSize: 10.5,
+                      fontSize: AppType.micro,
                       fontWeight: FontWeight.w800,
                       height: 1.2,
-                      color: Color(0xFFF08A7E))),
+                      color: AppColors.redSoft)),
             )
           : Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -36,13 +36,13 @@ class ConcertDateBox extends StatelessWidget {
           Text(kMonthsShort[date!.month - 1].toUpperCase(),
               textScaler: const TextScaler.linear(1.0),
               style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.caption,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFFF08A7E))),
+                  color: AppColors.redSoft)),
           Text('${date!.day}',
               textScaler: const TextScaler.linear(1.0),
               style: const TextStyle(
-                  fontSize: 22, fontWeight: FontWeight.w900, height: 1.1)),
+                  fontSize: AppType.title, fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700, height: 1.1)),
         ],
       ),
     );
@@ -103,7 +103,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.outline),
       ),
       child: Column(
@@ -122,26 +122,26 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   if (c.genre.isNotEmpty)
                     Text(c.genre.toUpperCase(),
                         style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.caption,
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w800,
                             color: AppColors.amber)),
                   if (concertPlace(c).isNotEmpty)
                     Text(concertPlace(c),
                         style: const TextStyle(
-                            fontSize: 13.5,
+                            fontSize: AppType.bodySm,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textDim)),
                   if (c.date == null)
                     Text('Fecha: ${c.when}',
                         style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: AppType.label,
                             fontWeight: FontWeight.w700,
                             color: AppColors.amber))
                   else if (c.time.isNotEmpty)
                     Text(c.time,
                         style: const TextStyle(
-                            fontSize: 13, fontWeight: FontWeight.w700)),
+                            fontSize: AppType.label, fontWeight: FontWeight.w700)),
                 ],
               ),
             ),
@@ -176,7 +176,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   foregroundColor: AppColors.textFaint),
               onPressed: () => openConcertLink(context, c.source),
               child: Text('Fuente: ${Uri.tryParse(c.source)?.host ?? c.source}',
-                  style: const TextStyle(fontSize: 12)),
+                  style: const TextStyle(fontSize: AppType.caption)),
             ),
           ],
         ],
@@ -208,7 +208,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                 '(o el enlace del perfil).\n'
                 'Ejemplo: Kings Rock @kingsrockbar\n'
                 'Con el @usuario y el token de Apify, la app lee sus flyers.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 13)),
+                style: TextStyle(color: AppColors.textDim, fontSize: AppType.label)),
             const SizedBox(height: 12),
             TextField(
               controller: ctrl,
@@ -245,7 +245,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
 
   Widget _chips() {
     return SizedBox(
-      height: 44,
+      height: 48,
       child: ListView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -320,7 +320,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   Expanded(
                     child: Text('$status · próximos 12 meses',
                         style: const TextStyle(
-                            fontSize: 12.5,
+                            fontSize: AppType.caption,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textFaint)),
                   ),
@@ -355,7 +355,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                     const EdgeInsets.fromLTRB(4, 8, 4, 10),
                                 child: Text(_group(list[i]),
                                     style: const TextStyle(
-                                        fontSize: 12,
+                                        fontSize: AppType.caption,
                                         letterSpacing: 1.5,
                                         fontWeight: FontWeight.w700,
                                         color: AppColors.amber)),
@@ -371,14 +371,14 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                     title: const Text(
                                         'Detalles de la última búsqueda',
                                         style: TextStyle(
-                                            fontSize: 13,
+                                            fontSize: AppType.label,
                                             color: AppColors.textDim)),
                                     children: [
                                       Align(
                                         alignment: Alignment.centerLeft,
                                         child: SelectableText(log,
                                             style: const TextStyle(
-                                                fontSize: 12,
+                                                fontSize: AppType.caption,
                                                 height: 1.5,
                                                 color: AppColors.textFaint)),
                                       ),
@@ -391,7 +391,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                               'Datos buscados en internet con IA. Confirma la fecha en la fuente antes de comprar.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                  fontSize: 12, color: AppColors.textFaint),
+                                  fontSize: AppType.caption, color: AppColors.textFaint),
                             ),
                           ),
                         ],

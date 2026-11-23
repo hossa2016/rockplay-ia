@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               decoration: const BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: Color(0x66E5332E), width: 1),
+                  top: BorderSide(color: AppColors.navLine, width: 1),
                 ),
               ),
               child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: NavigationBar(
@@ -225,12 +225,12 @@ class _HomeTabState extends State<_HomeTab> {
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: on ? AppColors.redBtn : AppColors.surfaceHigh,
-                borderRadius: BorderRadius.circular(999),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: on ? null : Border.all(color: AppColors.outline),
               ),
               child: Text(labels[i],
                   style: TextStyle(
-                      fontSize: 13,
+                      fontSize: AppType.label,
                       fontWeight: FontWeight.w700,
                       color: on ? Colors.white : AppColors.textDim)),
             ),
@@ -256,11 +256,7 @@ class _HomeTabState extends State<_HomeTab> {
       padding: const EdgeInsets.fromLTRB(20, 26, 20, 14),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.asset('assets/icon/logo.png',
-                width: 44, height: 44, filterQuality: FilterQuality.medium),
-          ),
+          const PickLogo(size: 44),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -271,7 +267,7 @@ class _HomeTabState extends State<_HomeTab> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      color: AppColors.textDim, fontSize: 13),
+                      color: AppColors.textDim, fontSize: AppType.label),
                 ),
                 Text('ROCKPLAY', style: AppType.oswald(AppType.headline)),
               ],
@@ -302,10 +298,10 @@ class _HomeTabState extends State<_HomeTab> {
           child: Container(
             padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
             decoration: BoxDecoration(
-              color: const Color.fromRGBO(255, 176, 46, 0.10),
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.amberTint,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               border:
-                  Border.all(color: const Color.fromRGBO(255, 176, 46, 0.35)),
+                  Border.all(color: AppColors.amberLine),
             ),
             child: Row(children: [
               Expanded(
@@ -316,10 +312,10 @@ class _HomeTabState extends State<_HomeTab> {
                         style: const TextStyle(
                             color: AppColors.amber,
                             fontWeight: FontWeight.w800,
-                            fontSize: 13)),
+                            fontSize: AppType.label)),
                     const SizedBox(height: 2),
                     Text(motivo,
-                        style: const TextStyle(fontSize: 13, height: 1.3)),
+                        style: const TextStyle(fontSize: AppType.label, height: 1.3)),
                   ],
                 ),
               ),
@@ -445,12 +441,12 @@ class _HomeTabState extends State<_HomeTab> {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontWeight: FontWeight.w600, fontSize: 13)),
+                              fontWeight: FontWeight.w600, fontSize: AppType.label)),
                       Text(r.artist,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              color: AppColors.textDim, fontSize: 12)),
+                              color: AppColors.textDim, fontSize: AppType.caption)),
                     ],
                   ),
                 ),
@@ -540,7 +536,7 @@ class _HomeTabState extends State<_HomeTab> {
                           textAlign: TextAlign.center,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                              fontSize: 12.5, fontWeight: FontWeight.w600)),
+                              fontSize: AppType.caption, fontWeight: FontWeight.w600)),
                     ],
                   ),
                 ),
@@ -565,7 +561,7 @@ class _HomeTabState extends State<_HomeTab> {
     _openMix(
       'Tu mix',
       'Con tus artistas favoritos',
-      const [Color(0xFF7A1411), Color(0xFF14141A)],
+      AppPalettes.wine,
       MixService.buildMix(artists, pick: 30, perArtist: 10),
     );
   }
@@ -575,7 +571,7 @@ class _HomeTabState extends State<_HomeTab> {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: _playMix,
@@ -625,7 +621,7 @@ class _HomeTabState extends State<_HomeTab> {
                         padding: const EdgeInsets.symmetric(horizontal: 22),
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(23),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
@@ -637,7 +633,7 @@ class _HomeTabState extends State<_HomeTab> {
                                 style: TextStyle(
                                     color: AppColors.bg,
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 15)),
+                                    fontSize: AppType.body)),
                           ],
                         ),
                       ),
@@ -684,7 +680,7 @@ class _HomeTabState extends State<_HomeTab> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: AppColors.outline),
           ),
           child: const Row(
@@ -795,14 +791,14 @@ class _RecentCard extends StatelessWidget {
       width: 140,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CoverArt(
                 url: song.image,
                 size: 140,
-                radius: 14,
+                radius: AppRadius.md,
                 shadow: true,
                 seed: song.artist),
             const SizedBox(height: 10),
@@ -810,14 +806,14 @@ class _RecentCard extends StatelessWidget {
               song.title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.bodySm),
             ),
             const SizedBox(height: 2),
             Text(
               song.artist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textDim, fontSize: 12),
+              style: const TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
             ),
           ],
         ),
@@ -838,7 +834,7 @@ class _MixCard extends StatelessWidget {
     return SizedBox(
       width: 150,
       child: Material(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         clipBehavior: Clip.antiAlias,
         color: Colors.transparent,
         child: Ink(
@@ -848,8 +844,8 @@ class _MixCard extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: def.colors,
             ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0x22FFFFFF)),
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.borderSubtle),
           ),
           child: InkWell(
             onTap: onTap,
@@ -868,6 +864,10 @@ class _MixCard extends StatelessWidget {
                         size: 92, color: const Color(0x2EFFFFFF)),
                   ),
                 ),
+                const Positioned.fill(
+                  child: DecoratedBox(
+                      decoration: BoxDecoration(gradient: AppColors.bottomScrim)),
+                ),
                 Padding(
                   padding: const EdgeInsets.all(14),
                   child: Column(
@@ -879,7 +879,7 @@ class _MixCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontSize: 19, height: 1.05, letterSpacing: 0.6),
+                            fontSize: AppType.titleSm, height: 1.05, letterSpacing: 0.6),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -887,8 +887,8 @@ class _MixCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                            fontSize: 12,
-                            color: Color.fromRGBO(255, 255, 255, 0.75)),
+                            fontSize: AppType.caption,
+                            color: Color(0xE6FFFFFF)),
                       ),
                     ],
                   ),

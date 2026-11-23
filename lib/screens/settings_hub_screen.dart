@@ -65,7 +65,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
         padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
         child: Text(t,
             style: const TextStyle(
-                fontSize: 12,
+                fontSize: AppType.caption,
                 letterSpacing: 1.5,
                 fontWeight: FontWeight.w700,
                 color: AppColors.amber)),
@@ -74,7 +74,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
   Widget _box(List<Widget> rows) => Container(
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           border: Border.all(color: AppColors.outline),
         ),
         clipBehavior: Clip.antiAlias,
@@ -100,7 +100,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
               height: 40,
               decoration: BoxDecoration(
                 color: AppColors.surfaceHigh,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: Icon(icon, size: 22),
             ),
@@ -111,16 +111,16 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 children: [
                   Text(title,
                       style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w700)),
+                          fontSize: AppType.body, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 2),
                   Text(value,
                       style: const TextStyle(
-                          fontSize: 13, color: AppColors.textDim)),
+                          fontSize: AppType.label, color: AppColors.textDim)),
                   if (tip != null && HelpSettings.showTips.value) ...[
                     const SizedBox(height: 4),
                     Text(tip,
                         style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.caption,
                             height: 1.3,
                             color: AppColors.amber)),
                   ],
@@ -169,7 +169,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
             children: [
               const Text(
                   'Máximo de canciones que trae el asistente. Menos canciones = respuesta más rápida y menos gasto de tu cuota gratis.',
-                  style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                  style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
               const SizedBox(height: 12),
               _chips(AiSettings.maxOptions, ai.maxSongs, (n) {
                 set(() => ai.maxSongs = n);
@@ -202,7 +202,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 const Text(
                     'Aplica a Tu mix, los mixes por género y la emisora de artista. Menos = carga más rápida y menos datos.',
                     style:
-                        TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                        TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
                 const SizedBox(height: 12),
                 const Text('Canciones (máximo)',
                     style: TextStyle(fontWeight: FontWeight.w700)),
@@ -393,7 +393,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                       height: 40,
                       decoration: BoxDecoration(
                         color: AppColors.surfaceHigh,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child:
                           const Icon(Icons.lightbulb_outline_rounded, size: 22),
@@ -405,11 +405,11 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                         children: [
                           Text('Mostrar explicaciones',
                               style: TextStyle(
-                                  fontSize: 15, fontWeight: FontWeight.w700)),
+                                  fontSize: AppType.body, fontWeight: FontWeight.w700)),
                           SizedBox(height: 2),
                           Text('Textos de ayuda bajo cada opción y consejos',
                               style: TextStyle(
-                                  fontSize: 13, color: AppColors.textDim)),
+                                  fontSize: AppType.label, color: AppColors.textDim)),
                         ],
                       ),
                     ),
@@ -430,7 +430,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
               return Center(
                 child: Text(
                   p == null ? 'RockPlay IA' : 'RockPlay IA ${p.version} · compilación ${p.buildNumber}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textFaint),
+                  style: const TextStyle(fontSize: AppType.caption, color: AppColors.textFaint),
                 ),
               );
             },
@@ -464,17 +464,17 @@ Future<void> showSkippedDialog(BuildContext context) {
                     Text(
                         'YouTube no deja reproducir ${BadVideos.ids.length} canciones en apps. Se ocultan de tus búsquedas.',
                         style: const TextStyle(
-                            color: AppColors.textDim, fontSize: 12.5)),
+                            color: AppColors.textDim, fontSize: AppType.caption)),
                     const SizedBox(height: 10),
                     for (final e in saved)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
-                        child: Text(e, style: const TextStyle(fontSize: 13.5)),
+                        child: Text(e, style: const TextStyle(fontSize: AppType.bodySm)),
                       ),
                     if (unnamed > 0)
                       Text('Y $unnamed más guardadas antes, sin nombre.',
                           style: const TextStyle(
-                              color: AppColors.textDim, fontSize: 12.5)),
+                              color: AppColors.textDim, fontSize: AppType.caption)),
                     if (SkipLog.entries.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       const Text('De esta sesión (motivo técnico)',
@@ -484,7 +484,7 @@ Future<void> showSkippedDialog(BuildContext context) {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Text(e,
-                              style: const TextStyle(fontSize: 12)),
+                              style: const TextStyle(fontSize: AppType.caption)),
                         ),
                     ],
                   ]),

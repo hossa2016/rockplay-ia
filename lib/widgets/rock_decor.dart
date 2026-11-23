@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../theme/app_theme.dart';
 
 /// Púa de guitarra con rayo: logo de RockPlay.
 class PickLogo extends StatelessWidget {
@@ -98,7 +99,7 @@ class WavesPainter extends CustomPainter {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
             Rect.fromLTWH(x, (s.height - bh) / 2, bw, bh),
-            const Radius.circular(3)),
+            const Radius.circular(AppRadius.xs)),
         p,
       );
     }

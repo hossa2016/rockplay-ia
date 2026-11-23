@@ -9,6 +9,7 @@ import 'library_service.dart';
 import 'music_api_service.dart';
 import 'data_saver.dart';
 import 'block_service.dart';
+import '../theme/app_theme.dart';
 
 class MixDef {
   final String title;
@@ -24,53 +25,53 @@ class MixDef {
 class MixService {
   static const List<MixDef> genre = [
     MixDef('Rock clásico', '70s', Icons.album_rounded,
-        [Color(0xFF8A2A12), Color(0xFF2A0F08)], [
+        AppPalettes.amber, [
       'Led Zeppelin', 'Deep Purple', 'Pink Floyd', 'Queen',
       'The Rolling Stones', 'Black Sabbath', 'The Who', 'Lynyrd Skynyrd',
     ]),
     MixDef('Rock 80s', 'Himnos y guitarras', Icons.bolt_rounded,
-        [Color(0xFFB0194F), Color(0xFF2B0A1B)], [
+        AppPalettes.fire, [
       "Guns N' Roses", 'AC/DC', 'Bon Jovi', 'Def Leppard', 'Van Halen',
       'Scorpions', 'Journey', 'Europe',
     ]),
     MixDef('Grunge y 90s', 'Camisas de franela', Icons.grain_rounded,
-        [Color(0xFF3F5B3A), Color(0xFF101A10)], [
+        AppPalettes.brass, [
       'Nirvana', 'Pearl Jam', 'Soundgarden', 'Alice In Chains',
       'Stone Temple Pilots', 'Foo Fighters', 'Red Hot Chili Peppers',
       'Green Day',
     ]),
     MixDef('Alternativo 2000s', 'Nu metal y emo', Icons.graphic_eq_rounded,
-        [Color(0xFF3B2A8C), Color(0xFF120C2E)], [
+        AppPalettes.graphite, [
       'Linkin Park', 'Green Day', 'Fall Out Boy', 'My Chemical Romance',
       'The Killers', 'Muse', 'Paramore', 'Evanescence',
     ]),
     MixDef('Heavy metal', 'Pesado', Icons.local_fire_department_rounded,
-        [Color(0xFF5A1010), Color(0xFF150505)], [
+        AppPalettes.wine, [
       'Metallica', 'Iron Maiden', 'Megadeth', 'Judas Priest', 'Slayer',
       'Pantera', 'Dio', 'Motörhead',
     ]),
     MixDef('Punk rock', 'Rápido y directo', Icons.flash_on_rounded,
-        [Color(0xFFB36B00), Color(0xFF2A1A00)], [
+        AppPalettes.rust, [
       'Ramones', 'The Clash', 'Sex Pistols', 'Blink-182', 'Sum 41',
       'Rancid', 'The Offspring', 'Bad Religion',
     ]),
     MixDef('Rock en español', 'Clásicos', Icons.language_rounded,
-        [Color(0xFF0F6B5C), Color(0xFF06201B)], [
+        AppPalettes.burgundy, [
       'Soda Stereo', 'Maná', 'Enanitos Verdes', 'Caifanes',
       'Héroes del Silencio', 'Los Prisioneros', 'Fito Páez', 'La Ley',
     ]),
     MixDef('Baladas rock', 'Para cantar', Icons.favorite_rounded,
-        [Color(0xFF9C2A5A), Color(0xFF2A0C1A)], [
+        AppPalettes.fire, [
       'Scorpions', 'Bon Jovi', 'Aerosmith', "Guns N' Roses", 'Extreme',
       'Journey', 'Heart', 'Whitesnake',
     ]),
     MixDef('Hard rock', 'Riffs', Icons.music_note_rounded,
-        [Color(0xFF6A3A12), Color(0xFF1D1006)], [
+        AppPalettes.amber, [
       'AC/DC', 'Aerosmith', 'Kiss', 'Whitesnake', 'Mötley Crüe',
       'Foreigner', 'Van Halen', 'Deep Purple',
     ]),
     MixDef('Indie y brit', 'Guitarras claras', Icons.wb_twilight_rounded,
-        [Color(0xFF2F5D8A), Color(0xFF0B1A2A)], [
+        AppPalettes.steel, [
       'Arctic Monkeys', 'The Strokes', 'Radiohead', 'Coldplay', 'Oasis',
       'Blur', 'Franz Ferdinand', 'Kings of Leon',
     ]),
@@ -78,28 +79,28 @@ class MixService {
 
   static const List<MixDef> mood = [
     MixDef('Energía', 'Sube el volumen', Icons.bolt_rounded,
-        [Color(0xFFC2331A), Color(0xFF2C0A05)], [
+        AppPalettes.fire, [
       'Rage Against the Machine', 'Metallica', 'Linkin Park',
       'System of a Down', 'Slipknot', 'Disturbed', 'Pantera', 'Papa Roach',
     ]),
     MixDef('Para entrenar', 'Sin pausa', Icons.fitness_center_rounded,
-        [Color(0xFFB8420F), Color(0xFF2A1005)], [
+        AppPalettes.rust, [
       'Disturbed', 'Godsmack', 'Five Finger Death Punch', 'Shinedown',
       'Breaking Benjamin', 'Avenged Sevenfold', 'Trivium', 'Rammstein',
     ]),
     MixDef('Para manejar', 'Carretera', Icons.directions_car_rounded,
-        [Color(0xFF2A6F8A), Color(0xFF08202A)], [
+        AppPalettes.steel, [
       'Tom Petty', 'Foo Fighters', 'Queen', 'AC/DC',
       'Creedence Clearwater Revival', 'Eagles', 'Bruce Springsteen',
       'Red Hot Chili Peppers',
     ]),
     MixDef('Tranquilo', 'Bajando revoluciones', Icons.nightlight_round,
-        [Color(0xFF3A4A8A), Color(0xFF0D1030)], [
+        AppPalettes.graphite, [
       'Pink Floyd', 'Radiohead', 'Coldplay', 'The Cranberries',
       'Snow Patrol', 'Oasis', 'Eagles', 'Evanescence',
     ]),
     MixDef('Nostalgia', 'Los de siempre', Icons.history_rounded,
-        [Color(0xFF8A5A2A), Color(0xFF241608)], [
+        AppPalettes.amber, [
       'Bon Jovi', 'Queen', "Guns N' Roses", 'Journey', 'Europe',
       'Scorpions', 'Aerosmith', 'Def Leppard',
     ]),

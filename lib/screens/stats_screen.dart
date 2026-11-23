@@ -63,7 +63,7 @@ class _StatsScreenState extends State<StatsScreen> {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14)),
+                          fontWeight: FontWeight.w600, fontSize: AppType.bodySm)),
                 ),
                 Text('$count',
                     style: const TextStyle(color: AppColors.textDim)),
@@ -71,7 +71,7 @@ class _StatsScreenState extends State<StatsScreen> {
             ),
             const SizedBox(height: 6),
             ClipRRect(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(AppRadius.xs),
               child: LinearProgressIndicator(
                 value: max == 0 ? 0 : count / max,
                 minHeight: 6,

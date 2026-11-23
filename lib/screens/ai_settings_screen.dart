@@ -101,7 +101,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.outline),
       ),
       child: Column(
@@ -119,13 +119,13 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: has
-                      ? const Color.fromRGBO(255, 176, 46, 0.16)
+                      ? AppColors.amberTint
                       : AppColors.surfaceHigh,
-                  borderRadius: BorderRadius.circular(999),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
                 ),
                 child: Text(has ? 'Clave puesta' : 'Falta la clave',
                     style: TextStyle(
-                        fontSize: 12,
+                        fontSize: AppType.caption,
                         fontWeight: FontWeight.w700,
                         color: has ? AppColors.amber : AppColors.textDim)),
               ),
@@ -133,10 +133,10 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
           ),
           const SizedBox(height: 4),
           Text(subtitle,
-              style: const TextStyle(color: AppColors.textDim, fontSize: 13)),
+              style: const TextStyle(color: AppColors.textDim, fontSize: AppType.label)),
           const SizedBox(height: 12),
           Text(steps,
-              style: const TextStyle(fontSize: 13, height: 1.45)),
+              style: const TextStyle(fontSize: AppType.label, height: 1.45)),
           const SizedBox(height: 10),
           ConstrainedBox(
             constraints: const BoxConstraints(minHeight: 48),
@@ -148,7 +148,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
           ),
           const SizedBox(height: 12),
           const Text('Pega aquí tu clave',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppType.label)),
           const SizedBox(height: 6),
           TextField(
             controller: c,
@@ -276,7 +276,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                         'Si un modelo deja de existir, el asistente avisa '
                         '"modelo no encontrado". Cámbialo aquí por otro.',
                         style:
-                            TextStyle(color: AppColors.textDim, fontSize: 12.5),
+                            TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
                       ),
                     ),
                   ],

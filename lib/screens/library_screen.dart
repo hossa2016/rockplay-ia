@@ -248,7 +248,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ? IconButton(
                     tooltip: 'Quitar de favoritos',
                     icon: const Icon(Icons.favorite_rounded,
-                        color: AppColors.red),
+                        color: AppColors.redText),
                     onPressed: () => _unfavorite(song),
                   )
                 : null,
@@ -288,7 +288,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             height: 52,
             decoration: BoxDecoration(
               color: AppColors.surfaceHigh,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(color: AppColors.redText),
             ),
             child: const Icon(Icons.add_rounded, color: AppColors.redText),
@@ -312,7 +312,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               width: 52,
               height: 52,
               child: CoverArt(
-                  url: p.songs.isEmpty ? '' : p.songs.first.image, radius: 10),
+                  url: p.songs.isEmpty ? '' : p.songs.first.image, radius: AppRadius.sm),
             ),
             title: Text(p.name,
                 maxLines: 1,

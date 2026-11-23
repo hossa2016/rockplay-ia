@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/ai_settings.dart';
 import '../services/stats_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/state_views.dart';
 import '../widgets/section_header.dart';
 import 'ai_settings_screen.dart';
 
@@ -83,7 +84,7 @@ class _TasteScreenState extends State<TasteScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Tu gusto')),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonList()
           : ListView(
               padding: const EdgeInsets.only(bottom: 32),
               children: [
@@ -134,7 +135,7 @@ class _TasteScreenState extends State<TasteScreen> {
                           ]),
                           const SizedBox(height: 6),
                           ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(AppRadius.xs),
                             child: LinearProgressIndicator(
                               value: a.count / top.first.count,
                               minHeight: 6,
@@ -151,7 +152,7 @@ class _TasteScreenState extends State<TasteScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Text(pattern,
-                        style: const TextStyle(color: Color(0xFFD0D0D8))),
+                        style: const TextStyle(color: AppColors.textBody)),
                   ),
                 ],
                 const SizedBox(height: 24),

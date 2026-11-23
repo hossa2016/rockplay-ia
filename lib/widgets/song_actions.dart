@@ -11,7 +11,7 @@ void showSongActions(BuildContext context, Song song) {
     context: context,
     backgroundColor: AppColors.surface,
     shape: const RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
     ),
     builder: (sheet) {
       void done(String msg) {

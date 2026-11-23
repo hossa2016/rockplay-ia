@@ -44,12 +44,12 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
     return Material(
       color: AppColors.surface,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         side: BorderSide(color: on ? AppColors.red : AppColors.outline),
       ),
       child: InkWell(
         customBorder:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
         onTap: () {
           setState(() => _ds.mode = m);
           _apply();
@@ -58,7 +58,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
           padding: const EdgeInsets.all(14),
           child: Row(children: [
             Icon(on ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: on ? AppColors.red : AppColors.textDim),
+                color: on ? AppColors.redText : AppColors.textDim),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -66,11 +66,11 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                 children: [
                   Text(title,
                       style: const TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 15)),
+                          fontWeight: FontWeight.w800, fontSize: AppType.body)),
                   const SizedBox(height: 2),
                   Text(sub,
                       style: const TextStyle(
-                          color: AppColors.textDim, fontSize: 12.5)),
+                          color: AppColors.textDim, fontSize: AppType.caption)),
                 ],
               ),
             ),
@@ -91,7 +91,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(color: AppColors.outline),
             ),
             child: Row(children: [
@@ -102,7 +102,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                   child: Text('En uso: ${_size(_bytes)}',
                       maxLines: 1,
                       style: const TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: 15)),
+                          fontWeight: FontWeight.w800, fontSize: AppType.body)),
                 ),
               ),
               OutlinedButton(
@@ -118,7 +118,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
             padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
             child: Text(_ds.debugInfo(),
                 style: const TextStyle(
-                    color: AppColors.textFaint, fontSize: 12)),
+                    color: AppColors.textFaint, fontSize: AppType.caption)),
           ),
           const SizedBox(height: 14),
           const Text(
@@ -177,7 +177,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
             leading: const Icon(Icons.bug_report_outlined),
             title: const Text('Registro de canciones saltadas'),
             subtitle: const Text('Motivo técnico de las últimas canciones que no sonaron.',
-                style: TextStyle(color: AppColors.textDim, fontSize: 12.5)),
+                style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
             onTap: () => showDialog<void>(
               context: context,
               builder: (c) => AlertDialog(
@@ -192,7 +192,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                             for (final e in SkipLog.entries)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 10),
-                                child: Text(e, style: const TextStyle(fontSize: 12.5)),
+                                child: Text(e, style: const TextStyle(fontSize: AppType.caption)),
                               ),
                           ],
                         ),

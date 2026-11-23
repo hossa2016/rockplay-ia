@@ -141,7 +141,7 @@ class _LyricsViewState extends State<LyricsView> {
         l.plain,
         textAlign: TextAlign.center,
         style: const TextStyle(
-            fontSize: 17, height: 1.6, color: Colors.white70),
+            fontSize: AppType.titleSm, height: 1.6, color: Colors.white70),
       ),
     );
   }

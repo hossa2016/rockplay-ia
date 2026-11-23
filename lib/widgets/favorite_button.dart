@@ -95,7 +95,7 @@ class _FavoriteButtonState extends State<FavoriteButton> {
         child: Icon(
           _fav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
           key: ValueKey<bool>(_fav),
-          color: _fav ? AppColors.red : (enabled ? Colors.white : null),
+          color: _fav ? AppColors.redText : (enabled ? Colors.white : null),
         ),
       ),
     );

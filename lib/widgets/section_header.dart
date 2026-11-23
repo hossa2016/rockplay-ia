@@ -27,7 +27,7 @@ class PageHeader extends StatelessWidget {
                   Text(
                     subtitle!,
                     style: const TextStyle(
-                        color: AppColors.textDim, fontSize: 14),
+                        color: AppColors.textDim, fontSize: AppType.bodySm),
                   ),
                 ],
               ],
@@ -123,6 +123,7 @@ class AppSearchField extends StatelessWidget {
               suffixIcon: value.text.isEmpty
                   ? null
                   : IconButton(
+                      tooltip: 'Borrar búsqueda',
                       icon: const Icon(Icons.close_rounded,
                           color: AppColors.textDim),
                       onPressed: controller.clear,

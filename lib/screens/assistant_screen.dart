@@ -254,7 +254,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 widthFactor: 1,
                 child: Text(label,
                     style: const TextStyle(
-                        fontSize: 13.5, fontWeight: FontWeight.w600)),
+                        fontSize: AppType.bodySm, fontWeight: FontWeight.w600)),
               ),
             ),
           ),
@@ -324,13 +324,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
         color: user ? null : AppColors.surface,
         border: user ? null : Border.all(color: AppColors.outline),
         borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(20),
-          topRight: const Radius.circular(20),
-          bottomLeft: Radius.circular(user ? 20 : 6),
-          bottomRight: Radius.circular(user ? 6 : 20),
+          topLeft: const Radius.circular(AppRadius.lg),
+          topRight: const Radius.circular(AppRadius.lg),
+          bottomLeft: Radius.circular(user ? AppRadius.lg : AppRadius.xs),
+          bottomRight: Radius.circular(user ? AppRadius.xs : AppRadius.lg),
         ),
       ),
-      child: Text(m.text, style: const TextStyle(fontSize: 14.5, height: 1.45)),
+      child: Text(m.text, style: const TextStyle(fontSize: AppType.body, height: 1.45)),
     );
     if (user) {
       return Padding(
@@ -387,13 +387,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
     );
   }
 
-  static const List<List<Color>> _grads = [
-    [Color(0xFF4A4A56), Color(0xFF16161C)],
-    [Color(0xFF5A5A66), Color(0xFF1C1C22)],
-    [Color(0xFF8A5A2A), Color(0xFF241608)],
-    [Color(0xFFC2331A), Color(0xFF2C0A05)],
-    [Color(0xFF7A1411), Color(0xFF1A1014)],
-  ];
+  static const List<List<Color>> _grads = AppPalettes.cards;
 
   BoxDecoration _grad(int i) => BoxDecoration(
         gradient: LinearGradient(
@@ -405,7 +399,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
 
   Widget _mosaic(double size, List<Song> songs) {
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppRadius.md),
       child: SizedBox(
         width: size,
         height: size,
@@ -441,7 +435,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
       decoration: BoxDecoration(
         color: AppColors.surface,
         border: Border.all(color: AppColors.outline),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,7 +455,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   const SizedBox(height: 3),
                   Text('${r.songs.length} canciones',
                       style: const TextStyle(
-                          color: AppColors.textDim, fontSize: 12.5)),
+                          color: AppColors.textDim, fontSize: AppType.caption)),
                   const SizedBox(height: 6),
                   Container(
                     padding:
@@ -469,11 +463,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     decoration: BoxDecoration(
                       color: AppColors.surfaceHigh,
                       border: Border.all(color: AppColors.outline),
-                      borderRadius: BorderRadius.circular(999),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                     child: Text(r.source,
                         style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: AppType.caption,
                             fontWeight: FontWeight.w700,
                             color: AppColors.amber)),
                   ),
@@ -497,7 +491,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   height: 40,
                   child: CoverArt(
                       url: r.songs[i].image,
-                      radius: 9,
+                      radius: AppRadius.sm,
                       seed: r.songs[i].artist),
                 ),
                 const SizedBox(width: 12),
@@ -509,12 +503,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontWeight: FontWeight.w700, fontSize: 14)),
+                                fontWeight: FontWeight.w700, fontSize: AppType.bodySm)),
                         Text(r.songs[i].artist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                color: AppColors.textDim, fontSize: 12)),
+                                color: AppColors.textDim, fontSize: AppType.caption)),
                       ]),
                 ),
               ]),
@@ -534,7 +528,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 child: Text('Ver las ${r.songs.length - 3} restantes',
                     style: const TextStyle(
                         color: AppColors.amber,
-                        fontSize: 13,
+                        fontSize: AppType.label,
                         fontWeight: FontWeight.w700)),
               ),
             ),
@@ -585,25 +579,25 @@ class _AssistantScreenState extends State<AssistantScreen> {
   }
 
   static const List<List<Object>> _moodTiles = [
-    ['Con energía', Color(0xFFC2331A), Color(0xFF2C0A05)],
-    ['Melancólico', Color(0xFF4A4A56), Color(0xFF16161C)],
-    ['Para concentrarme', Color(0xFF5A5A66), Color(0xFF1C1C22)],
-    ['De carretera', Color(0xFF8A2A24), Color(0xFF2A0D0B)],
-    ['Quiero algo nuevo', Color(0xFF8A5A2A), Color(0xFF241608)],
+    ['Con energía', AppPalettes.fire],
+    ['Melancólico', AppPalettes.graphite],
+    ['Para concentrarme', AppPalettes.steel],
+    ['De carretera', AppPalettes.rust],
+    ['Quiero algo nuevo', AppPalettes.amber],
   ];
 
   Widget _moodTile(List<Object> t) {
     return Material(
       color: Colors.transparent,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: Ink(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.lg),
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [t[1] as Color, t[2] as Color],
+            colors: t[1] as List<Color>,
           ),
         ),
         child: InkWell(
@@ -614,11 +608,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
             padding: const EdgeInsets.all(14),
             child: Text(t[0] as String,
                 textAlign: TextAlign.center,
-                textScaler: const TextScaler.linear(1.0),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                    fontWeight: FontWeight.w800, fontSize: 15, height: 1.1)),
+                    fontWeight: FontWeight.w800, fontSize: AppType.body, height: 1.1)),
           ),
         ),
       ),
@@ -634,7 +627,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: AppColors.heroGradient,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
             border: Border.all(color: AppColors.borderAccent),
           ),
           child: Column(
@@ -658,12 +651,12 @@ class _AssistantScreenState extends State<AssistantScreen> {
           Material(
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
+              borderRadius: BorderRadius.circular(AppRadius.lg),
               side: const BorderSide(color: AppColors.outline),
             ),
             child: InkWell(
               customBorder: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18)),
+                  borderRadius: BorderRadius.circular(AppRadius.lg)),
               onTap: _openSettings,
               child: Padding(
                 padding: const EdgeInsets.all(14),
@@ -673,7 +666,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     height: 40,
                     decoration: BoxDecoration(
                         color: AppColors.surfaceHigh,
-                        borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(AppRadius.md)),
                     child: const Icon(Icons.key_rounded,
                         color: AppColors.amber, size: 20),
                   ),
@@ -684,11 +677,11 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       children: [
                         Text('Activa la IA gratis',
                             style: TextStyle(
-                                fontWeight: FontWeight.w800, fontSize: 14)),
+                                fontWeight: FontWeight.w800, fontSize: AppType.bodySm)),
                         SizedBox(height: 2),
                         Text('Sin clave funciona con reglas simples',
                             style: TextStyle(
-                                color: AppColors.textDim, fontSize: 12)),
+                                color: AppColors.textDim, fontSize: AppType.caption)),
                       ],
                     ),
                   ),
@@ -704,7 +697,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
           padding: EdgeInsets.only(left: 4, bottom: 10),
           child: Text('ELIGE UN ÁNIMO',
               style: TextStyle(
-                  fontSize: 12,
+                  fontSize: AppType.caption,
                   letterSpacing: 1.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.amber)),
@@ -755,13 +748,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
-                                ?.copyWith(fontSize: 22)),
+                                ?.copyWith(fontSize: AppType.title)),
                       ),
                       const Text('Tu guía de rock',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              color: AppColors.textDim, fontSize: 12.5)),
+                              color: AppColors.textDim, fontSize: AppType.caption)),
                     ],
                   ),
                 ),
@@ -819,15 +812,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 18, vertical: 14),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                         borderSide: const BorderSide(color: AppColors.outline),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                         borderSide: const BorderSide(color: AppColors.outline),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
+                        borderRadius: BorderRadius.circular(AppRadius.pill),
                         borderSide: const BorderSide(color: AppColors.red),
                       ),
                     ),

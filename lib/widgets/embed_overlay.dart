@@ -71,6 +71,7 @@ class _EmbedOverlayState extends State<EmbedOverlay> {
                               color: Colors.black54,
                               shape: const CircleBorder(),
                               child: IconButton(
+                                tooltip: 'Salir de pantalla completa',
                                 icon: const Icon(Icons.close_rounded,
                                     color: Colors.white),
                                 onPressed: () {

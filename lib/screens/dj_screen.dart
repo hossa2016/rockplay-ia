@@ -318,7 +318,7 @@ class _DjScreenState extends State<DjScreen> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             gradient: AppColors.heroGradient,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
           ),
           child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -338,7 +338,7 @@ class _DjScreenState extends State<DjScreen> {
               Text(
                 'Escribe un artista y armo un mix con sus canciones y las de bandas parecidas.',
                 style: TextStyle(
-                  color: Color.fromRGBO(255, 255, 255, 0.78),
+                  color: Color(0xE6FFFFFF),
                   height: 1.4,
                 ),
               ),
@@ -388,7 +388,7 @@ class _DjScreenState extends State<DjScreen> {
         const SizedBox(height: 8),
         const Text(
           'Los fijados (con chincheta) los eliges tú. Los demás salen de lo que más escuchas.',
-          style: TextStyle(color: AppColors.textDim, fontSize: 12.5),
+          style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
         ),
       ],
     );
@@ -416,7 +416,7 @@ class _DjScreenState extends State<DjScreen> {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: AppColors.heroGradient,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadius.xl),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,7 +447,7 @@ class _DjScreenState extends State<DjScreen> {
               Text(
                 'Con artistas como ${r.similar.take(5).join(', ')}',
                 style: const TextStyle(
-                  color: Color.fromRGBO(255, 255, 255, 0.72),
+                  color: Color(0xE6FFFFFF),
                   height: 1.35,
                 ),
               ),
@@ -458,7 +458,7 @@ class _DjScreenState extends State<DjScreen> {
                   ? '${r.tracks.length} canciones · cargando más…'
                   : '${r.tracks.length} canciones',
               style: const TextStyle(
-                color: Color.fromRGBO(255, 255, 255, 0.72),
+                color: Color(0xE6FFFFFF),
               ),
             ),
             const SizedBox(height: 12),

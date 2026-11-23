@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/eq_service.dart';
 import '../theme/app_theme.dart';
@@ -14,7 +15,7 @@ class EqScreen extends StatefulWidget {
 class _EqScreenState extends State<EqScreen> {
   final EqService eq = EqService.instance;
 
-  static const Color rockRed = Color(0xFFB93A31);
+  static const Color rockRed = AppColors.redBtn;
 
   @override
   void initState() {
@@ -59,19 +60,31 @@ class _EqScreenState extends State<EqScreen> {
     final on = eq.enabled;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(
-        title: const Text('Ecualizador'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: Switch(
+      appBar: AppBar(title: const Text('Ecualizador')),
+      // Interruptor abajo, al alcance del pulgar.
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          child: Material(
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              side: BorderSide(color: on ? rockRed : AppColors.outline),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: SwitchListTile(
+              title: Text(on ? 'Ecualizador encendido' : 'Ecualizador apagado',
+                  style: const TextStyle(fontWeight: FontWeight.w700)),
               value: on,
               activeColor: Colors.white,
               activeTrackColor: rockRed,
-              onChanged: eq.setEnabled,
+              onChanged: (v) {
+                HapticFeedback.mediumImpact();
+                eq.setEnabled(v);
+              },
             ),
           ),
-        ],
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
@@ -79,10 +92,10 @@ class _EqScreenState extends State<EqScreen> {
           _suggestionCard(),
           const SizedBox(height: 20),
           const Text('PREAJUSTES',
-              style: TextStyle(fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.w700, color: AppColors.textDim)),
-          const SizedBox(height: 10),
+              style: TextStyle(fontSize: AppType.caption, letterSpacing: 1.5, fontWeight: FontWeight.w700, color: AppColors.textDim)),
+          const SizedBox(height: 6),
           SizedBox(
-            height: 38,
+            height: 48,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
@@ -99,7 +112,12 @@ class _EqScreenState extends State<EqScreen> {
                       labelStyle: TextStyle(
                           color: eq.preset == p ? Colors.white : AppColors.textDim,
                           fontWeight: FontWeight.w600),
-                      onSelected: on ? (_) => eq.applyPreset(p) : null,
+                      onSelected: on
+                          ? (_) {
+                              HapticFeedback.selectionClick();
+                              eq.applyPreset(p);
+                            }
+                          : null,
                     ),
                   ),
               ],
@@ -116,9 +134,9 @@ class _EqScreenState extends State<EqScreen> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Graves', style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
-              Text('Medios', style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
-              Text('Agudos', style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
+              Text('Graves', style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
+              Text('Medios', style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
+              Text('Agudos', style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
             ],
           ),
           const SizedBox(height: 18),
@@ -127,7 +145,7 @@ class _EqScreenState extends State<EqScreen> {
               Icon(eq.embedStatus == 'activo' ? Icons.check_circle_rounded : Icons.info_outline_rounded,
                   size: 16, color: eq.embedStatus == 'activo' ? const Color(0xFF7FB38A) : AppColors.textFaint),
               const SizedBox(width: 8),
-              Expanded(child: Text(_statusText, style: const TextStyle(fontSize: 12, color: AppColors.textFaint))),
+              Expanded(child: Text(_statusText, style: const TextStyle(fontSize: AppType.caption, color: AppColors.textFaint))),
             ],
           ),
           const SizedBox(height: 6),
@@ -137,12 +155,12 @@ class _EqScreenState extends State<EqScreen> {
             Expanded(
               child: Text(
                 'Consultas de IA del ecualizador hoy: ${eq.aiToday}. Los artistas conocidos y las canciones repetidas no gastan IA.',
-                style: const TextStyle(fontSize: 12, color: AppColors.textFaint)),
+                style: const TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
             ),
           ]),
           const SizedBox(height: 6),
-          const Text('Si en algún momento el sonido falla, apaga el ecualizador con el interruptor de arriba.',
-              style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
+          const Text('Si en algún momento el sonido falla, apaga el ecualizador con el interruptor de abajo.',
+              style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
         ],
       ),
     );
@@ -154,7 +172,7 @@ class _EqScreenState extends State<EqScreen> {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         gradient: LinearGradient(colors: [rockRed.withOpacity(0.24), AppColors.amber.withOpacity(0.08)]),
         border: Border.all(color: rockRed.withOpacity(0.4)),
       ),
@@ -166,24 +184,24 @@ class _EqScreenState extends State<EqScreen> {
             const SizedBox(width: 6),
             const Expanded(
               child: Text('SUGERENCIA DEL ASISTENTE',
-                  style: TextStyle(fontSize: 12, letterSpacing: 1.2, color: AppColors.amber, fontWeight: FontWeight.w700)),
+                  style: TextStyle(fontSize: AppType.caption, letterSpacing: 1.2, color: AppColors.amber, fontWeight: FontWeight.w700)),
             ),
             if (s != null)
-              Text(s.source, style: const TextStyle(fontSize: 10, color: AppColors.textFaint)),
+              Text(s.source, style: const TextStyle(fontSize: AppType.micro, color: AppColors.textDim)),
           ]),
           const SizedBox(height: 8),
           if (song == null || song.isRadio)
             const Text('Pon una canción y te sugiero el mejor ajuste para ella.',
-                style: TextStyle(fontSize: 14, height: 1.4))
+                style: TextStyle(fontSize: AppType.bodySm, height: 1.4))
           else if (eq.suggesting)
             const Row(children: [
               SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.amber)),
               SizedBox(width: 10),
-              Text('Escuchando la canción…', style: TextStyle(fontSize: 14)),
+              Text('Escuchando la canción…', style: TextStyle(fontSize: AppType.bodySm)),
             ])
           else if (s != null)
             RichText(
-              text: TextSpan(style: const TextStyle(fontSize: 14, height: 1.4, color: AppColors.text), children: [
+              text: TextSpan(style: const TextStyle(fontSize: AppType.bodySm, height: 1.4, color: AppColors.text), children: [
                 const TextSpan(text: 'Para '),
                 TextSpan(text: song.title, style: const TextStyle(fontWeight: FontWeight.w700)),
                 TextSpan(text: ' de ${song.artist} te recomiendo '),
@@ -192,14 +210,14 @@ class _EqScreenState extends State<EqScreen> {
               ]),
             )
           else
-            const Text('Toca "Sugerir" para que el asistente elija el ajuste.', style: TextStyle(fontSize: 14)),
+            const Text('Toca "Sugerir" para que el asistente elija el ajuste.', style: TextStyle(fontSize: AppType.bodySm)),
           const SizedBox(height: 10),
           Row(children: [
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: rockRed,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                minimumSize: const Size(0, 36),
+                minimumSize: const Size(0, 48),
               ),
               onPressed: (song == null || song.isRadio || eq.suggesting || !eq.enabled)
                   ? null
@@ -213,15 +231,12 @@ class _EqScreenState extends State<EqScreen> {
               child: Text(s != null ? 'Aplicar' : 'Sugerir'),
             ),
             const Spacer(),
-            const Text('Auto en cada canción', style: TextStyle(fontSize: 12, color: AppColors.textDim)),
-            Transform.scale(
-              scale: 0.8,
-              child: Switch(
-                value: eq.auto,
-                activeColor: Colors.white,
-                activeTrackColor: rockRed,
-                onChanged: eq.enabled ? eq.setAuto : null,
-              ),
+            const Text('Auto en cada canción', style: TextStyle(fontSize: AppType.caption, color: AppColors.textDim)),
+            Switch(
+              value: eq.auto,
+              activeColor: Colors.white,
+              activeTrackColor: rockRed,
+              onChanged: eq.enabled ? eq.setAuto : null,
             ),
           ]),
         ],
@@ -234,7 +249,7 @@ class _EqScreenState extends State<EqScreen> {
       padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         border: Border.all(color: AppColors.outline),
       ),
       child: SizedBox(
@@ -254,7 +269,7 @@ class _EqScreenState extends State<EqScreen> {
                       children: [
                         Text(
                           '${eq.gains[i] > 0 ? '+' : ''}${eq.gains[i].round()}',
-                          style: const TextStyle(fontSize: 10, color: AppColors.textDim),
+                          style: const TextStyle(fontSize: AppType.micro, color: AppColors.textDim),
                         ),
                         Expanded(
                           child: RotatedBox(
@@ -273,13 +288,18 @@ class _EqScreenState extends State<EqScreen> {
                                 max: 12,
                                 divisions: 24,
                                 value: eq.gains[i],
-                                onChanged: eq.enabled ? (v) => eq.setGain(i, v) : null,
+                                onChanged: eq.enabled
+                                    ? (v) {
+                                        if (v != eq.gains[i]) HapticFeedback.selectionClick();
+                                        eq.setGain(i, v);
+                                      }
+                                    : null,
                               ),
                             ),
                           ),
                         ),
                         Text(EqService.labels[i],
-                            style: const TextStyle(fontSize: 9, color: AppColors.textFaint)),
+                            style: const TextStyle(fontSize: AppType.micro, color: AppColors.textDim)),
                       ],
                     ),
                   ),
