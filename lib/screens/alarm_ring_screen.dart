@@ -56,7 +56,7 @@ Future<bool> playAlarmSource(Alarm a) async {
     }
   } catch (_) {}
   if (songs.isEmpty) return false;
-  if (a.ramp) await PlaybackService.instance.rampUp(const Duration(minutes: 1));
+  if (a.ramp) await PlaybackService.instance.rampUp(const Duration(seconds: 30));
   await PlaybackService.instance.playQueue(songs, 0);
   return true;
 }
@@ -79,6 +79,16 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
   Timer? _backupTimer;
   AudioPlayer? _backup;
   bool _musicOn = false;
+  double? _prevVolume;
+
+  Future<void> _restoreVolume() async {
+    final v = _prevVolume;
+    _prevVolume = null;
+    if (v == null) return;
+    try {
+      await FlutterVolumeController.setVolume(v);
+    } catch (_) {}
+  }
   late DateTime _now = DateTime.now();
   Timer? _clock;
 
@@ -96,10 +106,10 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
     final a = widget.alarm;
     await AlarmService.instance.startRinging(a.id);
     HapticFeedback.heavyImpact();
-    // Que se oiga aunque el volumen de medios esté muy bajo.
+    // Volumen del celular al nivel de la alarma (se restaura al apagar).
     try {
-      final v = await FlutterVolumeController.getVolume();
-      if (v == null || v < 0.6) await FlutterVolumeController.setVolume(0.6);
+      _prevVolume = await FlutterVolumeController.getVolume();
+      await FlutterVolumeController.setVolume(a.volume);
     } catch (_) {}
     final ok = await playAlarmSource(a);
     // Si en 15 s no suena nada, el respaldo suena dentro de la app.
@@ -128,6 +138,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
         await p.setAsset('assets/sounds/rock_riff.wav');
       }
       await p.setLoopMode(LoopMode.all);
+      await p.setVolume(1.0);
       await p.play();
       await AlarmService.instance.musicStarted(widget.alarm.id);
       if (mounted) setState(() {});
@@ -156,6 +167,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
     HapticFeedback.mediumImpact();
     _stopBackup();
     await PlaybackService.instance.pause();
+    await _restoreVolume();
     await AlarmService.instance.snooze(widget.alarm.id);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -166,7 +178,10 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
   Future<void> _dismiss({bool keepPlaying = false}) async {
     HapticFeedback.mediumImpact();
     _stopBackup();
-    if (!keepPlaying) await PlaybackService.instance.pause();
+    if (!keepPlaying) {
+      await PlaybackService.instance.pause();
+      await _restoreVolume();
+    }
     await AlarmService.instance.dismiss(widget.alarm.id);
     if (mounted) Navigator.of(context).pop();
   }

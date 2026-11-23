@@ -26,6 +26,8 @@ class Alarm {
   String sourceLabel;
   bool ramp;
   bool backup;
+  /// Volumen del celular mientras suena (0.3–1.0). Se restaura al apagar.
+  double volume;
   /// MP3 propio como respaldo (copiado dentro de la app). Vacío = riff.
   String backupPath;
   String backupLabel;
@@ -41,6 +43,7 @@ class Alarm {
     this.sourceLabel = 'Tu mix',
     this.ramp = true,
     this.backup = true,
+    this.volume = 1.0,
     this.backupPath = '',
     this.backupLabel = '',
   }) : days = days ?? {1, 2, 3, 4, 5};
@@ -56,6 +59,7 @@ class Alarm {
         'sl': sourceLabel,
         'r': ramp,
         'b': backup,
+        'v': volume,
         'bp': backupPath,
         'bl': backupLabel,
       };
@@ -74,6 +78,7 @@ class Alarm {
         sourceLabel: (j['sl'] as String?) ?? 'Tu mix',
         ramp: j['r'] != false,
         backup: j['b'] != false,
+        volume: ((j['v'] as num?)?.toDouble() ?? 1.0).clamp(0.3, 1.0),
         backupPath: (j['bp'] as String?) ?? '',
         backupLabel: (j['bl'] as String?) ?? '',
       );

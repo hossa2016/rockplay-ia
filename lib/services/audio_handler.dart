@@ -94,13 +94,13 @@ class RockPlayAudioHandler extends BaseAudioHandler
   /// Despertador: el volumen empieza bajo y sube hasta el máximo en [d].
   void rampUp(Duration d) {
     _rampTimer?.cancel();
-    _rampVol = 0.15;
+    _rampVol = 0.4;
     _applyVol();
     final start = DateTime.now();
     _rampTimer = Timer.periodic(const Duration(milliseconds: 500), (t) {
       final f = DateTime.now().difference(start).inMilliseconds /
           d.inMilliseconds;
-      _rampVol = f >= 1 ? 1 : 0.15 + 0.85 * f;
+      _rampVol = f >= 1 ? 1 : 0.4 + 0.6 * f;
       _applyVol();
       if (f >= 1) t.cancel();
     });

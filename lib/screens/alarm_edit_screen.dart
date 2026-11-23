@@ -407,6 +407,35 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               isList ? _a.sourceLabel : 'Elige de tus favoritas o listas',
               isList,
               _pickList),
+          const SizedBox(height: 22),
+          Row(children: [
+            const Text('VOLUMEN DE LA ALARMA', style: AppType.overline),
+            const Spacer(),
+            Text('${(_a.volume * 100).round()} %',
+                style: const TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: AppType.body)),
+          ]),
+          Row(children: [
+            const Icon(Icons.volume_down_rounded, color: AppColors.textDim),
+            Expanded(
+              child: Slider(
+                value: _a.volume,
+                min: 0.3,
+                max: 1.0,
+                divisions: 7,
+                activeColor: AppColors.redBtn,
+                label: '${(_a.volume * 100).round()} %',
+                onChanged: (v) {
+                  if (v != _a.volume) HapticFeedback.selectionClick();
+                  setState(() => _a.volume = v);
+                },
+              ),
+            ),
+            const Icon(Icons.volume_up_rounded, color: AppColors.textDim),
+          ]),
+          const Text(
+              'Pone el volumen del celular a este nivel mientras suena y lo deja como estaba al apagar.',
+              style: TextStyle(fontSize: AppType.caption, color: AppColors.textDim)),
           const SizedBox(height: 14),
           Container(
             decoration: BoxDecoration(
@@ -418,7 +447,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               SwitchListTile(
                 title: const Text('Subir el volumen poco a poco',
                     style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text('Empieza suave y llega al máximo en 1 min',
+                subtitle: const Text('Empieza al 40 % y llega al máximo en 30 s',
                     style: TextStyle(color: AppColors.textDim)),
                 value: _a.ramp,
                 activeTrackColor: AppColors.redBtn,
