@@ -15,8 +15,11 @@ class RockPlayApp extends StatelessWidget {
       theme: AppTheme.dark(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,
-      builder: (context, child) =>
-          EmbedOverlay(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: 1.0,
+        maxScaleFactor: 1.3,
+        child: EmbedOverlay(child: child ?? const SizedBox.shrink()),
+      ),
       home: const HomeScreen(),
     );
   }

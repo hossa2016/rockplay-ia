@@ -116,9 +116,9 @@ class _EqScreenState extends State<EqScreen> {
           const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Graves', style: TextStyle(fontSize: 11, color: AppColors.textFaint)),
-              Text('Medios', style: TextStyle(fontSize: 11, color: AppColors.textFaint)),
-              Text('Agudos', style: TextStyle(fontSize: 11, color: AppColors.textFaint)),
+              Text('Graves', style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
+              Text('Medios', style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
+              Text('Agudos', style: TextStyle(fontSize: 12, color: AppColors.textFaint)),
             ],
           ),
           const SizedBox(height: 18),
@@ -166,7 +166,7 @@ class _EqScreenState extends State<EqScreen> {
             const SizedBox(width: 6),
             const Expanded(
               child: Text('SUGERENCIA DEL ASISTENTE',
-                  style: TextStyle(fontSize: 11, letterSpacing: 1.2, color: AppColors.amber, fontWeight: FontWeight.w700)),
+                  style: TextStyle(fontSize: 12, letterSpacing: 1.2, color: AppColors.amber, fontWeight: FontWeight.w700)),
             ),
             if (s != null)
               Text(s.source, style: const TextStyle(fontSize: 10, color: AppColors.textFaint)),

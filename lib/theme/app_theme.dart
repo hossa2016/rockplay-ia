@@ -50,7 +50,9 @@ class AppTheme {
         .apply(bodyColor: AppColors.text, displayColor: AppColors.text);
 
     TextStyle? osw(TextStyle? t, double ls) => t?.copyWith(
-          fontWeight: FontWeight.w900,
+          fontFamily: 'Oswald',
+          fontWeight: FontWeight.w700,
+          fontVariations: const [FontVariation('wght', 700)],
           letterSpacing: ls,
         );
 

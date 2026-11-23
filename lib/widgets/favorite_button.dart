@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/song.dart';
 import '../services/library_service.dart';
@@ -57,6 +58,7 @@ class _FavoriteButtonState extends State<FavoriteButton> {
   }
 
   Future<void> _toggle() async {
+    HapticFeedback.lightImpact();
     final messenger = ScaffoldMessenger.maybeOf(context);
     try {
       final f = await LibraryService.instance.toggleFavorite(widget.song);

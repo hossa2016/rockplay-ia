@@ -107,8 +107,8 @@ class _SkeletonListState extends State<SkeletonList>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 1000),
-  )..repeat(reverse: true);
+    duration: const Duration(milliseconds: 1300),
+  )..repeat();
 
   @override
   void dispose() {
@@ -120,7 +120,7 @@ class _SkeletonListState extends State<SkeletonList>
         width: w,
         height: h,
         decoration: BoxDecoration(
-          color: AppColors.surfaceHigh,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(r),
         ),
       );
@@ -130,8 +130,17 @@ class _SkeletonListState extends State<SkeletonList>
     return AnimatedBuilder(
       animation: _c,
       builder: (context, _) {
-        return Opacity(
-          opacity: 0.45 + 0.55 * _c.value,
+        return ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (rect) => LinearGradient(
+            colors: const [
+              Color(0xFF1E1E26),
+              Color(0xFF30303B),
+              Color(0xFF1E1E26),
+            ],
+            stops: const [0.35, 0.5, 0.65],
+            transform: _Slide(_c.value * 2 - 1),
+          ).createShader(rect),
           child: ListView.builder(
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -160,4 +169,13 @@ class _SkeletonListState extends State<SkeletonList>
       },
     );
   }
+}
+
+class _Slide extends GradientTransform {
+  final double p;
+  const _Slide(this.p);
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) =>
+      Matrix4.translationValues(bounds.width * p, 0, 0);
 }

@@ -426,7 +426,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     ),
                     child: Text(r.source,
                         style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: AppColors.amber)),
                   ),
@@ -593,7 +593,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
             children: [
               const Text('¿QUÉ SUENA HOY?',
                   style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       letterSpacing: 2,
                       fontWeight: FontWeight.w700,
                       color: AppColors.amber)),

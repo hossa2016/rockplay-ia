@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/song.dart';
 import '../services/artist_info_service.dart';
@@ -53,6 +54,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _go(int i) {
+    HapticFeedback.selectionClick();
     ScaffoldMessenger.of(context).clearSnackBars();
     setState(() => _tab = i);
   }
@@ -432,7 +434,7 @@ class _HomeTabState extends State<_HomeTab> {
                       const Text(
                         'DJ ROCKPLAY',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           letterSpacing: 2,
                           fontWeight: FontWeight.w700,
                           color: AppColors.amber,
@@ -841,7 +843,7 @@ class _HomeTabState extends State<_HomeTab> {
                     children: [
                       const Text('TU MIX',
                           style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               letterSpacing: 2,
                               color: AppColors.amber,
                               fontWeight: FontWeight.w700)),

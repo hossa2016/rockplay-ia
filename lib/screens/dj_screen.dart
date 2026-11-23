@@ -419,7 +419,7 @@ class _DjScreenState extends State<DjScreen> {
             const Text(
               'EMISORA',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: 12,
                 letterSpacing: 2,
                 fontWeight: FontWeight.w700,
                 color: AppColors.amber,

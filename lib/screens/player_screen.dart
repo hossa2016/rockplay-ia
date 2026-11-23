@@ -237,6 +237,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               opacity: 0.55,
               child: Image.network(
                 url,
+                cacheWidth: 96,
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stack) =>
                     const SizedBox.shrink(),

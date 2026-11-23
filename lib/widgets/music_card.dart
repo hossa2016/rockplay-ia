@@ -47,7 +47,7 @@ class MusicCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               child: Row(
                 children: [
-                  CoverArt(url: song.image, size: 56, radius: 8),
+                  CoverArt(url: song.image, size: 56, radius: 8, seed: song.artist),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

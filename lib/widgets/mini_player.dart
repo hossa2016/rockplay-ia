@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/song.dart';
 import '../services/playback_service.dart';
@@ -62,7 +63,7 @@ class _MiniBody extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
                 child: Row(
                   children: [
-                    CoverArt(url: song.image, size: 44, radius: 8),
+                    CoverArt(url: song.image, size: 44, radius: 8, seed: song.artist),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -130,16 +131,22 @@ class _MiniBody extends StatelessWidget {
                                       ? Icons.pause_rounded
                                       : Icons.play_arrow_rounded,
                                 ),
-                                onPressed: () => pb.playing.value
-                                    ? svc.pause()
-                                    : svc.play(),
+                                onPressed: () {
+                                  HapticFeedback.lightImpact();
+                                  pb.playing.value ? svc.pause() : svc.play();
+                                },
                               ),
                             IconButton(
                               iconSize: 28,
                               color: Colors.white,
                               disabledColor: AppColors.textFaint,
                               icon: const Icon(Icons.skip_next_rounded),
-                              onPressed: svc.hasNext ? () => svc.next() : null,
+                              onPressed: svc.hasNext
+                                  ? () {
+                                      HapticFeedback.lightImpact();
+                                      svc.next();
+                                    }
+                                  : null,
                             ),
                           ],
                         );

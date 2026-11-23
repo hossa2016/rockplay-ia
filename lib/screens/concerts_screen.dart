@@ -36,7 +36,7 @@ class ConcertDateBox extends StatelessWidget {
           Text(kMonthsShort[date!.month - 1].toUpperCase(),
               textScaler: const TextScaler.linear(1.0),
               style: const TextStyle(
-                  fontSize: 11.5,
+                  fontSize: 12,
                   fontWeight: FontWeight.w800,
                   color: Color(0xFFF08A7E))),
           Text('${date!.day}',
@@ -122,7 +122,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   if (c.genre.isNotEmpty)
                     Text(c.genre.toUpperCase(),
                         style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w800,
                             color: AppColors.amber)),

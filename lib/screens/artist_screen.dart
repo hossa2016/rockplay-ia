@@ -198,7 +198,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                                 const Text('Fuente: Wikipedia',
                                     style: TextStyle(
                                         color: AppColors.textFaint,
-                                        fontSize: 11)),
+                                        fontSize: 12)),
                               ],
                             ),
                           ),
