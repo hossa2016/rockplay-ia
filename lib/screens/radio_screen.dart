@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../models/song.dart';
+import '../services/playback_service.dart';
 import '../services/radio_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/playback_ui.dart';
 import '../widgets/player_route.dart';
-import '../widgets/section_header.dart';
+import '../widgets/state_views.dart';
 
 /// Logo de emisora con placeholder (inicial en ámbar) si falta o falla.
 class StationLogo extends StatelessWidget {
@@ -60,11 +62,44 @@ class StationLogo extends StatelessWidget {
 bool stationIsCurrent(RadioStation s) =>
     PlaybackUi.instance.song.value?.query == 'radio:${s.id}';
 
-void playStation(BuildContext context, RadioStation s) =>
-    playSongs(context, [s.toSong()], 0);
+/// Cola de canciones que sonaba antes de poner la radio, para volver a ella.
+class SongQueueMemory {
+  SongQueueMemory._();
+  static final ValueNotifier<List<Song>?> queue =
+      ValueNotifier<List<Song>?>(null);
+  static int index = 0;
+  static Duration position = Duration.zero;
+
+  static void saveIfSongs() {
+    final pb = PlaybackUi.instance;
+    final cur = pb.song.value;
+    final q = pb.queue.value;
+    if (cur == null || cur.isRadio || q.isEmpty) return;
+    queue.value = List<Song>.of(q);
+    index = (pb.index.value ?? 0).clamp(0, q.length - 1);
+    position = pb.position.value;
+  }
+
+  static Future<void> resume() async {
+    final q = queue.value;
+    if (q == null || q.isEmpty) return;
+    queue.value = null;
+    await PlaybackService.instance.playQueue(q, index);
+    if (position > const Duration(seconds: 5)) {
+      await PlaybackService.instance.seek(position);
+    }
+  }
+}
+
+void playStation(BuildContext context, RadioStation s) {
+  SongQueueMemory.saveIfSongs();
+  playSongs(context, [s.toSong()], 0);
+}
 
 class RadioScreen extends StatefulWidget {
-  const RadioScreen({super.key});
+  /// true = va dentro de la pestaña Buscar (sin barra ni mini player propios).
+  final bool embedded;
+  const RadioScreen({super.key, this.embedded = false});
 
   @override
   State<RadioScreen> createState() => _RadioScreenState();
@@ -268,27 +303,27 @@ class _RadioScreenState extends State<RadioScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final list = _body();
+    if (widget.embedded) return list;
+    // Pantalla suelta (por si se abre fuera de Buscar).
+    return Scaffold(
+      appBar: AppBar(title: const Text('Radio en vivo')),
+      bottomNavigationBar: const MiniPlayer(),
+      body: list,
+    );
+  }
+
+  Widget _body() {
     final savedIds = {for (final s in _saved) s.id};
     final shown = [for (final s in _results) if (!savedIds.contains(s.id)) s];
-    return Scaffold(
-      appBar: AppBar(title: const Text('Radio')),
-      bottomNavigationBar: const MiniPlayer(),
-      floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: AppColors.redBtn,
-        foregroundColor: Colors.white,
-        onPressed: _addByLink,
-        icon: const Icon(Icons.add_link_rounded),
-        label: const Text('Agregar por enlace'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 96),
+    return ListView(
+        padding: const EdgeInsets.only(bottom: 24),
         children: [
-          const PageHeader(
-              title: 'Radio en vivo',
-              subtitle: 'Emisoras de internet, sin pausa'),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: TextField(
+            padding: const EdgeInsets.fromLTRB(16, 12, 4, 0),
+            child: Row(children: [
+              Expanded(
+                child: TextField(
               controller: _q,
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _search(),
@@ -307,7 +342,25 @@ class _RadioScreenState extends State<RadioScreen> {
                       ),
               ),
               onChanged: (_) => setState(() {}),
-            ),
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: 'Más opciones',
+                icon: const Icon(Icons.more_vert_rounded),
+                color: AppColors.surfaceHigh,
+                onSelected: (_) => _addByLink(),
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: 'link',
+                    child: ListTile(
+                      dense: true,
+                      leading: Icon(Icons.add_link_rounded),
+                      title: Text('Agregar emisora por enlace'),
+                    ),
+                  ),
+                ],
+              ),
+            ]),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
@@ -332,52 +385,27 @@ class _RadioScreenState extends State<RadioScreen> {
               ? (_colombia ? 'POPULARES EN COLOMBIA' : 'ROCK EN EL MUNDO')
               : 'RESULTADOS'),
           if (_loading)
-            for (var i = 0; i < 5; i++)
-              Container(
-                height: 72,
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-                decoration: BoxDecoration(
-                    color: AppColors.surfaceHigh,
-                    borderRadius: BorderRadius.circular(16)),
-              )
+            const SkeletonList(count: 5, shrinkWrap: true)
           else if (_offline)
-            Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(children: [
-                const Icon(Icons.cloud_off_rounded,
-                    size: 40, color: AppColors.textFaint),
-                const SizedBox(height: 10),
-                const Text('Sin conexión con el directorio',
-                    style: TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                const Text('Tus emisoras guardadas siguen funcionando.',
-                    style: TextStyle(color: AppColors.textDim)),
-                TextButton(onPressed: _search, child: const Text('Reintentar')),
-              ]),
+            StateMessage(
+              icon: Icons.cloud_off_rounded,
+              title: 'Sin conexión con el directorio',
+              message: 'Tus emisoras guardadas siguen funcionando.',
+              actionLabel: 'Reintentar',
+              onAction: _search,
+              isError: true,
             )
           else if (shown.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(28),
-              child: Column(children: [
-                const Icon(Icons.search_off_rounded,
-                    size: 40, color: AppColors.textFaint),
-                const SizedBox(height: 10),
-                Text(
-                    _lastQuery.isEmpty
-                        ? 'No hay emisoras para mostrar'
-                        : 'Sin resultados para «$_lastQuery»',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                const Text('Prueba otro nombre o cambia a Todo el mundo.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textDim)),
-              ]),
+            StateMessage(
+              icon: Icons.search_off_rounded,
+              title: _lastQuery.isEmpty
+                  ? 'No hay emisoras para mostrar'
+                  : 'Sin resultados para «$_lastQuery»',
+              message: 'Prueba otro nombre o cambia a Todo el mundo.',
             )
           else
             for (final s in shown) _tile(s),
         ],
-      ),
     );
   }
 }

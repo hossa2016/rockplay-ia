@@ -14,8 +14,20 @@ class AppColors {
   static const Color redDeep = Color(0xFF7A1411);
   static const Color amber = Color(0xFFFFB02E);
   static const Color text = Color(0xFFF4F4F6);
+  /// Texto de cuerpo un poco más suave que [text].
+  static const Color textBody = Color(0xFFD0D0D8);
   static const Color textDim = Color(0xFFA6A6B2);
-  static const Color textFaint = Color(0xFF8E8E9C);
+  /// Texto terciario. Sigue pasando AA (≈4,6:1 sobre [bg]).
+  static const Color textFaint = Color(0xFF7A7A88);
+  /// Rojo para texto e iconos sobre superficies oscuras (≈6:1, AA).
+  static const Color redText = Color(0xFFFF5A52);
+  static const Color redSoft = Color(0xFFF08A7E);
+  static const Color surfaceWarm = Color(0xFF1A1014);
+  static const Color borderAccent = Color(0x33FFB02E);
+  static const Color borderSubtle = Color(0x1FFFFFFF);
+  static const Color scrim = Color(0x66000000);
+  static const Color amberTint = Color(0x1AFFB02E);
+  static const Color amberLine = Color(0x59FFB02E);
 
   static const LinearGradient accent = LinearGradient(
     begin: Alignment.topLeft,
@@ -27,7 +39,85 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [Color(0xFFB3201B), Color(0xFF5A0F0D), Color(0xFF1A1014)],
+    stops: [0, 0.55, 1],
   );
+
+  /// Velo inferior para que el texto se lea sobre degradados de color.
+  static const LinearGradient bottomScrim = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x00000000), Color(0x40000000)],
+  );
+}
+
+/// Escala tipográfica: Oswald en títulos, Roboto en cuerpo.
+class AppType {
+  AppType._();
+  static const double display = 32;
+  static const double headline = 26;
+  static const double title = 22;
+  static const double titleSm = 18;
+  static const double body = 15;
+  static const double bodySm = 14;
+  static const double label = 13;
+  static const double caption = 12;
+  static const double micro = 11;
+
+  /// Título grande de marca (Oswald).
+  static TextStyle oswald(double size,
+          {Color color = AppColors.text, double height = 1.05}) =>
+      TextStyle(
+        fontFamily: 'Oswald',
+        fontSize: size,
+        height: height,
+        color: color,
+        fontWeight: FontWeight.w700,
+        fontVariations: const [FontVariation('wght', 700)],
+        letterSpacing: 0.5,
+      );
+
+  /// Etiqueta en mayúsculas espaciadas (ej. TU MIX).
+  static const TextStyle overline = TextStyle(
+    fontSize: caption,
+    letterSpacing: 1.6,
+    fontWeight: FontWeight.w800,
+    color: AppColors.amber,
+  );
+}
+
+class AppSpace {
+  AppSpace._();
+  static const double xs = 4, sm = 8, md = 12, lg = 16, xl = 20, xxl = 24, xxxl = 32;
+}
+
+class AppRadius {
+  AppRadius._();
+  /// Carátula en lista = sm, tarjetas = lg, hero y banners = xl.
+  static const double xs = 4, sm = 8, md = 12, lg = 16, xl = 24, pill = 999;
+}
+
+class AppShadow {
+  AppShadow._();
+  static const List<BoxShadow> card = [
+    BoxShadow(color: Color(0x73000000), blurRadius: 18, offset: Offset(0, 6)),
+  ];
+  static const List<BoxShadow> glow = [
+    BoxShadow(color: Color(0x73E5332E), blurRadius: 28, offset: Offset(0, 10)),
+  ];
+}
+
+class AppMotion {
+  AppMotion._();
+  static const Duration fast = Duration(milliseconds: 180);
+  static const Duration base = Duration(milliseconds: 260);
+  static const Duration slow = Duration(milliseconds: 500);
+
+  /// true si el sistema pidió reducir animaciones.
+  static bool reduced(BuildContext context) =>
+      MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+
+  static Duration of(BuildContext context, Duration d) =>
+      reduced(context) ? Duration.zero : d;
 }
 
 class AppTheme {

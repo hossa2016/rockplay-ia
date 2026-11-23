@@ -264,7 +264,7 @@ class _DjScreenState extends State<DjScreen> {
       setState(() {
         _loading = false;
         _isError = true;
-        _message = 'No se pudo crear la emisora. Revisa tu conexión.';
+        _message = 'No se pudo armar el mix. Revisa tu conexión.';
       });
     }
   }
@@ -326,12 +326,17 @@ class _DjScreenState extends State<DjScreen> {
               Icon(Icons.radio_rounded, color: AppColors.amber, size: 34),
               SizedBox(height: 14),
               Text(
-                'Elige un artista',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                'ELIGE UN ARTISTA',
+                style: TextStyle(
+                  fontFamily: 'Oswald',
+                  fontSize: AppType.title,
+                  fontWeight: FontWeight.w700,
+                  fontVariations: [FontVariation('wght', 700)],
+                ),
               ),
               SizedBox(height: 6),
               Text(
-                'Escribe un artista y armo una emisora con sus canciones y las de bandas parecidas.',
+                'Escribe un artista y armo un mix con sus canciones y las de bandas parecidas.',
                 style: TextStyle(
                   color: Color.fromRGBO(255, 255, 255, 0.78),
                   height: 1.4,
@@ -416,15 +421,20 @@ class _DjScreenState extends State<DjScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'EMISORA',
-              style: TextStyle(
-                fontSize: 12,
-                letterSpacing: 2,
-                fontWeight: FontWeight.w700,
-                color: AppColors.amber,
+            Row(children: [
+              const Expanded(
+                child: Text('MIX DE ARTISTA', style: AppType.overline),
               ),
-            ),
+              IconButton(
+                tooltip: 'Armar otro mix',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () => setState(() {
+                  _radio = null;
+                  _filling = false;
+                  _controller.clear();
+                }),
+              ),
+            ]),
             const SizedBox(height: 6),
             Text(
               r.artistName,
@@ -472,7 +482,7 @@ class _DjScreenState extends State<DjScreen> {
                   ),
                   onPressed: () => _play(0),
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('En orden'),
+                  label: const Text('Reproducir'),
                 ),
               ],
             ),
@@ -508,7 +518,7 @@ class _DjScreenState extends State<DjScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const PageHeader(title: 'Emisora de artista'),
+            const SizedBox(height: 12),
             AppSearchField(
               controller: _controller,
               hint: 'Artista, ej: Linkin Park',

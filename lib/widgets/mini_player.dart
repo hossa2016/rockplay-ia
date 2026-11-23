@@ -9,6 +9,9 @@ import 'cover_art.dart';
 import 'player_route.dart';
 import 'playback_ui.dart';
 
+/// Etiqueta Hero de la carátula: vuela del mini player al reproductor.
+const String kNowPlayingHero = 'now-playing-cover';
+
 /// Mini-reproductor persistente; aparece solo si hay canción.
 class MiniPlayer extends StatelessWidget {
   const MiniPlayer({super.key});
@@ -46,15 +49,9 @@ class _MiniBody extends StatelessWidget {
         builder: (context, snap) => AnimatedContainer(
           duration: const Duration(milliseconds: 500),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: const Color.fromRGBO(255, 255, 255, 0.06)),
-            boxShadow: const [
-              BoxShadow(
-                  color: Color.fromRGBO(0, 0, 0, 0.45),
-                  blurRadius: 18,
-                  offset: Offset(0, 6)),
-            ],
+            borderRadius: BorderRadius.circular(AppRadius.lg),
+            border: Border.all(color: AppColors.borderSubtle),
+            boxShadow: AppShadow.card,
             gradient: LinearGradient(colors: [
               Color.lerp(AppColors.surfaceHigh,
                       snap.data ?? AppColors.surfaceHigh, 0.7) ??
@@ -64,7 +61,7 @@ class _MiniBody extends StatelessWidget {
           ),
           child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
         clipBehavior: Clip.antiAlias,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
@@ -78,7 +75,10 @@ class _MiniBody extends StatelessWidget {
             if ((d.primaryVelocity ?? 0) < -300) openPlayer(context);
           },
           child: InkWell(
-          onTap: () => openPlayer(context),
+          onTap: () {
+            HapticFeedback.selectionClick();
+            openPlayer(context);
+          },
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -86,7 +86,14 @@ class _MiniBody extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(8, 8, 4, 8),
                 child: Row(
                   children: [
-                    CoverArt(url: song.image, size: 44, radius: 8, seed: song.artist),
+                    Hero(
+                      tag: kNowPlayingHero,
+                      child: CoverArt(
+                          url: song.image,
+                          size: 44,
+                          radius: AppRadius.sm,
+                          seed: song.artist),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
@@ -149,10 +156,17 @@ class _MiniBody extends StatelessWidget {
                               IconButton(
                                 iconSize: 32,
                                 color: Colors.white,
-                                icon: Icon(
-                                  pb.playing.value
-                                      ? Icons.pause_rounded
-                                      : Icons.play_arrow_rounded,
+                                tooltip: pb.playing.value ? 'Pausar' : 'Reproducir',
+                                icon: AnimatedSwitcher(
+                                  duration: AppMotion.of(context, AppMotion.fast),
+                                  transitionBuilder: (c, a) =>
+                                      ScaleTransition(scale: a, child: c),
+                                  child: Icon(
+                                    pb.playing.value
+                                        ? Icons.pause_rounded
+                                        : Icons.play_arrow_rounded,
+                                    key: ValueKey<bool>(pb.playing.value),
+                                  ),
                                 ),
                                 onPressed: () {
                                   HapticFeedback.lightImpact();
@@ -163,6 +177,7 @@ class _MiniBody extends StatelessWidget {
                               iconSize: 28,
                               color: Colors.white,
                               disabledColor: AppColors.textFaint,
+                              tooltip: 'Siguiente',
                               icon: const Icon(Icons.skip_next_rounded),
                               onPressed: svc.hasNext
                                   ? () {

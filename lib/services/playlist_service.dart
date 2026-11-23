@@ -75,9 +75,31 @@ class PlaylistService {
     await _save(lists);
   }
 
-  Future<void> delete(String id) async {
+  /// Borra la lista y la devuelve (con su posición) para poder deshacer.
+  Future<(Playlist, int)?> delete(String id) async {
     final lists = await all();
-    lists.removeWhere((p) => p.id == id);
+    final i = lists.indexWhere((p) => p.id == id);
+    if (i < 0) return null;
+    final p = lists.removeAt(i);
+    await _save(lists);
+    return (p, i);
+  }
+
+  /// Vuelve a poner una lista borrada en su sitio (para «Deshacer»).
+  Future<void> restore(Playlist p, int index) async {
+    final lists = await all();
+    if (lists.any((x) => x.id == p.id)) return;
+    lists.insert(index.clamp(0, lists.length), p);
+    await _save(lists);
+  }
+
+  /// Vuelve a poner una canción quitada en su posición (para «Deshacer»).
+  Future<void> insertSong(String id, Song song, int index) async {
+    final lists = await all();
+    final i = lists.indexWhere((p) => p.id == id);
+    if (i < 0) return;
+    final p = lists[i];
+    p.songs.insert(index.clamp(0, p.songs.length), song);
     await _save(lists);
   }
 

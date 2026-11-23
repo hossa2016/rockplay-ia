@@ -7,6 +7,9 @@ import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
 import '../widgets/player_route.dart';
 import '../widgets/state_views.dart';
+import '../widgets/undo.dart';
+import '../widgets/playback_ui.dart';
+import '../services/playlist_service.dart';
 
 /// Lista de canciones con botones Aleatorio / En orden. Sirve para mixes
 /// (llegan por [stream]) y para listas propias ([songs] + [onRemove]).
@@ -19,6 +22,8 @@ class SongListScreen extends StatefulWidget {
   final Future<void> Function(Song song)? onRemove;
   final VoidCallback? onDeleteList;
   final String emptyMessage;
+  /// Lista propia de donde salen las canciones (para «Deshacer» al quitar).
+  final String? playlistId;
 
   const SongListScreen({
     super.key,
@@ -30,6 +35,7 @@ class SongListScreen extends StatefulWidget {
     this.onRemove,
     this.onDeleteList,
     this.emptyMessage = 'No hay canciones todavía.',
+    this.playlistId,
   });
 
   @override
@@ -69,6 +75,21 @@ class _SongListScreenState extends State<SongListScreen> {
     super.dispose();
   }
 
+  Future<void> _remove(Song song, int idx) async {
+    await widget.onRemove!(song);
+    if (!mounted) return;
+    setState(() => _songs.removeAt(idx));
+    final id = widget.playlistId;
+    if (id == null) return;
+    showUndo(context, 'Quitada «${song.title}»', () async {
+      await PlaylistService.instance.insertSong(id, song, idx);
+      PlaybackUi.instance.bumpLibrary();
+      if (mounted) {
+        setState(() => _songs.insert(idx.clamp(0, _songs.length), song));
+      }
+    });
+  }
+
   void _shuffle() {
     if (_songs.isEmpty) return;
     final l = List<Song>.of(_songs)..shuffle();
@@ -93,6 +114,7 @@ class _SongListScreenState extends State<SongListScreen> {
             Row(
               children: [
                 IconButton(
+                  tooltip: 'Volver',
                   icon: const Icon(Icons.arrow_back_rounded),
                   onPressed: () => Navigator.of(context).maybePop(),
                 ),
@@ -107,6 +129,8 @@ class _SongListScreenState extends State<SongListScreen> {
             ),
             const SizedBox(height: 6),
             Text(widget.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.displaySmall),
             if (widget.subtitle.isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -135,7 +159,7 @@ class _SongListScreenState extends State<SongListScreen> {
                       ? null
                       : () => playSongs(context, _songs, 0),
                   icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('En orden'),
+                  label: const Text('Reproducir'),
                 ),
               ],
             ),
@@ -156,30 +180,13 @@ class _SongListScreenState extends State<SongListScreen> {
           if (i == 0) return _header();
           if (i == _songs.length + 1) {
             if (_songs.isEmpty && _loading) {
-              return const Padding(
-                padding: EdgeInsets.all(40),
-                child: Center(
-                  child: Column(
-                    children: [
-                      CircularProgressIndicator(strokeWidth: 3),
-                      SizedBox(height: 16),
-                      Text('Armando tu mix…',
-                          style: TextStyle(color: AppColors.textDim)),
-                    ],
-                  ),
-                ),
-              );
+              return const SkeletonList(count: 6, shrinkWrap: true);
             }
             if (_songs.isEmpty) {
-              return Padding(
-                padding: const EdgeInsets.all(40),
-                child: Center(
-                  child: Text(
-                    widget.emptyMessage,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textDim),
-                  ),
-                ),
+              return StateMessage(
+                icon: Icons.queue_music_rounded,
+                title: 'Sin canciones',
+                message: widget.emptyMessage,
               );
             }
             return const SizedBox.shrink();
@@ -194,12 +201,10 @@ class _SongListScreenState extends State<SongListScreen> {
               trailing: widget.onRemove == null
                   ? null
                   : IconButton(
+                      tooltip: 'Quitar de la lista',
                       icon: const Icon(Icons.remove_circle_outline_rounded,
                           color: AppColors.textFaint),
-                      onPressed: () async {
-                        await widget.onRemove!(song);
-                        if (mounted) setState(() => _songs.removeAt(idx));
-                      },
+                      onPressed: () => _remove(song, idx),
                     ),
             ),
           );

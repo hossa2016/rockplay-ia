@@ -6,6 +6,8 @@ import '../theme/app_theme.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
 import 'artist_screen.dart';
+import 'taste_screen.dart';
+import '../widgets/state_views.dart';
 
 /// Lo que más escuchas: artistas y canciones por semana, mes o siempre.
 class StatsScreen extends StatefulWidget {
@@ -73,7 +75,7 @@ class _StatsScreenState extends State<StatsScreen> {
               child: LinearProgressIndicator(
                 value: max == 0 ? 0 : count / max,
                 minHeight: 6,
-                color: AppColors.red,
+                color: AppColors.redText,
                 backgroundColor: const Color.fromRGBO(255, 255, 255, 0.08),
               ),
             ),
@@ -98,13 +100,41 @@ class _StatsScreenState extends State<StatsScreen> {
               child: Row(
                 children: [
                   IconButton(
+                    tooltip: 'Volver',
                     icon: const Icon(Icons.arrow_back_rounded),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
             ),
-            const PageHeader(title: 'Tus estadísticas'),
+            const PageHeader(
+                title: 'Tus números',
+                subtitle: 'Lo que más escuchas y lo que la app sabe de tu gusto'),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Material(
+                color: AppColors.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  side: const BorderSide(color: AppColors.outline),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  minVerticalPadding: 12,
+                  leading: const Icon(Icons.auto_awesome_rounded,
+                      color: AppColors.amber),
+                  title: const Text('Tu gusto',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: const Text('Lo que aprendí de lo que escuchas',
+                      style: TextStyle(color: AppColors.textDim)),
+                  trailing: const Icon(Icons.chevron_right_rounded,
+                      color: AppColors.textDim),
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                          builder: (_) => const TasteScreen())),
+                ),
+              ),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Wrap(
@@ -123,18 +153,13 @@ class _StatsScreenState extends State<StatsScreen> {
               ),
             ),
             if (_loading)
-              const Padding(
-                padding: EdgeInsets.all(40),
-                child: Center(child: CircularProgressIndicator()),
-              )
+              const SkeletonList(count: 6, shrinkWrap: true)
             else if (_plays.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(32),
-                child: Text(
-                  'Todavía no hay datos de este período. Escucha música y vuelve aquí.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.textDim),
-                ),
+              const StateMessage(
+                icon: Icons.insights_rounded,
+                title: 'Todavía sin datos',
+                message:
+                    'No hay canciones en este período. Escucha música y vuelve aquí.',
               )
             else ...[
               Padding(

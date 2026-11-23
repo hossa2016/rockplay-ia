@@ -9,8 +9,9 @@ import '../widgets/music_card.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
 import '../widgets/state_views.dart';
-import '../services/concert_service.dart';
-import 'concerts_screen.dart';
+
+/// Pide buscar algo en la pestaña Buscar desde fuera (ej. «Escuchar banda»).
+final ValueNotifier<String?> searchWantQuery = ValueNotifier<String?>(null);
 
 class SearchScreen extends StatefulWidget {
   final String title;
@@ -56,7 +57,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _loadHistory();
-    ConcertService.instance.ensureLoaded();
+    searchWantQuery.addListener(_wantQuery);
   }
 
   String get _histKey => 'search_hist_${widget.title}';
@@ -88,8 +89,16 @@ class _SearchScreenState extends State<SearchScreen> {
     } catch (_) {}
   }
 
+  void _wantQuery() {
+    final q = searchWantQuery.value;
+    if (q == null || q.isEmpty) return;
+    searchWantQuery.value = null;
+    _useSuggestion(q);
+  }
+
   @override
   void dispose() {
+    searchWantQuery.removeListener(_wantQuery);
     _controller.dispose();
     _api.dispose();
     super.dispose();
@@ -243,147 +252,7 @@ class _SearchScreenState extends State<SearchScreen> {
           childAspectRatio: 2.3,
           children: [for (final t in _tiles) _genreTile(t)],
         ),
-        const SizedBox(height: 22),
-        _concerts(),
       ],
-    );
-  }
-
-  Future<void> _openConcerts() async {
-    final band = await Navigator.of(context).push<String>(
-        MaterialPageRoute<String>(builder: (_) => const ConcertsScreen()));
-    if (band != null && band.isNotEmpty && mounted) _useSuggestion(band);
-  }
-
-  Widget _concertTile(Concert c) {
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: AppColors.outline),
-      ),
-      child: InkWell(
-        customBorder:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        onTap: _openConcerts,
-        child: Container(
-          width: 240,
-          padding: const EdgeInsets.all(12),
-          child: Row(children: [
-            ConcertDateBox(date: c.date, size: 50),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(c.band,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 15, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 2),
-                  Text(concertPlace(c),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textDim)),
-                ],
-              ),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-
-  Widget _concerts() {
-    return ValueListenableBuilder<ConcertState>(
-      valueListenable: ConcertService.instance.state,
-      builder: (context, s, _) {
-        final items = s.items.take(5).toList();
-        String? msg;
-        if (items.isEmpty) {
-          if (s.loading) {
-            msg = 'Buscando conciertos de rock en Colombia…';
-          } else if (s.noKey) {
-            msg = 'Agrega tu clave de Gemini o Groq en Ajustes del asistente para ver los próximos conciertos.';
-          } else if (s.error != null) {
-            msg = s.error;
-          } else {
-            msg = 'No se encontraron conciertos en los próximos 12 meses.';
-          }
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Expanded(child: _label('PRÓXIMOS CONCIERTOS')),
-              TextButton(
-                  onPressed: _openConcerts, child: const Text('Ver todos')),
-            ]),
-            if (msg != null)
-              Material(
-                color: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                  side: const BorderSide(color: AppColors.outline),
-                ),
-                child: InkWell(
-                  customBorder: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  onTap: s.loading ? null : ConcertService.instance.refresh,
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Row(children: [
-                      s.loading
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.confirmation_number_outlined,
-                              color: AppColors.amber),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(msg,
-                            style: const TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textDim)),
-                      ),
-                    ]),
-                  ),
-                ),
-              )
-            else
-              SizedBox(
-                height: 86,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: items.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (_, i) => _concertTile(items[i]),
-                ),
-              ),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.only(left: 4),
-              child: Text(
-                s.loading && items.isNotEmpty
-                    ? 'Actualizando…'
-                    : '${concertsUpdatedLabel(s.updatedAt)} · búsqueda en internet con IA',
-                style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textFaint),
-              ),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -475,7 +344,7 @@ class _SearchScreenState extends State<SearchScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageHeader(title: widget.title),
+            const SizedBox(height: 12),
             AppSearchField(
               controller: _controller,
               hint: widget.hint,

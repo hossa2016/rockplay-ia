@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../widgets/undo.dart';
+
 import '../models/song.dart';
 import '../services/ai_client.dart';
 import '../services/ai_settings.dart';
@@ -13,7 +15,6 @@ import '../widgets/playback_ui.dart';
 import 'ai_settings_screen.dart';
 import 'song_list_screen.dart';
 import '../widgets/tip_card.dart';
-import 'settings_hub_screen.dart';
 
 class _Msg {
   final bool fromUser;
@@ -183,7 +184,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
       persist: false,
       content: const Text('Lista descartada'),
       action: SnackBarAction(
-        label: 'DESHACER',
+        label: 'Deshacer',
         onPressed: () {
           if (!mounted) return;
           setState(() {
@@ -260,6 +261,46 @@ class _AssistantScreenState extends State<AssistantScreen> {
         ),
       );
 
+  /// Aviso claro cuando la IA no respondió (cuota gratis agotada o error)
+  /// y la lista salió con reglas simples.
+  Widget _quotaBanner(String detail) {
+    final quota = detail.contains('límite');
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpace.sm),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpace.md, AppSpace.md, AppSpace.md, AppSpace.md),
+      decoration: BoxDecoration(
+        color: AppColors.amberTint,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AppColors.amberLine),
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Icon(Icons.info_outline_rounded,
+            color: AppColors.amber, size: 20),
+        const SizedBox(width: AppSpace.sm),
+        Expanded(
+          child: Text(
+            quota
+                ? 'Se acabó tu cuota gratis de IA por hoy, así que usé reglas simples. Mañana vuelve a pensar con IA.'
+                : 'La IA no respondió esta vez, así que usé reglas simples. Prueba de nuevo en un rato.',
+            style: const TextStyle(
+                fontSize: AppType.label,
+                height: 1.35,
+                color: AppColors.amber),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  void _clearChat() {
+    final old = List<_Msg>.of(_msgs);
+    setState(() => _msgs.clear());
+    showUndo(context, 'Conversación borrada', () {
+      if (mounted) setState(() => _msgs..clear()..addAll(old));
+    });
+  }
+
   Widget _avatar(double size) => Container(
         width: size,
         height: size,
@@ -310,12 +351,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
               children: [
                 Align(alignment: Alignment.centerLeft, child: box),
                 if (r != null && r.songs.isNotEmpty) _playlistCard(r, () => _close(m)),
-                if (r != null && r.note != null)
+                if (r != null && r.source == 'Reglas simples' && !_noKeys)
+                  _quotaBanner(r.note ?? ''),
+                if (r != null && r.note != null && r.source != 'Reglas simples')
                   Padding(
                     padding: const EdgeInsets.only(top: 6),
                     child: Text(r.note!,
                         style: const TextStyle(
-                            color: AppColors.textFaint, fontSize: 12)),
+                            color: AppColors.textFaint,
+                            fontSize: AppType.caption)),
                   ),
                 if (r != null && last && r.songs.isNotEmpty)
                   Padding(
@@ -438,7 +482,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
             ),
             IconButton(
               tooltip: 'Cerrar lista',
-              visualDensity: VisualDensity.compact,
               onPressed: onClose,
               icon: const Icon(Icons.close_rounded,
                   color: AppColors.textDim, size: 22),
@@ -522,7 +565,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 playSongs(context, mix, 0);
               },
               icon: const Icon(Icons.shuffle_rounded, size: 20),
-              label: const Text('Mezclar'),
+              label: const Text('Aleatorio'),
             ),
             const SizedBox(width: 8),
             OutlinedButton.icon(
@@ -592,26 +635,20 @@ class _AssistantScreenState extends State<AssistantScreen> {
           decoration: BoxDecoration(
             gradient: AppColors.heroGradient,
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0x38FFB02E)),
+            border: Border.all(color: AppColors.borderAccent),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('¿QUÉ SUENA HOY?',
-                  style: TextStyle(
-                      fontSize: 12,
-                      letterSpacing: 2,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.amber)),
+              const Text('¿QUÉ SUENA HOY?', style: AppType.overline),
               const SizedBox(height: 6),
-              const Text('Cuéntame cómo estás\ny armo tu lista',
-                  style: TextStyle(
-                      fontSize: 22, fontWeight: FontWeight.w900, height: 1.15)),
+              Text('CUÉNTAME CÓMO ESTÁS\nY ARMO TU LISTA',
+                  style: AppType.oswald(AppType.title, height: 1.15)),
               const SizedBox(height: 14),
               Text('Escribe abajo, por ejemplo: rock para estudiar de noche.',
-                  style: TextStyle(
-                      color: const Color(0xBFFFFFFF),
-                      fontSize: 13.5,
+                  style: const TextStyle(
+                      color: Color(0xE6FFFFFF),
+                      fontSize: AppType.bodySm,
                       height: 1.4)),
             ],
           ),
@@ -685,17 +722,6 @@ class _AssistantScreenState extends State<AssistantScreen> {
     );
   }
 
-  Future<void> _openHub() async {
-    await Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => const SettingsHubScreen()));
-    await AiSettings.instance.load();
-    final s = AiSettings.instance;
-    if (mounted) {
-      setState(() =>
-          _noKeys = s.groqKey.trim().isEmpty && s.geminiKey.trim().isEmpty);
-    }
-  }
-
   Future<void> _openSettings() async {
     await Navigator.of(context).push(MaterialPageRoute<void>(
         builder: (_) => const AiSettingsScreen()));
@@ -743,13 +769,8 @@ class _AssistantScreenState extends State<AssistantScreen> {
                   IconButton(
                     tooltip: 'Limpiar conversación',
                     icon: const Icon(Icons.delete_sweep_rounded),
-                    onPressed: () => setState(() => _msgs.clear()),
+                    onPressed: _clearChat,
                   ),
-                IconButton(
-                  tooltip: 'Ajustes',
-                  icon: const Icon(Icons.settings_rounded),
-                  onPressed: _openHub,
-                ),
               ]),
             ),
             Expanded(
@@ -822,10 +843,17 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     height: 50,
                     decoration: const BoxDecoration(
                         shape: BoxShape.circle, gradient: AppColors.accent),
-                    child: InkWell(
-                      onTap: _busy ? null : () => _send(_input.text),
-                      child: const Icon(Icons.arrow_forward_rounded,
-                          color: Colors.white),
+                    child: Semantics(
+                      button: true,
+                      label: 'Enviar',
+                      child: InkWell(
+                        onTap: _busy ? null : () => _send(_input.text),
+                        child: const Tooltip(
+                          message: 'Enviar',
+                          child: Icon(Icons.arrow_forward_rounded,
+                              color: Colors.white),
+                        ),
+                      ),
                     ),
                   ),
                 ),

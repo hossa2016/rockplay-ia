@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/song.dart';
 import '../services/library_service.dart';
 import '../services/playlist_service.dart';
 import '../widgets/add_to_playlist.dart';
 import '../widgets/cover_art.dart';
-import 'settings_hub_screen.dart';
+import 'stats_screen.dart';
+import '../widgets/undo.dart';
 import 'song_list_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
@@ -80,7 +82,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       persist: false,
       content: const Text('Quitada de favoritos'),
       action: SnackBarAction(
-        label: 'DESHACER',
+        label: 'Deshacer',
         onPressed: () async {
           try {
             await LibraryService.instance.toggleFavorite(s);
@@ -256,6 +258,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
     );
   }
 
+  /// Borra la lista y ofrece «Deshacer».
+  Future<void> _deleteList(Playlist p) async {
+    final r = await PlaylistService.instance.delete(p.id);
+    PlaybackUi.instance.bumpLibrary();
+    if (r == null || !mounted) return;
+    showUndo(context, 'Lista «${p.name}» borrada', () async {
+      await PlaylistService.instance.restore(r.$1, r.$2);
+      PlaybackUi.instance.bumpLibrary();
+    });
+  }
+
   Future<void> _newList() async {
     final name = await askPlaylistName(context);
     if (name == null || name.trim().isEmpty) return;
@@ -276,9 +289,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
             decoration: BoxDecoration(
               color: AppColors.surfaceHigh,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.red),
+              border: Border.all(color: AppColors.redText),
             ),
-            child: const Icon(Icons.add_rounded, color: AppColors.red),
+            child: const Icon(Icons.add_rounded, color: AppColors.redText),
           ),
           title: const Text('Nueva lista',
               style: TextStyle(fontWeight: FontWeight.w700)),
@@ -316,7 +329,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   if (n == null || n.trim().isEmpty) return;
                   await PlaylistService.instance.rename(p.id, n);
                 } else {
-                  await PlaylistService.instance.delete(p.id);
+                  await _deleteList(p);
+                  return;
                 }
                 PlaybackUi.instance.bumpLibrary();
               },
@@ -332,14 +346,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 songs: p.songs,
                 emptyMessage:
                     'Lista vacía. Guarda canciones desde el reproductor.',
+                playlistId: p.id,
                 onRemove: (s) async {
                   await PlaylistService.instance.removeSong(p.id, s.videoId);
                   PlaybackUi.instance.bumpLibrary();
                 },
                 onDeleteList: () async {
-                  await PlaylistService.instance.delete(p.id);
-                  PlaybackUi.instance.bumpLibrary();
-                  if (context.mounted) Navigator.of(context).pop();
+                  Navigator.of(context).pop();
+                  await _deleteList(p);
                 },
               ),
             )),
@@ -361,17 +375,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
             children: [
               PageHeader(
                 title: 'Mi música',
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton(
-                      tooltip: 'Ajustes',
-                      icon: const Icon(Icons.settings_rounded),
-                      onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute<void>(
-                              builder: (_) => const SettingsHubScreen())),
-                    ),
-                  ],
+                trailing: TextButton.icon(
+                  style: TextButton.styleFrom(
+                      minimumSize: const Size(0, 48),
+                      foregroundColor: AppColors.amber),
+                  icon: const Icon(Icons.insights_rounded),
+                  label: const Text('Tus números'),
+                  onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                          builder: (_) => const StatsScreen())),
                 ),
               ),
               Container(
@@ -379,7 +391,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(color: AppColors.outline),
                 ),
                 child: TabBar(
@@ -387,16 +399,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: BoxDecoration(
                     color: AppColors.redBtn,
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                   ),
                   labelColor: Colors.white,
                   unselectedLabelColor: AppColors.textDim,
                   labelStyle: const TextStyle(
-                      fontWeight: FontWeight.w800, fontSize: 13.5),
+                      fontWeight: FontWeight.w800, fontSize: AppType.bodySm),
+                  onTap: (_) => HapticFeedback.selectionClick(),
                   tabs: const [
-                    Tab(height: 40, text: 'Favoritos'),
-                    Tab(height: 40, text: 'Listas'),
-                    Tab(height: 40, text: 'Historial'),
+                    Tab(height: 48, text: 'Favoritos'),
+                    Tab(height: 48, text: 'Listas'),
+                    Tab(height: 48, text: 'Historial'),
                   ],
                 ),
               ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/song.dart';
 import '../screens/player_screen.dart';
 import '../services/playback_service.dart';
+import 'playback_ui.dart';
 
 /// Ruta que sube desde abajo hacia la pantalla de reproducción.
 Route<void> playerRoute() {
@@ -38,9 +40,14 @@ Future<void> _safePlay(List<Song> songs, int index) async {
   }
 }
 
-/// Arranca la cola y abre la pantalla de reproducción.
-void playSongs(BuildContext context, List<Song> songs, int index) {
+/// Arranca la cola. La pantalla completa solo se abre la primera vez (cuando
+/// no sonaba nada) o si [openFull] es true; después basta el mini player,
+/// así no se corta la navegación por los resultados.
+void playSongs(BuildContext context, List<Song> songs, int index,
+    {bool? openFull}) {
   if (songs.isEmpty || index < 0 || index >= songs.length) return;
+  final first = PlaybackUi.instance.song.value == null;
+  HapticFeedback.mediumImpact();
   _safePlay(List<Song>.of(songs), index);
-  openPlayer(context);
+  if (openFull ?? first) openPlayer(context);
 }

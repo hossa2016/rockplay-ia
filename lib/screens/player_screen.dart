@@ -21,8 +21,10 @@ import '../theme/app_theme.dart';
 import '../widgets/favorite_button.dart';
 import '../widgets/music_card.dart';
 import '../widgets/lyrics_view.dart';
+import '../widgets/mini_player.dart';
 import 'artist_screen.dart';
 import 'eq_screen.dart';
+import 'radio_screen.dart';
 import '../widgets/playback_ui.dart';
 
 /// Pantalla de reproducción inmersiva. Lee todo de [PlaybackUi].
@@ -46,6 +48,32 @@ class _PlayerScreenState extends State<PlayerScreen>
   bool _lyrics = false;
   TrackInfo? _info;
   String _infoKey = '';
+
+  /// Color de la carátula, aclarado para que se lea sobre fondo oscuro.
+  /// Tiñe el botón de play, la barra de progreso y las ondas.
+  Color _accent = AppColors.red;
+  String _accentUrl = '';
+
+  void _ensureAccent(Song song) {
+    final url = song.image;
+    if (url == _accentUrl) return;
+    _accentUrl = url;
+    final peek = CoverColor.peek(url);
+    if (peek != null) _accent = _readable(peek);
+    CoverColor.of(url).then((c) {
+      if (!mounted || _accentUrl != url) return;
+      setState(() => _accent = c == null ? AppColors.red : _readable(c));
+    });
+  }
+
+  static Color _readable(Color c) {
+    final h = HSLColor.fromColor(c);
+    if (h.saturation < 0.18) return AppColors.red; // gris: usa el rojo de marca
+    return h
+        .withSaturation(h.saturation.clamp(0.55, 0.9))
+        .withLightness(h.lightness.clamp(0.52, 0.62))
+        .toColor();
+  }
 
   void _ensureInfo(Song song) {
     if (song.isRadio) {
@@ -130,7 +158,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         backgroundColor: AppColors.surfaceHigh,
         title: const Text('¿Bloquear este artista?'),
         content: Text(
-            'No volverá a salir «${s.artist}» en búsquedas, DJ ni mixes. Lo desbloqueas desde Inicio.'),
+            'No volverá a salir «${s.artist}» en búsquedas ni mixes. Lo desbloqueas en Ajustes → Filtros.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
@@ -138,7 +166,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
               child: const Text('Bloquear',
-                  style: TextStyle(color: AppColors.red))),
+                  style: TextStyle(color: AppColors.redText))),
         ],
       ),
     );
@@ -161,7 +189,14 @@ class _PlayerScreenState extends State<PlayerScreen>
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(
-        content: Text('Listo: no volverá a salir «$name». Se desbloquea en Inicio.'),
+        content: Text('Listo: no volverá a salir «$name».'),
+        action: SnackBarAction(
+          label: 'Deshacer',
+          onPressed: () async {
+            await BlockService.instance.remove(name);
+            pb.bumpLibrary();
+          },
+        ),
       ));
     if (PlaybackService.instance.hasNext) PlaybackService.instance.next();
   }
@@ -387,37 +422,26 @@ class _PlayerScreenState extends State<PlayerScreen>
             onPressed: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const EqScreen())),
           ),
+          if (!(pb.song.value?.isRadio ?? false))
           PopupMenuButton<String>(
+            tooltip: 'Más opciones',
             icon: const Icon(Icons.more_vert_rounded),
             color: AppColors.surfaceHigh,
             onSelected: (v) {
-              if (v == 'list') {
-                final s = pb.song.value;
-                if (s != null) showAddToPlaylist(context, s);
-              } else if (v == 'artist') {
+              if (v == 'artist') {
                 final s = pb.song.value;
                 if (s != null) {
                   Navigator.of(context).push(MaterialPageRoute<void>(
                       builder: (_) => ArtistScreen(
                           name: _info?.artist ?? s.artist)));
                 }
-              } else if (v == 'sleep') {
-                _sleepSheet();
               } else if (v == 'view') {
                 setState(() => _disc = !_disc);
               } else if (v == 'block') {
                 _confirmBlock();
               }
             },
-            itemBuilder: (_) => _menuFor([
-              const PopupMenuItem(
-                value: 'list',
-                child: ListTile(
-                  dense: true,
-                  leading: Icon(Icons.playlist_add_rounded),
-                  title: Text('Guardar en una lista'),
-                ),
-              ),
+            itemBuilder: (_) => [
               PopupMenuItem(
                 value: 'view',
                 child: ListTile(
@@ -434,53 +458,57 @@ class _PlayerScreenState extends State<PlayerScreen>
                   title: Text('Ver artista y discos'),
                 ),
               ),
-              PopupMenuItem(
-                value: 'sleep',
-                child: ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.bedtime_outlined),
-                  title: Text(pb.sleepLabel.value == null
-                      ? 'Temporizador para dormir'
-                      : 'Temporizador: ${pb.sleepLabel.value}'),
-                ),
-              ),
               const PopupMenuItem(
                 value: 'block',
                 child: ListTile(
                   dense: true,
-                  leading: Icon(Icons.block_rounded, color: AppColors.red),
-                  title: Text('No me interesa este artista',
-                      style: TextStyle(color: AppColors.red)),
+                  leading: Icon(Icons.block_rounded, color: AppColors.redText),
+                  title: Text('Bloquear artista',
+                      style: TextStyle(color: AppColors.redText)),
                 ),
               ),
-            ]),
-          ),
+            ],
+          )
+          else
+            const SizedBox(width: 48),
         ],
       ),
     );
   }
 
-  /// En radio solo tiene sentido el temporizador para dormir.
-  List<PopupMenuItem<String>> _menuFor(List<PopupMenuItem<String>> all) {
-    if (pb.song.value?.isRadio ?? false) {
-      return all.where((e) => e.value == 'sleep').toList();
-    }
-    return all;
-  }
-
   Widget _liveBar() {
-    return const Padding(
-      padding: EdgeInsets.symmetric(vertical: 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Column(
         children: [
-          Icon(Icons.circle, size: 10, color: AppColors.red),
-          SizedBox(width: 8),
-          Text('EN VIVO',
-              style: TextStyle(
-                  fontSize: 13,
-                  letterSpacing: 2,
-                  fontWeight: FontWeight.w800)),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.circle, size: 10, color: AppColors.red),
+              SizedBox(width: 8),
+              Text('EN VIVO',
+                  style: TextStyle(
+                      fontSize: 13,
+                      letterSpacing: 2,
+                      fontWeight: FontWeight.w800)),
+            ],
+          ),
+          ValueListenableBuilder<List<Song>?>(
+            valueListenable: SongQueueMemory.queue,
+            builder: (context, q, _) => q == null || q.isEmpty
+                ? const SizedBox.shrink()
+                : Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: TextButton.icon(
+                      style: TextButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                          foregroundColor: AppColors.amber),
+                      onPressed: SongQueueMemory.resume,
+                      icon: const Icon(Icons.queue_music_rounded),
+                      label: Text('Volver a tu cola · ${q.length} canciones'),
+                    ),
+                  ),
+          ),
         ],
       ),
     );
@@ -488,6 +516,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Widget _content(BuildContext context, Song song) {
     _ensureInfo(song);
+    _ensureAccent(song);
     final info = _info;
     return Column(
       children: [
@@ -549,66 +578,13 @@ class _PlayerScreenState extends State<PlayerScreen>
           ),
         ),
         _errorBanner(),
-        _sleepChip(),
         const SizedBox(height: 4),
         song.isRadio ? _liveBar() : _progress(),
         const SizedBox(height: 4),
         _controls(context, song),
-        if (!song.isRadio) _extraControls(context, song),
+        _extraControls(context, song),
         const SizedBox(height: 12),
       ],
-    );
-  }
-
-  Widget _sleepChip() {
-    return ValueListenableBuilder<String?>(
-      valueListenable: pb.sleepLabel,
-      builder: (context, label, _) {
-        if (label == null) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(28, 4, 28, 0),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(999),
-              onTap: _sleepSheet,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 48),
-                child: Center(
-                  widthFactor: 1,
-                  child: Container(
-                    height: 34,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: const Color.fromRGBO(255, 176, 46, 0.10),
-                      borderRadius: BorderRadius.circular(999),
-                      border: Border.all(
-                          color: const Color.fromRGBO(255, 176, 46, 0.5)),
-                    ),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.bedtime_outlined,
-                          size: 16, color: AppColors.amber),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: Text(
-                            label.toLowerCase().startsWith('al ')
-                                ? 'Se apaga ${label[0].toLowerCase()}${label.substring(1)}'
-                                : 'Se apaga en $label',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                color: AppColors.amber,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ]),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -630,6 +606,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               const SizedBox(height: 4),
               Text(label,
                   maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                       fontSize: 12, fontWeight: FontWeight.w600, color: c)),
             ],
@@ -645,13 +622,17 @@ class _PlayerScreenState extends State<PlayerScreen>
         builder: (context, _) => Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            btn(Icons.playlist_add_rounded, 'Guardar',
-                () => showAddToPlaylist(context, song)),
-            btn(_lyrics ? Icons.lyrics_rounded : Icons.lyrics_outlined,
-                'Letra', () => setState(() => _lyrics = !_lyrics),
-                on: _lyrics),
-            btn(Icons.queue_music_rounded, 'Cola', () => _showQueue(context)),
-            btn(Icons.bedtime_outlined, 'Dormir', _sleepSheet,
+            if (!song.isRadio) ...[
+              btn(Icons.playlist_add_rounded, 'Guardar',
+                  () => showAddToPlaylist(context, song)),
+              btn(_lyrics ? Icons.lyrics_rounded : Icons.lyrics_outlined,
+                  'Letra', () => setState(() => _lyrics = !_lyrics),
+                  on: _lyrics),
+              btn(Icons.queue_music_rounded, 'Cola', () => _showQueue(context)),
+            ],
+            btn(Icons.bedtime_outlined,
+                pb.sleepLabel.value == null ? 'Dormir' : pb.sleepLabel.value!,
+                _sleepSheet,
                 on: pb.sleepLabel.value != null),
           ],
         ),
@@ -708,14 +689,15 @@ class _PlayerScreenState extends State<PlayerScreen>
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
+          Hero(
+            tag: kNowPlayingHero,
+            child: Container(
             width: w,
             height: h,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(18),
-              boxShadow: const [
-                BoxShadow(
-                    color: Color.fromRGBO(229, 51, 46, 0.35), blurRadius: 40),
+              boxShadow: [
+                BoxShadow(color: _accent.withValues(alpha: 0.35), blurRadius: 40),
               ],
             ),
             child: ClipRRect(
@@ -739,7 +721,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       ),
               ),
             ),
-          ),
+          )),
           const SizedBox(height: 22),
           SizedBox(
             height: 56,
@@ -747,7 +729,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             child: AnimatedBuilder(
               animation: _eq,
               builder: (context, _) => CustomPaint(
-                painter: _EqPainter(_eq.value),
+                painter: _EqPainter(_eq.value, _accent),
               ),
             ),
           ),
@@ -815,7 +797,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             child: AnimatedBuilder(
               animation: _eq,
               builder: (context, _) => CustomPaint(
-                painter: _EqPainter(_eq.value),
+                painter: _EqPainter(_eq.value, _accent),
               ),
             ),
           ),
@@ -918,7 +900,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               ),
               SizedBox(
                 width: 48,
-                height: 32,
+                height: 48,
                 child: IconButton(
                   padding: EdgeInsets.zero,
                   tooltip: 'Cerrar aviso',
@@ -998,6 +980,8 @@ class _PlayerScreenState extends State<PlayerScreen>
           child: Column(
             children: [
               Slider(
+                activeColor: _accent,
+                thumbColor: Colors.white,
                 value: total > 0 ? value : 0.0,
                 min: 0.0,
                 max: totalD,
@@ -1049,7 +1033,7 @@ class _PlayerScreenState extends State<PlayerScreen>
             children: [
               IconButton(
                 iconSize: 26,
-                tooltip: 'Mezclar',
+                tooltip: 'Aleatorio',
                 color: AppColors.textDim,
                 icon: const Icon(Icons.shuffle_rounded),
                 onPressed: song.isRadio ? null : () => svc.queueShuffle(),
@@ -1058,6 +1042,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 iconSize: 44,
                 color: Colors.white,
                 disabledColor: AppColors.textFaint,
+                tooltip: 'Anterior',
                 icon: const Icon(Icons.skip_previous_rounded),
                 onPressed: svc.hasPrevious ? () => svc.previous() : null,
               ),
@@ -1066,6 +1051,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 iconSize: 44,
                 color: Colors.white,
                 disabledColor: AppColors.textFaint,
+                tooltip: 'Siguiente',
                 icon: const Icon(Icons.skip_next_rounded),
                 onPressed: svc.hasNext ? () => svc.next() : null,
               ),
@@ -1094,26 +1080,38 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Widget _playButton(PlaybackService svc, bool loading, bool playing) {
-    return Container(
+    final dark = HSLColor.fromColor(_accent).withLightness(0.36).toColor();
+    return AnimatedContainer(
+      duration: AppMotion.of(context, AppMotion.slow),
       width: 76,
       height: 76,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: AppColors.accent,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_accent, dark],
+        ),
         boxShadow: [
           BoxShadow(
-            color: Color.fromRGBO(229, 51, 46, 0.45),
+            color: _accent.withValues(alpha: 0.45),
             blurRadius: 28,
-            offset: Offset(0, 10),
+            offset: const Offset(0, 10),
           ),
         ],
       ),
       child: Material(
         color: Colors.transparent,
         shape: const CircleBorder(),
-        child: InkWell(
+        child: Semantics(
+          button: true,
+          label: playing ? 'Pausar' : 'Reproducir',
+          child: InkWell(
           customBorder: const CircleBorder(),
-          onTap: () => playing ? svc.pause() : svc.play(),
+          onTap: () {
+            HapticFeedback.mediumImpact();
+            playing ? svc.pause() : svc.play();
+          },
           child: Center(
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 180),
@@ -1137,6 +1135,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
             ),
           ),
+        ),
         ),
       ),
     );
@@ -1183,7 +1182,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                             ),
                           ),
                           IconButton(
-                            tooltip: 'Barajar lo que sigue',
+                            tooltip: 'Aleatorio en lo que sigue',
                             icon: const Icon(Icons.shuffle_rounded),
                             onPressed: () =>
                                 PlaybackService.instance.queueShuffle(),
@@ -1303,8 +1302,9 @@ class _GroovesPainter extends CustomPainter {
 }
 
 class _EqPainter extends CustomPainter {
-  _EqPainter(this.t);
+  _EqPainter(this.t, this.color);
   final double t;
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1312,10 +1312,10 @@ class _EqPainter extends CustomPainter {
     final gap = 4.0;
     final bw = (size.width - gap * (n - 1)) / n;
     final paint = Paint()
-      ..shader = const LinearGradient(
+      ..shader = LinearGradient(
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
-        colors: [Color(0xFFE5332E), Color(0xFFFFB02E)],
+        colors: [color, AppColors.amber],
       ).createShader(Offset.zero & size);
     for (var i = 0; i < n; i++) {
       final a = math.sin(2 * math.pi * (t * (1 + (i % 3)) + i * 0.17));
@@ -1333,5 +1333,6 @@ class _EqPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _EqPainter old) => old.t != t;
+  bool shouldRepaint(covariant _EqPainter old) =>
+      old.t != t || old.color != color;
 }

@@ -9,7 +9,7 @@ import '../services/data_saver.dart';
 import '../theme/app_theme.dart';
 import 'ai_settings_screen.dart';
 import 'data_settings_screen.dart';
-import 'taste_screen.dart';
+import '../widgets/undo.dart';
 import 'onboarding_screen.dart';
 import '../services/help_settings.dart';
 
@@ -234,17 +234,66 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
 
   void _showSkipped() => showSkippedDialog(context).then((_) => _load());
 
+  /// «Filtros»: artistas bloqueados y canciones que no sonaron, juntos.
+  void _showFilters() {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
+      builder: (c) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 18, 20, 6),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Filtros',
+                  style: TextStyle(
+                      fontSize: AppType.titleSm, fontWeight: FontWeight.w800)),
+            ),
+          ),
+          ListTile(
+            minVerticalPadding: 12,
+            leading: const Icon(Icons.block_rounded),
+            title: const Text('Artistas bloqueados'),
+            subtitle: Text(
+                '${BlockService.instance.names.length} en total · no salen en búsquedas ni mixes',
+                style: const TextStyle(color: AppColors.textDim)),
+            onTap: () {
+              Navigator.pop(c);
+              _showBlocked();
+            },
+          ),
+          ListTile(
+            minVerticalPadding: 12,
+            leading: const Icon(Icons.bug_report_outlined),
+            title: const Text('Canciones que no sonaron'),
+            subtitle: Text(
+                '${BadVideos.ids.length} que YouTube no deja reproducir',
+                style: const TextStyle(color: AppColors.textDim)),
+            onTap: () {
+              Navigator.pop(c);
+              _showSkipped();
+            },
+          ),
+          const SizedBox(height: 8),
+        ]),
+      ),
+    );
+  }
+
   void _showBlocked() {
     showDialog<void>(
       context: context,
       builder: (c) => StatefulBuilder(builder: (c, set) {
         final names = BlockService.instance.names;
         return AlertDialog(
-          title: const Text('Artistas que no quiero'),
+          title: const Text('Artistas bloqueados'),
           content: SizedBox(
             width: double.maxFinite,
             child: names.isEmpty
-                ? const Text('No has ocultado ningún artista.')
+                ? const Text('No has bloqueado ningún artista.')
                 : ListView(shrinkWrap: true, children: [
                     for (final n in names)
                       ListTile(
@@ -255,7 +304,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                             await BlockService.instance.remove(n);
                             set(() {});
                           },
-                          child: const Text('Quitar'),
+                          child: const Text('Desbloquear'),
                         ),
                       ),
                   ]),
@@ -296,9 +345,6 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
             _row(Icons.format_list_numbered_rounded, 'Canciones por lista',
                 '${ai.maxSongs} como máximo', _pickListSize,
                 tip: 'Cuántas canciones como máximo trae el asistente. Menos es más rápido.'),
-            _row(Icons.insights_rounded, 'Tu gusto',
-                'Aprende de lo que escuchas', () => _go(const TasteScreen()),
-                tip: 'Lo que la app sabe de tus gustos para recomendarte música.'),
           ]),
           _group('DATOS'),
           _box([
@@ -317,19 +363,11 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 EqService.instance.enabled ? 'Activo · ${EqService.instance.preset}' : 'Apagado',
                 () => _go(const EqScreen()),
                 tip: 'Ajusta graves y agudos con preajustes de rock; el asistente sugiere el mejor para cada canción.'),
-            _row(Icons.bug_report_outlined, 'Canciones que no sonaron',
-                bad == 0
-                    ? 'Ninguna por ahora'
-                    : 'YouTube bloquea $bad de tus canciones',
-                _showSkipped,
+            _row(Icons.filter_alt_outlined, 'Filtros',
+                '${blocked == 0 ? 'Ningún artista bloqueado' : '$blocked ${blocked == 1 ? 'artista bloqueado' : 'artistas bloqueados'}'} · ${bad == 0 ? 'ninguna canción saltada' : '$bad ${bad == 1 ? 'canción saltada' : 'canciones saltadas'}'}',
+                _showFilters,
                 badge: bad == 0 ? null : '$bad',
-                tip: 'Canciones que YouTube no deja reproducir en apps. La app las salta sola.'),
-            _row(Icons.block_rounded, 'Artistas que no quiero',
-                blocked == 0
-                    ? 'Ninguno oculto'
-                    : '$blocked ${blocked == 1 ? "artista oculto" : "artistas ocultos"}',
-                _showBlocked,
-                tip: 'Artistas que ocultaste. Aquí puedes volver a mostrarlos.'),
+                tip: 'Artistas que bloqueaste y canciones que YouTube no deja sonar en apps (la app las salta sola).'),
           ]),
           _group('AYUDA'),
           _box([
@@ -455,6 +493,12 @@ Future<void> showSkippedDialog(BuildContext context) {
             if (BadVideos.ids.isNotEmpty)
               TextButton(
                 onPressed: () async {
+                  final ok = await confirmAction(c,
+                      title: '¿Olvidar todas?',
+                      message:
+                          'Volverán a salir en tus búsquedas y la app intentará reproducirlas otra vez.',
+                      confirmLabel: 'Olvidar');
+                  if (!ok) return;
                   await BadVideos.clear();
                   set(() {});
                 },

@@ -6,8 +6,6 @@ import '../services/artist_info_service.dart';
 import '../services/block_service.dart';
 import '../services/library_service.dart';
 import '../services/mix_service.dart';
-import '../services/playlist_service.dart';
-import '../widgets/add_to_playlist.dart';
 import 'song_list_screen.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_art.dart';
@@ -19,9 +17,8 @@ import '../widgets/section_header.dart';
 import '../widgets/state_views.dart';
 import 'artist_screen.dart';
 import 'assistant_screen.dart';
-import 'radio_screen.dart';
-import '../services/radio_service.dart';
-import 'dj_screen.dart';
+import 'search_screen.dart';
+import '../widgets/concerts_card.dart';
 import 'library_screen.dart';
 import 'search_hub.dart';
 import '../services/help_settings.dart';
@@ -131,9 +128,6 @@ class _HomeTab extends StatefulWidget {
 
 class _HomeTabState extends State<_HomeTab> {
   List<Song> _recent = [];
-  List<Playlist> _lists = [];
-  List<String> _blocked = [];
-  bool _showBlockedList = false;
   bool _loading = true;
 
   @override
@@ -156,18 +150,7 @@ class _HomeTabState extends State<_HomeTab> {
       h = await LibraryService.instance.history();
     } catch (_) {}
     if (!mounted) return;
-    List<Playlist> pl = [];
-    try {
-      pl = await PlaylistService.instance.all();
-    } catch (_) {}
-    if (!mounted) return;
-    try {
-      await BlockService.instance.ensureLoaded();
-    } catch (_) {}
-    if (!mounted) return;
     setState(() {
-      _blocked = BlockService.instance.names;
-      _lists = pl;
       _recent = h.take(12).toList();
       _loading = false;
     });
@@ -193,6 +176,7 @@ class _HomeTabState extends State<_HomeTab> {
             _stopNotice(),
             _personalMix(),
             _quickAccess(),
+            const SizedBox(height: 4),
             SectionTitle(
               'Seguir escuchando',
               actionLabel: _recent.isEmpty ? null : 'Ver historial',
@@ -202,14 +186,12 @@ class _HomeTabState extends State<_HomeTab> {
               },
             ),
             _recentSection(),
+            const SectionTitle('Conciertos'),
+            ConcertsCard(onListen: _listenBand),
             const SectionTitle('Descubrir'),
             _discoverChips(),
             const SizedBox(height: 14),
             _discoverBody(),
-            if (_blocked.isNotEmpty) ...[
-              const SectionTitle('Artistas bloqueados'),
-              _blockedChips(),
-            ],
           ],
         ),
       ),
@@ -219,9 +201,9 @@ class _HomeTabState extends State<_HomeTab> {
   int _disc = 0;
 
   Widget _discoverChips() {
-    const labels = ['Bandas', 'Lanzamientos', 'Radio', 'Mixes'];
+    const labels = ['Bandas', 'Lanzamientos', 'Mixes'];
     return SizedBox(
-      height: 40,
+      height: 48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -229,10 +211,17 @@ class _HomeTabState extends State<_HomeTab> {
         separatorBuilder: (context, i) => const SizedBox(width: 8),
         itemBuilder: (context, i) {
           final on = _disc == i;
-          return GestureDetector(
-            onTap: () => setState(() => _disc = i),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+          return Semantics(
+            button: true,
+            selected: on,
+            child: GestureDetector(
+            onTap: () {
+              if (!on) HapticFeedback.selectionClick();
+              setState(() => _disc = i);
+            },
+            child: AnimatedContainer(
+              duration: AppMotion.of(context, AppMotion.fast),
+              padding: const EdgeInsets.symmetric(horizontal: 18),
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: on ? AppColors.redBtn : AppColors.surfaceHigh,
@@ -245,7 +234,7 @@ class _HomeTabState extends State<_HomeTab> {
                       fontWeight: FontWeight.w700,
                       color: on ? Colors.white : AppColors.textDim)),
             ),
-          );
+          ));
         },
       ),
     );
@@ -257,22 +246,6 @@ class _HomeTabState extends State<_HomeTab> {
         return _emergingRow();
       case 1:
         return _releasesRow();
-      case 2:
-        return Column(children: [
-          _radioRow(),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: TextButton(
-                onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                        builder: (_) => const RadioScreen())),
-                child: const Text('Ver todas las emisoras'),
-              ),
-            ),
-          ),
-        ]);
       default:
         return _mixRow(MixService.genre);
     }
@@ -300,12 +273,7 @@ class _HomeTabState extends State<_HomeTab> {
                   style: const TextStyle(
                       color: AppColors.textDim, fontSize: 13),
                 ),
-                const Text('ROCKPLAY',
-                    style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.5,
-                        height: 1.1)),
+                Text('ROCKPLAY', style: AppType.oswald(AppType.headline)),
               ],
             ),
           ),
@@ -373,121 +341,24 @@ class _HomeTabState extends State<_HomeTab> {
 
   Widget _quickAccess() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: _QuickTile(
-              icon: Icons.radio_rounded,
-              label: 'Emisora de artista',
-              onTap: () {
-                widget.onNavigate(1);
-                searchHubWantMode.value = 1;
-              },
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: _QuickTile(
-              icon: Icons.sensors_rounded,
-              label: 'Radio en vivo',
-              onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(builder: (_) => const RadioScreen())),
-            ),
-          ),
-        ],
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: _QuickTile(
+        icon: Icons.sensors_rounded,
+        label: 'Radio en vivo',
+        subtitle: 'Radioacktiva, La Ochentera y más',
+        onTap: () {
+          widget.onNavigate(1);
+          searchHubWantMode.value = 2;
+        },
       ),
     );
   }
 
-  Widget _djBanner() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-      child: Material(
-        borderRadius: BorderRadius.circular(24),
-        clipBehavior: Clip.antiAlias,
-        color: Colors.transparent,
-        child: Ink(
-          decoration: BoxDecoration(
-            gradient: AppColors.heroGradient,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: const Color(0x33FFB02E)),
-          ),
-          child: InkWell(
-            onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(builder: (_) => const DjScreen())),
-            child: Stack(
-              children: [
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  height: 70,
-                  child: CustomPaint(
-                      painter: const WavesPainter(Color(0x22FFB02E))),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'DJ ROCKPLAY',
-                        style: TextStyle(
-                          fontSize: 12,
-                          letterSpacing: 2,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.amber,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'TU MÚSICA.\nTU ESTILO.',
-                        style: Theme.of(context)
-                            .textTheme
-                            .headlineMedium
-                            ?.copyWith(height: 1.05, fontSize: 30),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Crea una emisora a partir de tu banda favorita.',
-                        style: TextStyle(
-                          color: Color.fromRGBO(255, 255, 255, 0.75),
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 9),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('ENTRAR',
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 1.2,
-                                    fontSize: 13)),
-                            SizedBox(width: 6),
-                            Icon(Icons.arrow_forward_rounded,
-                                color: Colors.black, size: 18),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+  /// «Escuchar banda» desde Conciertos: la busca en la pestaña Buscar.
+  void _listenBand(String band) {
+    widget.onNavigate(1);
+    searchHubWantMode.value = 0;
+    searchWantQuery.value = band;
   }
 
   void _openMix(String title, String subtitle, List<Color> colors,
@@ -502,117 +373,6 @@ class _HomeTabState extends State<_HomeTab> {
             'No se pudo armar el mix. Revisa tu conexión e inténtalo de nuevo.',
       ),
     ));
-  }
-
-  Future<void> _newList() async {
-    final name = await askPlaylistName(context);
-    if (name == null || name.trim().isEmpty) return;
-    await PlaylistService.instance.create(name);
-    PlaybackUi.instance.bumpLibrary();
-  }
-
-  Widget _radioRow() {
-    return ValueListenableBuilder<int>(
-      valueListenable: RadioService.instance.revision,
-      builder: (context, _, __) => FutureBuilder<List<RadioStation>>(
-        future: RadioService.instance.saved(),
-        builder: (context, snap) {
-          final list = snap.data ?? const <RadioStation>[];
-          void openAll() => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const RadioScreen()));
-          if (snap.connectionState == ConnectionState.done && list.isEmpty) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(16),
-                onTap: openAll,
-                child: Container(
-                  height: 96,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    border: Border.all(color: AppColors.outline),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Row(children: [
-                    Icon(Icons.radio_rounded, color: AppColors.amber, size: 32),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Aún no tienes emisoras',
-                              style: TextStyle(fontWeight: FontWeight.w700)),
-                          SizedBox(height: 2),
-                          Text('Agrega Radioacktiva, La Ochentera y más',
-                              style: TextStyle(
-                                  color: AppColors.textDim, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.chevron_right_rounded,
-                        color: AppColors.textDim),
-                  ]),
-                ),
-              ),
-            );
-          }
-          return SizedBox(
-            height: 132,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: list.length + 1,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, i) {
-                if (i == list.length) {
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(14),
-                    onTap: openAll,
-                    child: Container(
-                      width: 104,
-                      height: 104,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.outline),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_rounded, color: AppColors.amber),
-                          SizedBox(height: 4),
-                          Text('Agregar', style: TextStyle(fontSize: 12)),
-                        ],
-                      ),
-                    ),
-                  );
-                }
-                final s = list[i];
-                return GestureDetector(
-                  onTap: () => playStation(context, s),
-                  child: SizedBox(
-                    width: 104,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        StationLogo(station: s, size: 104, radius: 14),
-                        const SizedBox(height: 6),
-                        Text(s.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: 12, fontWeight: FontWeight.w600)),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-          );
-        },
-      ),
-    );
   }
 
   Future<List<ReleaseItem>>? _releasesFuture;
@@ -634,16 +394,19 @@ class _HomeTabState extends State<_HomeTab> {
         future: _releasesFuture,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const SkeletonRow();
           }
           final list = snap.data ?? const <ReleaseItem>[];
           if (list.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('No encontré lanzamientos recientes.',
-                    style: TextStyle(color: AppColors.textDim)),
+            return Align(
+              alignment: Alignment.topCenter,
+              child: StateMessage(
+                compact: true,
+                icon: Icons.album_outlined,
+                title: 'Sin lanzamientos recientes',
+                message: 'No encontré discos nuevos de tus artistas.',
+                actionLabel: 'Reintentar',
+                onAction: () => setState(() => _releasesFuture = null),
               ),
             );
           }
@@ -729,16 +492,21 @@ class _HomeTabState extends State<_HomeTab> {
         future: _emergingFuture,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const SkeletonRow(
+                itemWidth: 96, coverHeight: 88, circle: true);
           }
           final list = snap.data ?? const <ArtistInfo>[];
           if (list.isEmpty) {
-            return const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text('No pude cargar sugerencias ahora.',
-                    style: TextStyle(color: AppColors.textDim)),
+            return Align(
+              alignment: Alignment.topCenter,
+              child: StateMessage(
+                compact: true,
+                icon: Icons.cloud_off_rounded,
+                title: 'No pude cargar bandas',
+                message: 'Revisa tu conexión.',
+                actionLabel: 'Reintentar',
+                isError: true,
+                onAction: () => setState(() => _emergingFuture = null),
               ),
             );
           }
@@ -762,7 +530,7 @@ class _HomeTabState extends State<_HomeTab> {
                           width: 88,
                           height: 88,
                           child: a.picture.isEmpty
-                              ? const ColoredBox(color: Color(0xFF1A1014))
+                              ? const ColoredBox(color: AppColors.surfaceWarm)
                               : Image.network(a.picture, fit: BoxFit.cover),
                         ),
                       ),
@@ -813,18 +581,9 @@ class _HomeTabState extends State<_HomeTab> {
           onTap: _playMix,
           child: Container(
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFFB3201B),
-                  Color(0xFF5A0F0D),
-                  Color(0xFF1A1014)
-                ],
-                stops: [0, 0.55, 1],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0x38FFB02E)),
+              gradient: AppColors.heroGradient,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(color: AppColors.borderAccent),
             ),
             child: Stack(
               children: [
@@ -836,7 +595,8 @@ class _HomeTabState extends State<_HomeTab> {
                     child: SizedBox(
                       width: 260,
                       height: 90,
-                      child: CustomPaint(painter: _WavePainter()),
+                      child: CustomPaint(
+                          painter: WavesPainter(AppColors.borderAccent)),
                     ),
                   ),
                 ),
@@ -845,25 +605,19 @@ class _HomeTabState extends State<_HomeTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('TU MIX',
-                          style: TextStyle(
-                              fontSize: 12,
-                              letterSpacing: 2,
-                              color: AppColors.amber,
-                              fontWeight: FontWeight.w700)),
+                      const Text('TU MIX', style: AppType.overline),
                       const SizedBox(height: 6),
-                      const Text('SUENA COMO\nTÚ ERES',
-                          style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w900,
-                              height: 1.05)),
+                      Text('SUENA COMO\nTÚ ERES',
+                          style: AppType.oswald(AppType.display)),
                       const SizedBox(height: 8),
                       ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: 230),
                         child: const Text(
                             'Armado con tus favoritos y lo último que escuchaste.',
                             style: TextStyle(
-                                fontSize: 13, color: Color(0xBFFFFFFF))),
+                                fontSize: AppType.label,
+                                height: 1.35,
+                                color: Color(0xE6FFFFFF))),
                       ),
                       const SizedBox(height: 16),
                       Container(
@@ -919,107 +673,9 @@ class _HomeTabState extends State<_HomeTab> {
     );
   }
 
-  Widget _blockedChips() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          OutlinedButton.icon(
-            icon: Icon(_showBlockedList
-                ? Icons.visibility_off_rounded
-                : Icons.visibility_rounded),
-            label: Text(_showBlockedList
-                ? 'Ocultar bloqueados'
-                : 'Mostrar bloqueados (${_blocked.length})'),
-            onPressed: () => setState(() => _showBlockedList = !_showBlockedList),
-          ),
-          if (_showBlockedList) ...[
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final n in _blocked)
-                  InputChip(
-                    label: Text(n),
-                    onDeleted: () async {
-                      await BlockService.instance.remove(n);
-                      PlaybackUi.instance.bumpLibrary();
-                    },
-                  ),
-              ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _listsRow() {
-    if (_lists.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.outline),
-          ),
-          child: const Text(
-            'Crea una lista con «Nueva» y guarda canciones desde el reproductor (icono de lista).',
-            style: TextStyle(color: AppColors.textDim, height: 1.4),
-          ),
-        ),
-      );
-    }
-    return SizedBox(
-      height: 176,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _lists.length,
-        separatorBuilder: (context, i) => const SizedBox(width: 12),
-        itemBuilder: (context, i) {
-          final p = _lists[i];
-          return _MixCard(
-            def: MixDef(p.name, '${p.songs.length} canciones',
-                Icons.queue_music_rounded,
-                const [Color(0xFF8A1A16), Color(0xFF1A1014)], const []),
-            onTap: () {
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => SongListScreen(
-                  title: p.name,
-                  subtitle: 'Tu lista',
-                  songs: p.songs,
-                  emptyMessage:
-                      'Lista vacía. Guarda canciones desde el reproductor.',
-                  onRemove: (s) async {
-                    await PlaylistService.instance
-                        .removeSong(p.id, s.videoId);
-                    PlaybackUi.instance.bumpLibrary();
-                  },
-                  onDeleteList: () async {
-                    await PlaylistService.instance.delete(p.id);
-                    PlaybackUi.instance.bumpLibrary();
-                    if (context.mounted) Navigator.of(context).pop();
-                  },
-                ),
-              ));
-            },
-          );
-        },
-      ),
-    );
-  }
-
   Widget _recentSection() {
     if (_loading) {
-      return const SizedBox(
-        height: 190,
-        child: Center(child: CircularProgressIndicator(strokeWidth: 3)),
-      );
+      return const SizedBox(height: 200, child: SkeletonRow());
     }
     if (_recent.isEmpty) {
       return Padding(
@@ -1071,11 +727,13 @@ class _HomeTabState extends State<_HomeTab> {
 class _QuickTile extends StatelessWidget {
   final IconData icon;
   final String label;
+  final String subtitle;
   final VoidCallback onTap;
 
   const _QuickTile({
     required this.icon,
     required this.label,
+    required this.subtitle,
     required this.onTap,
   });
 
@@ -1083,28 +741,41 @@ class _QuickTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.surfaceHigh,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(AppRadius.lg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
-          child: Column(
-            children: [
-              Icon(icon, color: AppColors.red, size: 26),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                maxLines: 2,
-                textAlign: TextAlign.center,
-                textScaler: TextScaler.noScaling,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 64),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+                horizontal: AppSpace.lg, vertical: AppSpace.md),
+            child: Row(
+              children: [
+                Icon(icon, color: AppColors.redText, size: 26),
+                const SizedBox(width: AppSpace.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(label,
+                          style: const TextStyle(
+                              fontSize: AppType.body,
+                              fontWeight: FontWeight.w700)),
+                      Text(subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: AppType.label,
+                              color: AppColors.textDim)),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const Icon(Icons.chevron_right_rounded,
+                    color: AppColors.textDim),
+              ],
+            ),
           ),
         ),
       ),
@@ -1232,27 +903,3 @@ class _MixCard extends StatelessWidget {
 }
 
 
-class _WavePainter extends CustomPainter {
-  const _WavePainter();
-  @override
-  void paint(Canvas canvas, Size size) {
-    void wave(double y, double amp, double alpha) {
-      final path = Path()..moveTo(0, y);
-      for (double x = 0; x < 280; x += 40) {
-        path.quadraticBezierTo(x + 20, y - amp, x + 40, y);
-      }
-      canvas.drawPath(
-          path,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2
-            ..color = AppColors.amber.withValues(alpha: alpha));
-    }
-
-    wave(60, 80, 0.5);
-    wave(72, 64, 0.3);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
-}

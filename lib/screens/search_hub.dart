@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 import 'dj_screen.dart';
 import 'radio_screen.dart';
 import 'search_screen.dart';
 
-/// Pide abrir un modo de Buscar desde fuera (0 canciones, 1 emisora, 2 radio).
+/// Pide abrir un modo de Buscar desde fuera (0 canciones, 1 mix de artista,
+/// 2 radio en vivo).
 final ValueNotifier<int> searchHubWantMode = ValueNotifier<int>(-1);
 
-/// Pestaña Buscar: canciones o emisora de un artista.
+/// Pestaña Buscar: canciones, mix de artista o radio en vivo.
 class SearchHub extends StatefulWidget {
   const SearchHub({super.key});
 
@@ -41,21 +43,33 @@ class _SearchHubState extends State<SearchHub> {
   Widget _seg(String label, int i) {
     final on = _mode == i;
     return Expanded(
-      child: GestureDetector(
-        onTap: () => setState(() => _mode = i),
-        child: Container(
-          height: 40,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: on ? AppColors.redBtn : Colors.transparent,
-            borderRadius: BorderRadius.circular(11),
+      child: Semantics(
+        button: true,
+        selected: on,
+        child: GestureDetector(
+          onTap: () {
+            if (_mode != i) HapticFeedback.selectionClick();
+            setState(() => _mode = i);
+          },
+          child: AnimatedContainer(
+            duration: AppMotion.of(context, AppMotion.fast),
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: on ? AppColors.redBtn : Colors.transparent,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(label,
+                  maxLines: 1,
+                  style: TextStyle(
+                      fontSize: AppType.bodySm,
+                      fontWeight: FontWeight.w800,
+                      color: on ? Colors.white : AppColors.textDim)),
+            ),
           ),
-          child: Text(label,
-              maxLines: 1,
-              style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: on ? Colors.white : AppColors.textDim)),
         ),
       ),
     );
@@ -74,19 +88,23 @@ class _SearchHubState extends State<SearchHub> {
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(15),
+                borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(color: AppColors.outline),
               ),
               child: Row(children: [
                 _seg('Canciones', 0),
-                _seg('Emisora', 1),
-                _seg('Radio', 2),
+                _seg('Mix de artista', 1),
+                _seg('Radio en vivo', 2),
               ]),
             ),
             Expanded(
               child: IndexedStack(
                 index: _mode,
-                children: const [SearchScreen(), DjScreen(), RadioScreen()],
+                children: const [
+                  SearchScreen(),
+                  DjScreen(),
+                  RadioScreen(embedded: true),
+                ],
               ),
             ),
           ],
