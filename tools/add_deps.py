@@ -25,6 +25,7 @@ PINNED = [
     "flutter_inappwebview:^6.1.5",
     "share_plus:^10.1.4",
     "flutter_local_notifications:^19.4.2",
+    "file_picker:^10.3.3",
 ]
 # Sin versión: pub elige la compatible con las anteriores.
 FREE = [
@@ -42,7 +43,6 @@ FREE = [
     "quick_actions",
     "home_widget",
     "timezone",
-    "file_picker",
     "flutter_volume_controller",
 ]
 
