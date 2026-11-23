@@ -377,7 +377,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
                         decoration: _grad(r * 2 + c),
                         child: (r * 2 + c) < songs.length &&
                                 songs[r * 2 + c].image.isNotEmpty
-                            ? CoverArt(url: songs[r * 2 + c].image, radius: 0)
+                            ? CoverArt(
+                                url: songs[r * 2 + c].image,
+                                radius: 0,
+                                seed: songs[r * 2 + c].artist)
                             : null),
                   ),
               ]),
@@ -449,7 +452,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 SizedBox(
                   width: 40,
                   height: 40,
-                  child: CoverArt(url: r.songs[i].image, radius: 9),
+                  child: CoverArt(
+                      url: r.songs[i].image,
+                      radius: 9,
+                      seed: r.songs[i].artist),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

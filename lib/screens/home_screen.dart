@@ -672,7 +672,11 @@ class _HomeTabState extends State<_HomeTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CoverArt(url: r.album.cover, size: 140, radius: 12),
+                      CoverArt(
+                          url: r.album.cover,
+                          size: 140,
+                          radius: 12,
+                          seed: r.artist),
                       const SizedBox(height: 8),
                       Text(r.album.title,
                           maxLines: 1,
@@ -1122,7 +1126,12 @@ class _RecentCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CoverArt(url: song.image, size: 140, radius: 14, shadow: true),
+            CoverArt(
+                url: song.image,
+                size: 140,
+                radius: 14,
+                shadow: true,
+                seed: song.artist),
             const SizedBox(height: 10),
             Text(
               song.title,
