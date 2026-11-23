@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../models/song.dart';
 import '../services/playback_service.dart';
+import '../services/cover_color.dart';
 import '../theme/app_theme.dart';
 import 'cover_art.dart';
 import 'player_route.dart';
@@ -39,8 +40,30 @@ class _MiniBody extends StatelessWidget {
     final pb = PlaybackUi.instance;
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
-      child: Material(
-        color: AppColors.surfaceHigh,
+      child: FutureBuilder<Color?>(
+        future: CoverColor.of(song.image),
+        initialData: CoverColor.peek(song.image),
+        builder: (context, snap) => AnimatedContainer(
+          duration: const Duration(milliseconds: 500),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+                color: const Color.fromRGBO(255, 255, 255, 0.06)),
+            boxShadow: const [
+              BoxShadow(
+                  color: Color.fromRGBO(0, 0, 0, 0.45),
+                  blurRadius: 18,
+                  offset: Offset(0, 6)),
+            ],
+            gradient: LinearGradient(colors: [
+              Color.lerp(AppColors.surfaceHigh,
+                      snap.data ?? AppColors.surfaceHigh, 0.7) ??
+                  AppColors.surfaceHigh,
+              AppColors.surfaceHigh,
+            ]),
+          ),
+          child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         clipBehavior: Clip.antiAlias,
         child: GestureDetector(
@@ -172,6 +195,8 @@ class _MiniBody extends StatelessWidget {
             ],
           ),
         ),
+        ),
+      ),
         ),
       ),
     );

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/playback_service.dart';
+import 'package:flutter/services.dart';
 
 import '../models/song.dart';
 import '../theme/app_theme.dart';
@@ -37,7 +39,7 @@ class MusicCard extends StatelessWidget {
                   : Icons.play_arrow_rounded,
               color: isCurrent ? AppColors.amber : AppColors.textFaint,
             );
-        return Material(
+        final card = Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
@@ -95,6 +97,34 @@ class MusicCard extends StatelessWidget {
               ),
             ),
           ),
+        );
+        if (!actions) return card;
+        return Dismissible(
+          key: ValueKey<String>('mc-${song.videoId}-${song.title}-${song.artist}'),
+          direction: DismissDirection.startToEnd,
+          confirmDismiss: (_) async {
+            HapticFeedback.mediumImpact();
+            PlaybackService.instance.queuePlayNext(song);
+            ScaffoldMessenger.maybeOf(context)
+              ?..clearSnackBars()
+              ..showSnackBar(const SnackBar(
+                  content: Text('Sonará a continuación'),
+                  duration: Duration(seconds: 2)));
+            return false;
+          },
+          background: Container(
+            alignment: Alignment.centerLeft,
+            padding: const EdgeInsets.only(left: 24),
+            color: const Color.fromRGBO(229, 51, 46, 0.18),
+            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.queue_play_next_rounded, color: AppColors.amber),
+              SizedBox(width: 10),
+              Text('A continuación',
+                  style: TextStyle(
+                      color: AppColors.amber, fontWeight: FontWeight.w700)),
+            ]),
+          ),
+          child: card,
         );
       },
     );

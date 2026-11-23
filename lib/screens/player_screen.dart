@@ -9,6 +9,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../models/song.dart';
+import '../services/cover_color.dart';
 import 'settings_hub_screen.dart';
 import '../services/embed_bridge.dart';
 import '../services/track_info_service.dart';
@@ -221,14 +222,25 @@ class _PlayerScreenState extends State<PlayerScreen>
     return Stack(
       fit: StackFit.expand,
       children: [
-        const DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF4A1512), AppColors.bg],
-            ),
-          ),
+        FutureBuilder<Color?>(
+          future: CoverColor.of(url),
+          initialData: CoverColor.peek(url),
+          builder: (context, snap) {
+            return TweenAnimationBuilder<Color?>(
+              tween: ColorTween(
+                  end: snap.data ?? const Color(0xFF4A1512)),
+              duration: const Duration(milliseconds: 600),
+              builder: (context, c, _) => DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [c ?? const Color(0xFF4A1512), AppColors.bg],
+                  ),
+                ),
+              ),
+            );
+          },
         ),
         if (url.isNotEmpty)
           ImageFiltered(
@@ -317,6 +329,16 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   Widget _topBar(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragEnd: (d) {
+        if ((d.primaryVelocity ?? 0) > 500) Navigator.of(context).maybePop();
+      },
+      child: _topBarInner(context),
+    );
+  }
+
+  Widget _topBarInner(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(8, 4, 8, 0),
       child: Row(
