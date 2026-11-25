@@ -3,24 +3,40 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
+import 'music_mode.dart';
 
 class Playlist {
   final String id;
   String name;
   List<Song> songs;
 
-  Playlist({required this.id, required this.name, List<Song>? songs})
+  /// Modo donde se ve: 'rock', 'general' o 'both' (los dos).
+  /// Las listas de antes de los modos son de rock.
+  String mode;
+
+  Playlist(
+      {required this.id,
+      required this.name,
+      List<Song>? songs,
+      this.mode = 'rock'})
       : songs = songs ?? <Song>[];
+
+  bool get inBoth => mode == 'both';
+
+  bool visibleIn(MusicMode m) =>
+      mode == 'both' || mode == (m == MusicMode.general ? 'general' : 'rock');
 
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
+        'mode': mode,
         'songs': songs.map((s) => s.toJson()).toList(),
       };
 
   factory Playlist.fromJson(Map<String, dynamic> j) => Playlist(
         id: (j['id'] ?? '') as String,
         name: (j['name'] ?? '') as String,
+        mode: (j['mode'] ?? 'rock') as String,
         songs: [
           for (final s in (j['songs'] as List? ?? <dynamic>[]))
             if (s is Map<String, dynamic>) Song.fromJson(s),
@@ -35,7 +51,27 @@ class PlaylistService {
 
   static const String _key = 'playlists_v1';
 
-  Future<List<Playlist>> all() async {
+  /// Listas que se ven en el modo actual.
+  Future<List<Playlist>> all() async => [
+        for (final p in await _raw())
+          if (p.visibleIn(MusicModeService.mode.value)) p
+      ];
+
+  /// Lista visible solo en el modo donde se creó, o en los dos.
+  Future<void> setBoth(String id, bool both) async {
+    final lists = await _raw();
+    for (final p in lists) {
+      if (p.id == id) {
+        p.mode = both
+            ? 'both'
+            : (MusicModeService.general ? 'general' : 'rock');
+      }
+    }
+    await _save(lists);
+  }
+
+  /// Todas las listas guardadas, de los dos modos.
+  Future<List<Playlist>> _raw() async {
     final prefs = await SharedPreferences.getInstance();
     final raw = prefs.getString(_key);
     if (raw == null || raw.isEmpty) return <Playlist>[];
@@ -57,10 +93,11 @@ class PlaylistService {
   }
 
   Future<Playlist> create(String name) async {
-    final lists = await all();
+    final lists = await _raw();
     final p = Playlist(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: name.trim().isEmpty ? 'Mi lista' : name.trim(),
+      mode: MusicModeService.general ? 'general' : 'rock',
     );
     lists.insert(0, p);
     await _save(lists);
@@ -68,7 +105,7 @@ class PlaylistService {
   }
 
   Future<void> rename(String id, String name) async {
-    final lists = await all();
+    final lists = await _raw();
     for (final p in lists) {
       if (p.id == id && name.trim().isNotEmpty) p.name = name.trim();
     }
@@ -77,7 +114,7 @@ class PlaylistService {
 
   /// Borra la lista y la devuelve (con su posición) para poder deshacer.
   Future<(Playlist, int)?> delete(String id) async {
-    final lists = await all();
+    final lists = await _raw();
     final i = lists.indexWhere((p) => p.id == id);
     if (i < 0) return null;
     final p = lists.removeAt(i);
@@ -87,7 +124,7 @@ class PlaylistService {
 
   /// Vuelve a poner una lista borrada en su sitio (para «Deshacer»).
   Future<void> restore(Playlist p, int index) async {
-    final lists = await all();
+    final lists = await _raw();
     if (lists.any((x) => x.id == p.id)) return;
     lists.insert(index.clamp(0, lists.length), p);
     await _save(lists);
@@ -95,7 +132,7 @@ class PlaylistService {
 
   /// Vuelve a poner una canción quitada en su posición (para «Deshacer»).
   Future<void> insertSong(String id, Song song, int index) async {
-    final lists = await all();
+    final lists = await _raw();
     final i = lists.indexWhere((p) => p.id == id);
     if (i < 0) return;
     final p = lists[i];
@@ -105,7 +142,7 @@ class PlaylistService {
 
   /// true = añadida; false = ya estaba.
   Future<bool> addSong(String id, Song song) async {
-    final lists = await all();
+    final lists = await _raw();
     final i = lists.indexWhere((p) => p.id == id);
     if (i < 0) return false;
     final p = lists[i];
@@ -117,7 +154,7 @@ class PlaylistService {
 
   /// Añade varias canciones (también las que aún no tienen videoId).
   Future<int> addMany(String id, List<Song> songs) async {
-    final lists = await all();
+    final lists = await _raw();
     final i = lists.indexWhere((p) => p.id == id);
     if (i < 0) return 0;
     final p = lists[i];
@@ -137,7 +174,7 @@ class PlaylistService {
   }
 
   Future<void> removeSong(String id, String videoId) async {
-    final lists = await all();
+    final lists = await _raw();
     final i = lists.indexWhere((p) => p.id == id);
     if (i < 0) return;
     lists[i].songs.removeWhere((s) => s.videoId == videoId);

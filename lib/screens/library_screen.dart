@@ -318,7 +318,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: Text('${p.songs.length} canciones',
+            subtitle: Text(
+                '${p.songs.length} canciones${p.inBoth ? ' · en los dos modos' : ''}',
                 style: TextStyle(color: AppColors.textDim)),
             trailing: PopupMenuButton<String>(
               icon: Icon(Icons.more_vert_rounded,
@@ -328,15 +329,28 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   final n = await askPlaylistName(context);
                   if (n == null || n.trim().isEmpty) return;
                   await PlaylistService.instance.rename(p.id, n);
+                } else if (v == 'both') {
+                  await PlaylistService.instance.setBoth(p.id, !p.inBoth);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        content: Text(p.inBoth
+                            ? 'Ahora «${p.name}» solo se ve en este modo'
+                            : 'Ahora «${p.name}» se ve en los dos modos')));
+                  }
                 } else {
                   await _deleteList(p);
                   return;
                 }
                 PlaybackUi.instance.bumpLibrary();
               },
-              itemBuilder: (_) => const [
-                PopupMenuItem(value: 'rename', child: Text('Renombrar')),
-                PopupMenuItem(value: 'delete', child: Text('Borrar lista')),
+              itemBuilder: (_) => [
+                const PopupMenuItem(value: 'rename', child: Text('Renombrar')),
+                PopupMenuItem(
+                    value: 'both',
+                    child: Text(p.inBoth
+                        ? 'Solo en este modo'
+                        : 'Mostrar en los dos modos')),
+                const PopupMenuItem(value: 'delete', child: Text('Borrar lista')),
               ],
             ),
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
