@@ -260,7 +260,8 @@ class AppTheme {
           fontFamily: AppType.head,
           fontWeight: FontWeight.w700,
           fontVariations: const [FontVariation('wght', 700)],
-          letterSpacing: ls,
+          // Space Grotesk ya es ancha: sin espaciado extra en Pulso.
+          letterSpacing: MusicModeService.general ? -0.2 : ls,
         );
 
     final textTheme = base.copyWith(

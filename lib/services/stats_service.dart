@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
+import 'music_mode.dart';
 
 class PlayEntry {
   final int ts; // segundos desde epoch
@@ -25,14 +26,19 @@ class StatsService {
   StatsService._();
   static final StatsService instance = StatsService._();
 
-  static const String _key = 'plays_v1';
+  // Las escuchas de cada modo van aparte (Tus números, mixes, asistente).
+  static String get _key => modeKey('plays_v1');
+  MusicMode? _cacheMode;
   static const int _cap = 3000;
   List<PlayEntry>? _cache;
 
   static String cleanArtist(String a) => SongMeta.cleanChannel(a);
 
   Future<List<PlayEntry>> _load() async {
-    if (_cache != null) return _cache!;
+    if (_cache != null && _cacheMode == MusicModeService.mode.value) {
+      return _cache!;
+    }
+    _cacheMode = MusicModeService.mode.value;
     final out = <PlayEntry>[];
     try {
       final sp = await SharedPreferences.getInstance();

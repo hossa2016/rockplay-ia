@@ -2,13 +2,15 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 import 'deezer_service.dart';
+import 'music_mode.dart';
 
 class LibraryService {
   LibraryService._();
   static final LibraryService instance = LibraryService._();
 
-  static const String _favKey = 'favorites';
-  static const String _histKey = 'history';
+  // Cada modo de música tiene sus favoritas e historial.
+  static String get _favKey => modeKey('favorites');
+  static String get _histKey => modeKey('history');
 
   Future<List<Song>> _load(String key) async {
     final prefs = await SharedPreferences.getInstance();

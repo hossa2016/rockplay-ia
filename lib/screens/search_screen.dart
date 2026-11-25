@@ -131,7 +131,7 @@ class _SearchScreenState extends State<SearchScreen> {
     _controller.addListener(_onTyping);
   }
 
-  String get _histKey => 'search_hist_${widget.title}';
+  String get _histKey => modeKey('search_hist_${widget.title}');
 
   Future<void> _loadHistory() async {
     try {

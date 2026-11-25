@@ -60,3 +60,8 @@ class MusicModeService {
 /// Texto según el modo: `byMode('NOCHE DE RIFFS', 'Tu noche')`.
 String byMode(String rock, String general) =>
     MusicModeService.general ? general : rock;
+
+/// Clave de guardado propia de cada modo: el historial, las escuchas, las
+/// favoritas y las búsquedas de «Todos los géneros» no se mezclan con las
+/// de rock. En rock se usan las claves de siempre.
+String modeKey(String key) => MusicModeService.general ? 'g_$key' : key;

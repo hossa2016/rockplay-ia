@@ -37,9 +37,9 @@ class AssistantScreen extends StatefulWidget {
 }
 
 class _AssistantScreenState extends State<AssistantScreen> {
-  static const List<String> _tweaks = [
+  static List<String> get _tweaks => [
     'Más tranquilo',
-    'Más pesado',
+    byMode('Más pesado', 'Más movido'),
     'Solo en español',
     'Más canciones nuevas',
   ];
