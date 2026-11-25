@@ -6,6 +6,7 @@ import '../services/data_saver.dart';
 import '../models/song.dart';
 import '../services/music_api_service.dart';
 import '../services/deezer_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
 import '../widgets/player_route.dart';
@@ -20,7 +21,20 @@ class DjScreen extends StatefulWidget {
 }
 
 class _DjScreenState extends State<DjScreen> {
-  static const List<String> _defaults = [
+  static List<String> get _defaults => MusicModeService.general
+      ? const [
+          'Shakira',
+          'Karol G',
+          'Carlos Vives',
+          'Grupo Niche',
+          'Bad Bunny',
+          'Dua Lipa',
+          'Morat',
+          'Silvestre Dangond',
+        ]
+      : _rockDefaults;
+
+  static const List<String> _rockDefaults = [
     'Metallica',
     'Linkin Park',
     'Nirvana',
@@ -320,15 +334,15 @@ class _DjScreenState extends State<DjScreen> {
             gradient: AppColors.heroGradient,
             borderRadius: BorderRadius.circular(AppRadius.xl),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(Icons.person_search_rounded, color: AppColors.amber, size: 34),
               SizedBox(height: 14),
               Text(
-                'ELIGE UN ARTISTA',
+                byMode('ELIGE UN ARTISTA', 'Elige un artista'),
                 style: TextStyle(
-                  fontFamily: 'Oswald',
+                  fontFamily: AppType.head,
                   fontSize: AppType.title,
                   fontWeight: FontWeight.w700,
                   fontVariations: [FontVariation('wght', 700)],
@@ -336,7 +350,7 @@ class _DjScreenState extends State<DjScreen> {
               ),
               SizedBox(height: 6),
               Text(
-                'Escribe un artista y armo un mix con sus canciones y las de bandas parecidas.',
+                byMode('Escribe un artista y armo un mix con sus canciones y las de bandas parecidas.', 'Escribe un artista y armo un mix con sus canciones y las de artistas parecidos.'),
                 style: TextStyle(
                   color: Color(0xE6FFFFFF),
                   height: 1.4,
@@ -366,7 +380,7 @@ class _DjScreenState extends State<DjScreen> {
           children: [
             for (final s in _pinned)
               InputChip(
-                avatar: const Icon(Icons.push_pin_rounded,
+                avatar: Icon(Icons.push_pin_rounded,
                     size: 16, color: AppColors.amber),
                 label: Text(s),
                 onPressed: () => _useSuggestion(s),
@@ -386,7 +400,7 @@ class _DjScreenState extends State<DjScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Los fijados (con chincheta) los eliges tú. Los demás salen de lo que más escuchas.',
           style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
         ),
@@ -422,7 +436,7 @@ class _DjScreenState extends State<DjScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const Expanded(
+              Expanded(
                 child: Text('MIX DE ARTISTA', style: AppType.overline),
               ),
               IconButton(
@@ -522,7 +536,7 @@ class _DjScreenState extends State<DjScreen> {
             const SizedBox(height: 12),
             AppSearchField(
               controller: _controller,
-              hint: 'Artista, ej: Linkin Park',
+              hint: byMode('Artista, ej: Linkin Park', 'Artista, ej: Karol G'),
               icon: Icons.person_search_rounded,
               onSubmit: _create,
             ),

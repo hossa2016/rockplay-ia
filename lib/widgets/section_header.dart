@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 
 /// Título grande de pantalla.
@@ -26,7 +27,7 @@ class PageHeader extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     subtitle!,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.textDim, fontSize: AppType.bodySm),
                   ),
                 ],
@@ -61,12 +62,12 @@ class SectionTitle extends StatelessWidget {
       padding: padding,
       child: Row(
         children: [
-          Container(
+          if (MusicModeService.rock) Container(
             width: 4,
             height: 22,
             margin: const EdgeInsets.only(right: 10),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [AppColors.red, AppColors.amber],
@@ -78,7 +79,7 @@ class SectionTitle extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(text.toUpperCase(),
+              child: Text(MusicModeService.general ? text : text.toUpperCase(),
                   maxLines: 1, style: Theme.of(context).textTheme.titleLarge),
             ),
           ),
@@ -87,7 +88,7 @@ class SectionTitle extends StatelessWidget {
               onPressed: onAction,
               child: Text(
                 actionLabel!,
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textDim, fontWeight: FontWeight.w700),
               ),
             ),
@@ -132,7 +133,7 @@ class AppSearchField extends StatelessWidget {
                   ? null
                   : IconButton(
                       tooltip: 'Borrar búsqueda',
-                      icon: const Icon(Icons.close_rounded,
+                      icon: Icon(Icons.close_rounded,
                           color: AppColors.textDim),
                       onPressed: controller.clear,
                     ),

@@ -89,7 +89,7 @@ Future<void> showAddToPlaylist(BuildContext context, Song song) async {
                   ),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.add_rounded, color: AppColors.amber),
+                  leading: Icon(Icons.add_rounded, color: AppColors.amber),
                   title: const Text('Nueva lista'),
                   onTap: () async {
                     final name = await askPlaylistName(ctx);

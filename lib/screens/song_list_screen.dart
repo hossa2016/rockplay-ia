@@ -17,7 +17,8 @@ import '../services/share_service.dart';
 class SongListScreen extends StatefulWidget {
   final String title;
   final String subtitle;
-  final List<Color> colors;
+  final List<Color>? _colors;
+  List<Color> get colors => _colors ?? AppPalettes.wine;
   final Stream<List<Song>>? stream;
   final List<Song>? songs;
   final Future<void> Function(Song song)? onRemove;
@@ -30,14 +31,14 @@ class SongListScreen extends StatefulWidget {
     super.key,
     required this.title,
     this.subtitle = '',
-    this.colors = AppPalettes.wine,
+    List<Color>? colors,
     this.stream,
     this.songs,
     this.onRemove,
     this.onDeleteList,
     this.emptyMessage = 'No hay canciones todavía.',
     this.playlistId,
-  });
+  }) : _colors = colors;
 
   @override
   State<SongListScreen> createState() => _SongListScreenState();
@@ -142,14 +143,14 @@ class _SongListScreenState extends State<SongListScreen> {
             if (widget.subtitle.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(widget.subtitle,
-                  style: const TextStyle(color: AppColors.textDim)),
+                  style: TextStyle(color: AppColors.textDim)),
             ],
             const SizedBox(height: 6),
             Text(
               _loading
                   ? '${_songs.length} canciones · cargando más…'
                   : '${_songs.length} canciones',
-              style: const TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
+              style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
             ),
             const SizedBox(height: 14),
             Wrap(
@@ -209,7 +210,7 @@ class _SongListScreenState extends State<SongListScreen> {
                   ? null
                   : IconButton(
                       tooltip: 'Quitar de la lista',
-                      icon: const Icon(Icons.remove_circle_outline_rounded,
+                      icon: Icon(Icons.remove_circle_outline_rounded,
                           color: AppColors.textFaint),
                       onPressed: () => _remove(song, idx),
                     ),

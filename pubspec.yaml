@@ -24,7 +24,11 @@ flutter:
   assets:
     - assets/icon/logo.png
     - assets/sounds/rock_riff.wav
+    - assets/sounds/soft_chime.wav
   fonts:
     - family: Oswald
       fonts:
         - asset: assets/fonts/Oswald-Variable.ttf
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk-Variable.ttf

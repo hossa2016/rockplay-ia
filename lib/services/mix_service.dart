@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 
 import '../models/song.dart';
 import 'artist_pools.dart';
+import 'general_catalog.dart';
+import 'music_mode.dart';
 import 'library_service.dart';
 import 'music_api_service.dart';
 import 'data_saver.dart';
@@ -23,7 +25,12 @@ class MixDef {
 
 /// Mixes armados con canciones de YouTube de varios artistas a la vez.
 class MixService {
-  static const List<MixDef> genre = [
+  static List<MixDef> get genre =>
+      MusicModeService.general ? GeneralCatalog.genre : _rockGenre;
+  static List<MixDef> get mood =>
+      MusicModeService.general ? GeneralCatalog.mood : _rockMood;
+
+  static List<MixDef> get _rockGenre => [
     MixDef('Rock clásico', '70s', Icons.album_rounded,
         AppPalettes.amber, [
       'Led Zeppelin', 'Deep Purple', 'Pink Floyd', 'Queen',
@@ -77,7 +84,7 @@ class MixService {
     ]),
   ];
 
-  static const List<MixDef> mood = [
+  static List<MixDef> get _rockMood => [
     MixDef('Energía', 'Sube el volumen', Icons.bolt_rounded,
         AppPalettes.fire, [
       'Rage Against the Machine', 'Metallica', 'Linkin Park',
@@ -159,12 +166,17 @@ class MixService {
     'Miguel Mateos', 'Radio Futura', 'Nacha Pop', 'Los Secretos', 'Mecano',
   ];
 
-  static List<String> _own(MixDef m) => <String>{
-        ...(kMixArtistPools[m.title] ?? const <String>[]),
-        ...m.artists,
-        ...(_extra[m.title] ?? const <String>[]),
-        if (m.title == 'Rock en español') ..._esExtra,
-      }.toList();
+  static List<String> _own(MixDef m) => MusicModeService.general
+      ? <String>{
+          ...m.artists,
+          ...(GeneralCatalog.pools[m.title] ?? const <String>[]),
+        }.toList()
+      : <String>{
+          ...(kMixArtistPools[m.title] ?? const <String>[]),
+          ...m.artists,
+          ...(_extra[m.title] ?? const <String>[]),
+          if (m.title == 'Rock en español') ..._esExtra,
+        }.toList();
 
   /// Artistas del mix (primero los propios, al azar; luego los de mixes
   /// parecidos, al azar), sin repetir. Úsalo con `keepOrder: true`.
@@ -172,7 +184,8 @@ class MixService {
     final own = _own(m)..shuffle();
     final seen = <String>{...own};
     final extra = <String>[];
-    for (final t in _neighbors[m.title] ?? const <String>[]) {
+    final nb = MusicModeService.general ? GeneralCatalog.neighbors : _neighbors;
+    for (final t in nb[m.title] ?? const <String>[]) {
       final def = [...genre, ...mood].where((d) => d.title == t);
       if (def.isEmpty) continue;
       for (final a in _own(def.first)) {

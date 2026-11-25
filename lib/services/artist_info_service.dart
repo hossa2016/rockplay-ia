@@ -6,6 +6,7 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 
 import '../models/song.dart';
 import 'block_service.dart';
+import 'music_mode.dart';
 
 class ArtistInfo {
   final String id;
@@ -142,7 +143,8 @@ class ArtistInfoService {
 
     if (out.length < 6) {
       try {
-        final j = await _json('$_dz/editorial/152/releases?limit=40');
+        // 152 = Rock en Deezer; 0 = todos los géneros.
+        final j = await _json('$_dz/editorial/${MusicModeService.general ? 0 : 152}/releases?limit=40');
         for (final e in (j['data'] as List?) ?? const []) {
           if (e is! Map<String, dynamic>) continue;
           final art = e['artist'];
@@ -251,10 +253,13 @@ class ArtistInfoService {
     if (_bioCache.containsKey(key)) return _bioCache[key];
     final first = key.split(' ').first;
     final kind = RegExp(
-        r'banda|grupo|cantante|músic|rock|metal|punk|artista|dúo|trío|guitarr|compositor',
+        r'banda|grupo|cantante|músic|rock|metal|punk|artista|dúo|trío|guitarr|compositor|orquesta|rapero|dj|pianista|salsa|vallenat|regguet|reguet',
         caseSensitive: false);
     try {
-      for (final q in ['$name banda de rock', name]) {
+      for (final q in [
+        MusicModeService.general ? '$name cantante' : '$name banda de rock',
+        name
+      ]) {
         final s = await _json(
             'https://es.wikipedia.org/w/api.php?action=query&list=search&format=json&origin=*&srlimit=3&srsearch=${Uri.encodeQueryComponent(q)}');
         final hits = (s['query']?['search'] as List?) ?? const [];

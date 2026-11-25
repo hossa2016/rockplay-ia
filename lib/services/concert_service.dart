@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ai_settings.dart';
 import 'stats_service.dart';
+import 'music_mode.dart';
 
 /// Un concierto encontrado en internet.
 class Concert {
@@ -136,7 +137,30 @@ class ConcertService {
   static final ConcertService instance = ConcertService._();
 
   static const Duration refreshEvery = Duration(days: 3);
-  static const String _cacheKey = 'concerts_cache_v1';
+  static String get _cacheKey => MusicModeService.general
+      ? 'concerts_cache_general_v1'
+      : 'concerts_cache_v1';
+
+  /// Géneros de la búsqueda según el modo.
+  static String get _scope => MusicModeService.general
+      ? 'de todos los géneros: pop, pop latino, salsa, reguetón y urbano, '
+          'vallenato, merengue, bachata, rock, electrónica, jazz, música '
+          'clásica, baladas y regional'
+      : 'de rock: rock clásico, hard rock, metal y sus variantes, punk, '
+          'hardcore, ska punk, grunge, rock alternativo, indie rock, '
+          'post-punk, stoner y rock en español';
+
+  static String get _genreList => MusicModeService.general
+      ? 'pop|salsa|urbano|vallenato|rock|electrónica|jazz|clásica|baladas|tropical|festival'
+      : 'rock|metal|punk|grunge|alternativo|indie|rock en español|festival';
+
+  /// Al cambiar de modo: cada modo tiene su propia lista guardada.
+  void resetForMode() {
+    _cacheRead = false;
+    // Los bares de rock son solo del modo rock; en el general, los tuyos.
+    bars = MusicModeService.general ? <String>[] : List<String>.of(defaultBars);
+    state.value = const ConcertState();
+  }
 
   /// Bares de rock que el usuario sigue; se buscan uno por uno.
   static const List<String> defaultBars = [
@@ -146,8 +170,11 @@ class ConcertService {
     'Virus Pub',
     'Jungle Burger',
   ];
-  static const String _barsKey = 'concert_bars_v1';
-  List<String> bars = List<String>.of(defaultBars);
+  static String get _barsKey =>
+      MusicModeService.general ? 'concert_bars_general_v1' : 'concert_bars_v1';
+  List<String> bars = MusicModeService.general
+      ? <String>[]
+      : List<String>.of(defaultBars);
 
   Future<void> saveBars(List<String> list) async {
     bars = list.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
@@ -223,12 +250,17 @@ class ConcertService {
           items: prev.items, updatedAt: prev.updatedAt, noKey: true);
       return;
     }
+    final gen = MusicModeService.generation;
     try {
-      final list = _merge(await _search(), prev.items);
+      final found = await _search();
+      // Cambió el modo mientras buscaba: este resultado es del otro modo.
+      if (gen != MusicModeService.generation) return;
+      final list = _merge(found, prev.items);
       final now = DateTime.now();
       state.value = ConcertState(items: list, updatedAt: now);
       _writeCache(list, now);
     } catch (e) {
+      if (gen != MusicModeService.generation) return;
       state.value = ConcertState(
         items: _upcoming(prev.items),
         updatedAt: prev.updatedAt,
@@ -349,12 +381,11 @@ class ConcertService {
     final from = _ymd(_today());
     final to = _ymd(_limit());
     final prompt =
-        'Hoy es $from. Busca en internet los conciertos y festivales de rock '
+        'Hoy es $from. Busca en internet los conciertos y festivales '
+        '${MusicModeService.general ? 'de música' : 'de rock'} '
         'que se van a presentar en Colombia entre $from y $to (los próximos '
-        '12 meses). Incluye todos los géneros del rock: rock clásico, hard '
-        'rock, metal y sus variantes, punk, hardcore, ska punk, grunge, rock '
-        'alternativo, indie rock, post-punk, stoner y rock en español; '
-        'bandas internacionales y '
+        '12 meses). Incluye todos los géneros $_scope; '
+        'artistas internacionales y '
         'colombianas; en cualquier ciudad del país. Revisa varias fuentes '
         '(boleterías como Tuboleta, eTicket, Ticketmaster y Taquilla Live, '
         'medios de música y redes oficiales de los festivales). Incluye solo '
@@ -369,7 +400,7 @@ class ConcertService {
         'Responde SOLO con JSON válido, sin texto adicional, con esta forma:\n'
         '{"conciertos":[{"banda":"","ciudad":"","lugar":"","fecha":"AAAA-MM-DD o vacío","cuando":"",'
         '"hora":"","boletas":"url de compra o vacío","fuente":"url donde se '
-        'anunció","genero":"rock|metal|punk|grunge|alternativo|indie|rock en español|festival","tipo":"bar|escenario|festival"}]}';
+        'anunció","genero":"$_genreList","tipo":"bar|escenario|festival"}]}';
 
     final errors = <String>[];
     // 1) Tavily busca en la web y Gemini/Groq (sin búsqueda) ordenan.
@@ -428,7 +459,39 @@ class ConcertService {
 
     Map<String, dynamic> q(String text, [int n = 6]) =>
         {'query': text, 'max_results': n};
+    final g = MusicModeService.general;
     final groups = <MapEntry<String, List<Map<String, dynamic>>>>[
+      if (g) ...[
+        MapEntry('Tus artistas', [
+          for (final a in favs) q('$a concierto Colombia $y1 $y2', 4),
+        ]),
+        MapEntry('Escenarios grandes', [
+          q('Vive Claro Bogotá conciertos $y2'),
+          q('Movistar Arena Bogotá conciertos $y2'),
+          q('Estadio Atanasio Girardot Medellín concierto $y2'),
+          {
+            ...q('conciertos Colombia $y1 $y2 boletas', 8),
+            'include_domains': Concert.ticketSites,
+          },
+        ]),
+        MapEntry('Géneros', [
+          q('conciertos de pop en Colombia $y1 $y2'),
+          q('conciertos de salsa en Colombia $y1 $y2'),
+          q('conciertos de reguetón y urbano Colombia $y1 $y2'),
+          q('conciertos de vallenato $y1 $y2'),
+          q('conciertos de rock en Colombia $y1 $y2'),
+          q('conciertos de música electrónica Colombia $y1 $y2'),
+          q('conciertos de jazz y música clásica Colombia $y1 $y2'),
+        ]),
+        MapEntry('Medellín', [
+          q('agenda de conciertos Medellín $mes $y1'),
+          q('conciertos Medellín $y1 $y2'),
+        ]),
+        MapEntry('Festivales', [
+          q('festivales de música Colombia $y2 cartel confirmado'),
+          q('artistas internacionales gira Colombia $y2 boletas'),
+        ]),
+      ] else ...[
       MapEntry('Tus bandas', [
         for (final a in favs) q('$a concierto Colombia $y1 $y2', 4),
       ]),
@@ -478,6 +541,7 @@ class ConcertService {
         q('festivales de rock Colombia $y2 cartel confirmado'),
         q('bandas internacionales de rock gira Colombia $y2 boletas'),
       ]),
+      ],
     ];
 
     final seen = <String>{};
@@ -738,7 +802,7 @@ class ConcertService {
         '${images.length} flyers leídos'
         '${missing.isEmpty ? '' : '; sin publicaciones: @${missing.join(', @')}'}';
     final prompt =
-        'Estas son publicaciones recientes de Instagram de bares de rock de '
+        'Estas son publicaciones recientes de Instagram de bares ${MusicModeService.general ? 'con música en vivo' : 'de rock'} de '
         'Medellín, con sus flyers como imágenes (IMAGEN 1, 2… en el mismo '
         'orden). Hoy es $from. Extrae SOLO los toques, conciertos o eventos de '
         'música en vivo anunciados entre $from y $to: lee la fecha, la hora, '
@@ -789,11 +853,9 @@ class ConcertService {
   /// Pide a Gemini (o Groq) que convierta resultados de búsqueda en la lista.
   Future<List<Concert>> _organize(String results, String from, String to) async {
     final system =
-        'Extrae conciertos de rock de estos resultados de búsqueda. Hoy es '
+        'Extrae conciertos ${MusicModeService.general ? 'de música' : 'de rock'} de estos resultados de búsqueda. Hoy es '
         '$from. Usa SOLO la información de los resultados, no inventes nada. '
-        'Incluye conciertos, festivales y toques en bares de cualquier género '
-        'del rock (hard rock, metal, punk, hardcore, ska punk, grunge, '
-        'alternativo, indie, post-punk, stoner, rock en español) que se hagan '
+        'Incluye conciertos, festivales y toques en bares $_scope, que se hagan '
         'en Colombia entre $from y $to. Fíjate bien en el AÑO: los resultados '
         'pueden traer noticias viejas de la misma banda; descarta solo lo que '
         'ya pasó y conserva el anuncio nuevo. Si un evento está anunciado sin '
@@ -807,7 +869,7 @@ class ConcertService {
         'hay ningún concierto, responde {"conciertos":[]}. Responde solo con '
         'JSON: {"conciertos":[{"banda":"","ciudad":"","lugar":"",'
         '"fecha":"AAAA-MM-DD o vacío","cuando":"","hora":"","boletas":"",'
-        '"fuente":"","genero":"","tipo":"bar|escenario|festival"}]}';
+        '"fuente":"","genero":"$_genreList","tipo":"bar|escenario|festival"}]}';
     final errs = <String>[];
     final s = AiSettings.instance;
     final gKey = s.geminiKey.trim();

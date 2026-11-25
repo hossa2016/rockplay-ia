@@ -133,7 +133,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
           ),
           const SizedBox(height: 4),
           Text(subtitle,
-              style: const TextStyle(color: AppColors.textDim, fontSize: AppType.label)),
+              style: TextStyle(color: AppColors.textDim, fontSize: AppType.label)),
           const SizedBox(height: 12),
           Text(steps,
               style: const TextStyle(fontSize: AppType.label, height: 1.45)),
@@ -190,7 +190,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
-                const Text(
+                Text(
                   'El asistente usa primero Gemini y, si falla o se acaba el '
                   'límite gratis, usa Groq. Sin ninguna clave usa reglas simples. '
                   'Las claves se guardan solo en este teléfono.',
@@ -270,7 +270,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                       decoration:
                           const InputDecoration(labelText: 'Modelo de Gemini'),
                     ),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.only(top: 8),
                       child: Text(
                         'Si un modelo deja de existir, el asistente avisa '

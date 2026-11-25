@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/concert_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 
 /// Cuadrito con mes y día.
@@ -20,7 +21,7 @@ class ConcertDateBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: date == null
-          ? const Center(
+          ? Center(
               child: Text('POR\nCONF.',
                   textAlign: TextAlign.center,
                   textScaler: TextScaler.linear(1.0),
@@ -35,14 +36,14 @@ class ConcertDateBox extends StatelessWidget {
         children: [
           Text(kMonthsShort[date!.month - 1].toUpperCase(),
               textScaler: const TextScaler.linear(1.0),
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: AppType.caption,
                   fontWeight: FontWeight.w800,
                   color: AppColors.redSoft)),
           Text('${date!.day}',
               textScaler: const TextScaler.linear(1.0),
-              style: const TextStyle(
-                  fontSize: AppType.title, fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700, height: 1.1)),
+              style: TextStyle(
+                  fontSize: AppType.title, fontFamily: AppType.head, fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700, height: 1.1)),
         ],
       ),
     );
@@ -81,6 +82,41 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
   ];
   static const List<String> _main = ['bogot', 'medell', 'cali'];
   String _city = 'Todas';
+
+  /// Filtro por género (solo en el modo «Todos los géneros»).
+  static const List<String> _genres = [
+    'Todos',
+    'Pop',
+    'Salsa',
+    'Urbano',
+    'Vallenato',
+    'Rock',
+    'Electrónica',
+    'Jazz y clásica',
+    'Otros',
+  ];
+  static const Map<String, List<String>> _genreWords = {
+    'Pop': ['pop', 'pop latino', 'balada', 'baladas'],
+    'Salsa': ['salsa', 'tropical', 'merengue', 'bachata'],
+    'Urbano': ['urban', 'regue', 'trap', 'hip', 'rap'],
+    'Vallenato': ['vallenato', 'regional', 'popular'],
+    'Rock': ['rock', 'metal', 'punk', 'grunge', 'indie', 'alternativ'],
+    'Electrónica': ['electrónica', 'electronica', 'house', 'techno', 'edm'],
+    'Jazz y clásica': ['jazz', 'clásica', 'clasica', 'sinfónica', 'ópera', 'opera'],
+  };
+  String _genre = 'Todos';
+
+  bool _inGenre(Concert c, String g) {
+    final t = c.genre.toLowerCase();
+    if (g == 'Otros') {
+      return !_genreWords.keys.any((k) => _inGenre(c, k));
+    }
+    // Palabra completa (o prefijo de palabra): «popular» no es «pop».
+    final words = t.split(RegExp(r'[^a-záéíóúñü]+'));
+    return (_genreWords[g] ?? const []).any((w) => w.contains(' ')
+        ? t.contains(w)
+        : words.any((x) => x == w || (w.length >= 5 && x.startsWith(w))));
+  }
   final ConcertService _svc = ConcertService.instance;
 
   bool _isMain(String city) {
@@ -89,6 +125,9 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
   }
 
   List<Concert> _filter(List<Concert> all) {
+    if (MusicModeService.general && _genre != 'Todos') {
+      all = all.where((c) => _inGenre(c, _genre)).toList();
+    }
     if (_city == 'Todas') return all;
     if (_city == 'Bares') return all.where(_svc.isBar).toList();
     if (_city == 'Otras') return all.where((c) => !_isMain(c.city)).toList();
@@ -121,20 +160,20 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                           fontSize: 16, fontWeight: FontWeight.w800)),
                   if (c.genre.isNotEmpty)
                     Text(c.genre.toUpperCase(),
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.caption,
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w800,
                             color: AppColors.amber)),
                   if (concertPlace(c).isNotEmpty)
                     Text(concertPlace(c),
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.bodySm,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textDim)),
                   if (c.date == null)
                     Text('Fecha: ${c.when}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.label,
                             fontWeight: FontWeight.w700,
                             color: AppColors.amber))
@@ -163,7 +202,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
                 onPressed: () => Navigator.of(context).pop(_bandQuery(c.band)),
-                child: const Text('Escuchar banda'),
+                child: Text(byMode('Escuchar banda', 'Escuchar artista')),
               ),
             ),
           ]),
@@ -198,15 +237,15 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Mis bares de rock'),
+        title: Text(byMode('Mis bares de rock', 'Mis bares con música en vivo')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
                 'Uno por línea: nombre del bar y su @usuario de Instagram '
                 '(o el enlace del perfil).\n'
-                'Ejemplo: Kings Rock @kingsrockbar\n'
+                'Ejemplo: ${byMode('Kings Rock @kingsrockbar', 'Café Teatro @cafeteatro')}\n'
                 'Con el @usuario y el token de Apify, la app lee sus flyers.',
                 style: TextStyle(color: AppColors.textDim, fontSize: AppType.label)),
             const SizedBox(height: 12),
@@ -243,6 +282,28 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     return '${kMonthsLong[d.month - 1]} ${d.year}'.toUpperCase();
   }
 
+  Widget _genreChips() {
+    if (!MusicModeService.general) return const SizedBox.shrink();
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          for (final g in _genres)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(g),
+                selected: _genre == g,
+                onSelected: (_) => setState(() => _genre = g),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
   Widget _chips() {
     return SizedBox(
       height: 48,
@@ -259,7 +320,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                 showCheckmark: false,
                 selectedColor: AppColors.redBtn,
                 backgroundColor: AppColors.surface,
-                side: const BorderSide(color: AppColors.outline),
+                side: BorderSide(color: AppColors.outline),
                 labelStyle: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: _city == c ? Colors.white : AppColors.textDim),
@@ -319,13 +380,14 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   ],
                   Expanded(
                     child: Text('$status · próximos 12 meses',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.caption,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textFaint)),
                   ),
                 ]),
               ),
+              _genreChips(),
               _chips(),
               const SizedBox(height: 10),
               Expanded(
@@ -340,7 +402,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                     ? 'Todavía no hay toques en tus bares.\n\nPara leer sus flyers de Instagram, toca la copa de arriba y escribe el @usuario de cada bar.'
                                     : 'No hay conciertos encontrados${_city == 'Todas' ? '' : ' en esta ciudad'}.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.textDim),
+                            style: TextStyle(color: AppColors.textDim),
                           ),
                         ),
                       )
@@ -354,7 +416,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                 padding:
                                     const EdgeInsets.fromLTRB(4, 8, 4, 10),
                                 child: Text(_group(list[i]),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: AppType.caption,
                                         letterSpacing: 1.5,
                                         fontWeight: FontWeight.w700,
@@ -368,7 +430,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                 ? const SizedBox.shrink()
                                 : ExpansionTile(
                                     tilePadding: EdgeInsets.zero,
-                                    title: const Text(
+                                    title: Text(
                                         'Detalles de la última búsqueda',
                                         style: TextStyle(
                                             fontSize: AppType.label,
@@ -377,7 +439,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                       Align(
                                         alignment: Alignment.centerLeft,
                                         child: SelectableText(log,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                                 fontSize: AppType.caption,
                                                 height: 1.5,
                                                 color: AppColors.textFaint)),
@@ -385,7 +447,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                     ],
                                   ),
                           ),
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(top: 4),
                             child: Text(
                               'Datos buscados en internet con IA. Confirma la fecha en la fuente antes de comprar.',

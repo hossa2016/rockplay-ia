@@ -6,6 +6,8 @@ import 'ai_settings.dart';
 import 'block_service.dart';
 import 'artist_info_service.dart';
 import 'artist_pools.dart';
+import 'general_catalog.dart';
+import 'music_mode.dart';
 import 'mix_service.dart';
 import 'stats_service.dart';
 
@@ -30,9 +32,20 @@ class AssistantService {
   AssistantService._();
   static final AssistantService instance = AssistantService._();
 
-  static const String _system = '''
+  static String get _system =>
+      (MusicModeService.general ? _introGeneral : _introRock) + _rules0;
+
+  static const String _introRock = '''
 Eres el asistente musical de una app de rock llamada RockPlay IA. Hablas en español, con tono cercano y breve.
 Armas listas de canciones REALES de rock (cualquier época y subgénero, incluido rock en español) según lo que pida la persona: estado de ánimo, momento del día, actividad, artistas parecidos o descubrimiento.
+''';
+
+  static const String _introGeneral = '''
+Eres «Tu guía musical», el asistente de una app de música llamada Pulso. Hablas en español, con tono cercano y breve.
+Armas listas de canciones REALES de cualquier género (pop, pop latino, salsa, reguetón y urbano, vallenato, rock, electrónica, jazz, clásica, baladas, merengue, bachata y más) según lo que pida la persona: estado de ánimo, momento del día, actividad, artistas parecidos o descubrimiento. Si no pide un género, guíate por sus gustos; si pide uno, respétalo.
+''';
+
+  static const String _rules0 = '''
 Reglas:
 - Devuelve SOLO un objeto JSON con esta forma exacta: {"reply":"texto corto (máx. 2 frases)","title":"nombre corto de la lista","songs":[{"artist":"...","title":"..."}]}
 - Entre __MIN__ y __MAX__ canciones, todas distintas. Mezcla canciones conocidas con algunas menos conocidas que encajen con sus gustos.
@@ -113,9 +126,13 @@ Reglas:
         names.addAll(await MixService.personalArtists());
       } catch (_) {}
       final pool = <String>{
-        for (final k in const ['Rock clásico', 'Rock en español'])
-          ...?kMixArtistPools[k],
-        for (final e in kMixArtistPools.values) ...e,
+        if (MusicModeService.general)
+          for (final e in GeneralCatalog.pools.values) ...e
+        else ...[
+          for (final k in const ['Rock clásico', 'Rock en español'])
+            ...?kMixArtistPools[k],
+          for (final e in kMixArtistPools.values) ...e,
+        ],
       }.toList()
         ..shuffle();
       names.addAll(pool.take(130));
@@ -177,7 +194,7 @@ Reglas:
       }
       if (songs.length < 5) return null;
       return AssistantResult(
-        'Estos son lanzamientos reales de ${year == last ? '$year' : '$year a $last'} de bandas que te pueden gustar.',
+        'Estos son lanzamientos reales de ${year == last ? '$year' : '$year a $last'} de ${byMode('bandas', 'artistas')} que te pueden gustar.',
         year == last ? 'Lanzamientos $year' : 'Lanzamientos $year-$last',
         songs,
         'Deezer',
@@ -283,6 +300,7 @@ Reglas:
 
   static const Map<String, List<String>> _keywords = {
     'Energía': ['energ', 'pesado', 'fuerte', 'animad', 'subir', 'metal'],
+    'Fiesta': ['fiesta', 'rumba', 'bailar', 'baile', 'parche', 'farra'],
     'Para entrenar': ['entren', 'gym', 'gimnasio', 'correr', 'ejercicio'],
     'Para manejar': ['manej', 'carretera', 'viaje', 'conducir'],
     'Tranquilo': [
@@ -308,14 +326,31 @@ Reglas:
 
     for (final e in _keywords.entries) {
       if (e.value.any(t.contains)) {
-        final m = MixService.mood.firstWhere((x) => x.title == e.key);
+        final found = MixService.mood.where((x) => x.title == e.key);
+        if (found.isEmpty) continue;
+        final m = found.first;
         artists.addAll(MixService.pool(m));
         title = m.title;
         reply = 'Armé una lista "${m.title}" para ti (modo reglas simples).';
         break;
       }
     }
-    if (t.contains('español') || t.contains('espanol')) {
+    if (MusicModeService.general) {
+      // ¿Nombró un género? (salsa, vallenato, pop…)
+      for (final g in MixService.genre) {
+        final k = g.title.toLowerCase();
+        if (RegExp('(^|[^a-záéíóúñ])${RegExp.escape(k)}(\$|[^a-záéíóúñ])').hasMatch(t) ||
+            (k == 'reguetón' && (t.contains('regueton') || t.contains('urbano')))) {
+          // El género manda sobre el ánimo.
+          artists
+            ..clear()
+            ..addAll(MixService.pool(g));
+          title = g.title;
+          reply = 'Armé una lista de ${g.title.toLowerCase()} (modo reglas simples).';
+          break;
+        }
+      }
+    } else if (t.contains('español') || t.contains('espanol')) {
       artists.addAll(kMixArtistPools['Rock en español'] ?? const <String>[]);
       title = 'Rock en español';
       reply = 'Armé una lista de rock en español (modo reglas simples).';
@@ -327,7 +362,9 @@ Reglas:
     if (artists.isEmpty) {
       final personal = await MixService.personalArtists();
       artists.addAll(personal);
-      artists.addAll(kMixArtistPools['Rock clásico'] ?? const <String>[]);
+      artists.addAll(MusicModeService.general
+          ? (GeneralCatalog.pools['Pop latino'] ?? const <String>[])
+          : (kMixArtistPools['Rock clásico'] ?? const <String>[]));
       title = 'Mix del asistente';
     }
     final uniq = <String>{...artists}.toList();

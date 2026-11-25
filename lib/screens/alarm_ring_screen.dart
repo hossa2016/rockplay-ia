@@ -13,6 +13,7 @@ import '../services/mix_service.dart';
 import '../services/playback_service.dart';
 import '../services/playlist_service.dart';
 import '../services/radio_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/playback_ui.dart';
@@ -135,7 +136,9 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
       if (custom.isNotEmpty) {
         await p.setFilePath(custom);
       } else {
-        await p.setAsset('assets/sounds/rock_riff.wav');
+        await p.setAsset(MusicModeService.general
+            ? 'assets/sounds/soft_chime.wav'
+            : 'assets/sounds/rock_riff.wav');
       }
       await p.setLoopMode(LoopMode.all);
       await p.setVolume(1.0);
@@ -202,7 +205,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
       child: Scaffold(
         backgroundColor: AppColors.bg,
         body: DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment(0, -0.4),
               radius: 1.1,
@@ -223,7 +226,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
                   const SizedBox(height: 6),
                   Text(
                       '${_wd[_now.weekday]} ${_now.day} de ${_mo[_now.month - 1]}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: AppType.body, color: AppColors.textDim)),
                   const Spacer(),
                   ValueListenableBuilder<Song?>(
@@ -274,7 +277,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.body, color: AppColors.textDim),
                       ),
                     ]),
@@ -287,7 +290,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.text,
                         backgroundColor: AppColors.surfaceHigh,
-                        side: const BorderSide(color: AppColors.outline),
+                        side: BorderSide(color: AppColors.outline),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(AppRadius.lg)),
                         textStyle: const TextStyle(

@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
+import 'music_mode.dart';
 
 class RadioStation {
   final String id;
@@ -179,7 +180,9 @@ class RadioService {
     final params = StringBuffer('limit=40&hidebroken=true&order=votes&reverse=true');
     if (q.isNotEmpty) params.write('&name=$q');
     if (colombiaOnly) params.write('&countrycode=CO');
-    if (q.isEmpty && !colombiaOnly) params.write('&tag=rock');
+    if (q.isEmpty && !colombiaOnly && MusicModeService.rock) {
+      params.write('&tag=rock');
+    }
     final j = await _get('/json/stations/search?$params');
     return _parse(j);
   }

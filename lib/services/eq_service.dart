@@ -7,6 +7,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
+import 'music_mode.dart';
 import 'ai_client.dart';
 import 'embed_bridge.dart';
 import 'playback_service.dart';
@@ -40,15 +41,42 @@ class EqService extends ChangeNotifier {
     'Voces': [-2, -1, 0, 1, 3, 4, 4, 3, 1, 0],
     'Más graves': [7, 6, 4, 2, 0, 0, 0, 0, 0, 0],
     'Plano': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    // Modo «Todos los géneros».
+    'Pop': [-1, 0, 2, 3, 3, 2, 1, 1, 2, 2],
+    'Urbano': [7, 6, 4, 1, -1, 0, 1, 1, 2, 2],
+    'Salsa': [3, 3, 1, 0, 1, 2, 3, 4, 3, 2],
+    'Voz': [-2, -1, 0, 1, 3, 4, 4, 3, 1, 0],
+    'Graves': [7, 6, 4, 2, 0, 0, 0, 0, 0, 0],
   };
+
+  static const List<String> _rockNames = [
+    'Rock', 'Metal', 'Grunge', 'Punk', 'Clásico', 'Acústico', 'En vivo',
+    'Voces', 'Más graves', 'Plano',
+  ];
+  static const List<String> _generalNames = [
+    'Pop', 'Urbano', 'Salsa', 'Acústico', 'Voz', 'Graves', 'En vivo', 'Plano',
+  ];
+
+  /// Preajustes que se muestran en el modo actual.
+  static List<String> get visible =>
+      MusicModeService.general ? _generalNames : _rockNames;
+
+  static String get defaultPreset => MusicModeService.general ? 'Pop' : 'Rock';
+
+  /// Al cambiar de modo: si el preajuste no existe en el nuevo, se pasa al
+  /// de por defecto (los ajustes personalizados se respetan).
+  void syncMode() {
+    if (preset == 'Personalizado' || visible.contains(preset)) return;
+    applyPreset(defaultPreset);
+  }
 
   /// Ecualizador del sistema para el reproductor just_audio (radio y audio directo).
   final AndroidEqualizer androidEq = AndroidEqualizer();
 
   bool enabled = true;
   bool auto = false;
-  String preset = 'Rock';
-  List<double> gains = List<double>.from(presets['Rock']!);
+  String preset = defaultPreset;
+  List<double> gains = List<double>.from(presets[defaultPreset]!);
 
   /// Estado del ecualizador en el reproductor de YouTube, para mostrarlo.
   String embedStatus = '';
@@ -95,7 +123,7 @@ class EqService extends ChangeNotifier {
       final p = await SharedPreferences.getInstance();
       enabled = p.getBool('eq_on') ?? true;
       auto = p.getBool('eq_auto') ?? false;
-      preset = p.getString('eq_preset') ?? 'Rock';
+      preset = p.getString('eq_preset') ?? defaultPreset;
       final c = p.getString('eq_cache');
       if (c != null) {
         final m = jsonDecode(c) as Map<String, dynamic>;
@@ -113,6 +141,8 @@ class EqService extends ChangeNotifier {
         if (l.length == 10) gains = l;
       }
     } catch (_) {}
+    // Preajuste guardado de rock («Metal») abriendo en modo general.
+    syncMode();
     // Reaplica cada 3 s: YouTube puede cambiar el elemento de video al pasar de canción.
     _timer = Timer.periodic(const Duration(seconds: 3), (_) => _applyEmbed());
     try {
@@ -264,7 +294,7 @@ class EqService extends ChangeNotifier {
     // El reproductor de radio/audio directo crea su sesión al cargar: reaplicar.
     unawaited(Future<void>.delayed(const Duration(seconds: 2), applyAndroid));
     if (s == null || s.isRadio) return;
-    final key = '${s.artist}|${s.title}';
+    final key = '${MusicModeService.general ? 'g|' : ''}${s.artist}|${s.title}';
     if (key == suggestionFor) return;
     if (auto) {
       unawaited(_suggestAndApply(s));
@@ -276,8 +306,10 @@ class EqService extends ChangeNotifier {
   }
 
   Future<void> _suggestAndApply(Song s) async {
+    final gen = MusicModeService.generation;
     final r = await suggest(s);
-    if (r != null && auto && presets.containsKey(r.preset)) applyPreset(r.preset);
+    if (gen != MusicModeService.generation) return;
+    if (r != null && visible.contains(r.preset) && auto && presets.containsKey(r.preset)) applyPreset(r.preset);
   }
 
   Future<EqSuggestion?> suggestCurrent() async {
@@ -289,7 +321,7 @@ class EqService extends ChangeNotifier {
   Song? get currentSong => _lastSong;
 
   Future<EqSuggestion?> suggest(Song s) async {
-    final key = '${s.artist}|${s.title}';
+    final key = '${MusicModeService.general ? 'g|' : ''}${s.artist}|${s.title}';
     final cached = _cache[key];
     if (cached != null) {
       suggestion = cached;
@@ -310,10 +342,10 @@ class EqService extends ChangeNotifier {
     suggesting = true;
     notifyListeners();
     var counted = false;
-    const system =
-        'Eres un ingeniero de sonido experto en rock. Elige el mejor preajuste de ecualizador '
-        'para escuchar la canción con audífonos inalámbricos. Opciones exactas: Rock, Metal, '
-        'Grunge, Punk, Clásico, Acústico, En vivo, Voces, Más graves. Responde SOLO JSON: '
+    final system =
+        'Eres un ingeniero de sonido experto en ${MusicModeService.general ? 'todos los géneros musicales' : 'rock'}. Elige el mejor preajuste de ecualizador '
+        'para escuchar la canción con audífonos inalámbricos. Opciones exactas: '
+        '${visible.where((n) => n != 'Plano').join(', ')}. Responde SOLO JSON: '
         '{"preset":"<opción>","reason":"<una frase corta en español, máximo 18 palabras>"}';
     final msgs = [AiMessage(true, 'Canción: "${s.title}" de ${s.artist}.')];
     for (final entry in <MapEntry<String, Future<String> Function()>>[
@@ -328,7 +360,7 @@ class EqService extends ChangeNotifier {
         if (a < 0 || z <= a) continue;
         final j = jsonDecode(raw.substring(a, z + 1));
         final p = (j['preset'] ?? '').toString().trim();
-        if (!presets.containsKey(p)) continue;
+        if (!visible.contains(p)) continue;
         out = EqSuggestion(p, (j['reason'] ?? '').toString().trim(), entry.key);
         break;
       } catch (_) {}
@@ -360,8 +392,56 @@ class EqService extends ChangeNotifier {
       'rush', 'def leppard', 'whitesnake', 'soda stereo', 'héroes del silencio', 'heroes del silencio'],
   };
 
+  static const Map<String, List<String>> _generalArtists = {
+    'Urbano': ['bad bunny', 'karol g', 'j balvin', 'daddy yankee', 'feid', 'maluma', 'ozuna',
+      'rauw alejandro', 'anuel', 'myke towers', 'nicky jam', 'don omar', 'wisin', 'farruko',
+      'blessd', 'ryan castro', 'sech', 'arcángel', 'jhayco', 'quevedo', 'young miko', 'eminem',
+      'drake', 'kendrick lamar', 'travis scott', '50 cent', 'dr. dre'],
+    'Salsa': ['grupo niche', 'marc anthony', 'joe arroyo', 'héctor lavoe', 'hector lavoe',
+      'celia cruz', 'willie colón', 'willie colon', 'rubén blades', 'ruben blades', 'guayacán',
+      'guayacan', 'oscar d\'león', 'fruko', 'gilberto santa rosa', 'victor manuelle',
+      'gran combo', 'frankie ruiz', 'eddie santiago', 'jerry rivera', 'la india', 'tito nieves'],
+    'Acústico': ['norah jones', 'jorge drexler', 'natalia lafourcade', 'ed sheeran',
+      'jack johnson', 'john mayer', 'bon iver', 'ludovico einaudi', 'chopin', 'debussy'],
+    'Voz': ['adele', 'luis miguel', 'whitney houston', 'ella fitzgerald', 'laura pausini',
+      'marco antonio solís', 'ricardo arjona', 'alejandro sanz', 'rocío dúrcal', 'juan gabriel',
+      'diomedes díaz', 'silvestre dangond', 'jorge celedón', 'binomio de oro'],
+    'Graves': ['calvin harris', 'david guetta', 'avicii', 'daft punk', 'martin garrix', 'tiësto',
+      'skrillex', 'marshmello', 'swedish house mafia', 'major lazer', 'diplo'],
+  };
+
   /// Con [known] = true devuelve null si no reconoce nada (para preguntar a la IA).
   EqSuggestion? _rules(Song s, {bool known = false}) {
+    if (MusicModeService.general) return _rulesGeneral(s, known: known);
+    return _rulesRock(s, known: known);
+  }
+
+  EqSuggestion? _rulesGeneral(Song s, {bool known = false}) {
+    final t = s.title.toLowerCase();
+    final a = s.artist.toLowerCase();
+    if (t.contains('live') || t.contains('en vivo') || t.contains('directo')) {
+      return const EqSuggestion('En vivo', 'Grabación en vivo: más aire y presencia de público.', 'Reglas');
+    }
+    if (t.contains('acoustic') || t.contains('acústic') || t.contains('acustic') || t.contains('unplugged')) {
+      return const EqSuggestion('Acústico', 'Versión acústica: cuerdas y voz con más detalle.', 'Reglas');
+    }
+    for (final e in _generalArtists.entries) {
+      if (e.value.any((n) => a.contains(n))) {
+        final why = {
+          'Urbano': 'Bajos profundos y voz clara para el sonido urbano.',
+          'Salsa': 'Metales y percusión al frente, con bajo firme.',
+          'Acústico': 'Cuerdas, piano y voz con más detalle.',
+          'Voz': 'La voz al frente, con medios claros.',
+          'Graves': 'Más bajo y bombo para la electrónica.',
+        }[e.key]!;
+        return EqSuggestion(e.key, why, 'Reglas');
+      }
+    }
+    if (known) return null;
+    return const EqSuggestion('Pop', 'Voz presente y brillo suave, equilibrado para casi todo.', 'Reglas');
+  }
+
+  EqSuggestion? _rulesRock(Song s, {bool known = false}) {
     final t = s.title.toLowerCase();
     final a = s.artist.toLowerCase();
     if (t.contains('live') || t.contains('en vivo') || t.contains('directo')) {

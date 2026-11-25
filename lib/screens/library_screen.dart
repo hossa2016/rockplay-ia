@@ -216,7 +216,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 Expanded(
                   child: Text(
                     '${songs.length} ${songs.length == 1 ? 'canción' : 'canciones'}',
-                    style: const TextStyle(color: AppColors.textDim),
+                    style: TextStyle(color: AppColors.textDim),
                   ),
                 ),
                 if (!favorites)
@@ -247,7 +247,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             trailing: favorites
                 ? IconButton(
                     tooltip: 'Quitar de favoritos',
-                    icon: const Icon(Icons.favorite_rounded,
+                    icon: Icon(Icons.favorite_rounded,
                         color: AppColors.redText),
                     onPressed: () => _unfavorite(song),
                   )
@@ -291,14 +291,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
               borderRadius: BorderRadius.circular(AppRadius.sm),
               border: Border.all(color: AppColors.redText),
             ),
-            child: const Icon(Icons.add_rounded, color: AppColors.redText),
+            child: Icon(Icons.add_rounded, color: AppColors.redText),
           ),
           title: const Text('Nueva lista',
               style: TextStyle(fontWeight: FontWeight.w700)),
           onTap: _newList,
         ),
         if (_lists.isEmpty)
-          const Padding(
+          Padding(
             padding: EdgeInsets.all(20),
             child: Text(
               'Aún no tienes listas. Crea una o guarda la que arme el asistente.',
@@ -319,9 +319,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(fontWeight: FontWeight.w700)),
             subtitle: Text('${p.songs.length} canciones',
-                style: const TextStyle(color: AppColors.textDim)),
+                style: TextStyle(color: AppColors.textDim)),
             trailing: PopupMenuButton<String>(
-              icon: const Icon(Icons.more_vert_rounded,
+              icon: Icon(Icons.more_vert_rounded,
                   color: AppColors.textDim),
               onSelected: (v) async {
                 if (v == 'rename') {

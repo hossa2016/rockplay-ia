@@ -69,7 +69,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
                           fontWeight: FontWeight.w800, fontSize: AppType.body)),
                   const SizedBox(height: 2),
                   Text(sub,
-                      style: const TextStyle(
+                      style: TextStyle(
                           color: AppColors.textDim, fontSize: AppType.caption)),
                 ],
               ),
@@ -117,11 +117,11 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
           Padding(
             padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
             child: Text(_ds.debugInfo(),
-                style: const TextStyle(
+                style: TextStyle(
                     color: AppColors.textFaint, fontSize: AppType.caption)),
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             'El caché guarda portadas y datos de artistas en tu teléfono para no '
             'bajarlos otra vez. No guarda música.',
             style: TextStyle(color: AppColors.textDim, height: 1.4),
@@ -162,7 +162,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
             contentPadding: const EdgeInsets.symmetric(horizontal: 4),
             title: const Text('Con datos móviles, no bajar portadas nuevas',
                 style: TextStyle(fontWeight: FontWeight.w700)),
-            subtitle: const Text(
+            subtitle: Text(
                 'Las que ya están guardadas sí se ven. Las nuevas esperan al WiFi.',
                 style: TextStyle(color: AppColors.textDim)),
             value: _ds.noMobileImages,
@@ -176,7 +176,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.bug_report_outlined),
             title: const Text('Registro de canciones saltadas'),
-            subtitle: const Text('Motivo técnico de las últimas canciones que no sonaron.',
+            subtitle: Text('Motivo técnico de las últimas canciones que no sonaron.',
                 style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
             onTap: () => showDialog<void>(
               context: context,

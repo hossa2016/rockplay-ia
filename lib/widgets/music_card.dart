@@ -33,7 +33,7 @@ class MusicCard extends StatelessWidget {
         final isCurrent =
             cur != null && cur.title == song.title && cur.artist == song.artist;
         // Sin ▶ redundante (toda la fila ya reproduce): la que suena muestra
-        // el ecualizador; las demás, el menú de acciones.
+        // el ecualizador; el menú ⋮ va aparte.
         final Widget end = trailing ??
             (isCurrent
                 ? Icon(
@@ -41,14 +41,7 @@ class MusicCard extends StatelessWidget {
                         ? Icons.graphic_eq_rounded
                         : Icons.pause_rounded,
                     color: AppColors.amber)
-                : actions
-                    ? IconButton(
-                        tooltip: 'Más opciones',
-                        icon: const Icon(Icons.more_vert_rounded,
-                            color: AppColors.textDim),
-                        onPressed: () => showSongActions(context, song),
-                      )
-                    : const SizedBox(width: 24));
+                : const SizedBox.shrink());
         final card = Material(
           color: Colors.transparent,
           child: InkWell(
@@ -81,7 +74,7 @@ class MusicCard extends StatelessWidget {
                           song.artist,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: AppType.label,
                             color: AppColors.textDim,
                           ),
@@ -98,7 +91,7 @@ class MusicCard extends StatelessWidget {
                       child: IconButton(
                         padding: EdgeInsets.zero,
                         tooltip: 'Más opciones',
-                        icon: const Icon(Icons.more_vert_rounded,
+                        icon: Icon(Icons.more_vert_rounded,
                             color: AppColors.textDim),
                         onPressed: () => showSongActions(context, song),
                       ),
@@ -125,8 +118,8 @@ class MusicCard extends StatelessWidget {
           background: Container(
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.only(left: 24),
-            color: const Color.fromRGBO(229, 51, 46, 0.18),
-            child: const Row(mainAxisSize: MainAxisSize.min, children: [
+            color: AppColors.red.withValues(alpha: 0.18),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
               Icon(Icons.queue_play_next_rounded, color: AppColors.amber),
               SizedBox(width: 10),
               Text('A continuación',

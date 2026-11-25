@@ -14,6 +14,7 @@ import '../services/block_service.dart';
 import '../services/library_service.dart';
 import '../services/mix_service.dart';
 import 'song_list_screen.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/mini_player.dart';
@@ -147,7 +148,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             const MiniPlayer(),
             Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(color: AppColors.navLine, width: 1),
                 ),
@@ -249,6 +250,12 @@ class _HomeTabState extends State<_HomeTab> {
     final now = DateTime.now();
     final h = now.hour;
     final weekend = now.weekday >= DateTime.saturday;
+    if (MusicModeService.general) {
+      if (h >= 5 && h < 12) return weekend ? 'Mañana\nsin afán' : 'Empieza con\nlo tuyo';
+      if (h >= 12 && h < 19) return weekend ? 'Tarde\npara salir' : 'Tu tarde\nsuena así';
+      if (h >= 19 && h < 23) return 'Tu noche\nsuena así';
+      return 'Madrugada\nen calma';
+    }
     if (h >= 5 && h < 12) return weekend ? 'MAÑANA DE\nCARRETERA' : 'ARRANCA\nCON RIFFS';
     if (h >= 12 && h < 19) return weekend ? 'TARDE DE\nCARRETERA' : 'TARDE\nDE GUITARRAS';
     if (h >= 19 && h < 23) return 'NOCHE\nDE RIFFS';
@@ -377,10 +384,10 @@ class _HomeTabState extends State<_HomeTab> {
       if (a.count < 5) return null;
       return _Nudge(
         'Una semana con ${a.name}',
-        '¿Algo parecido con bandas nuevas?',
+        byMode('¿Algo parecido con bandas nuevas?', '¿Algo parecido con artistas nuevos?'),
         Icons.auto_awesome_rounded,
         prompt:
-            'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con bandas que probablemente no conozco.',
+            'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con ${byMode('bandas', 'artistas')} que probablemente no conozco.',
       );
     } catch (_) {
       return null;
@@ -400,7 +407,7 @@ class _HomeTabState extends State<_HomeTab> {
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              side: const BorderSide(color: AppColors.outline),
+              side: BorderSide(color: AppColors.outline),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -421,7 +428,7 @@ class _HomeTabState extends State<_HomeTab> {
                   Container(
                     width: 36,
                     height: 36,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                         shape: BoxShape.circle, gradient: AppColors.accent),
                     child: Icon(n.icon, color: Colors.white, size: 18),
                   ),
@@ -440,7 +447,7 @@ class _HomeTabState extends State<_HomeTab> {
                         Text(n.text,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: AppType.label,
                                 height: 1.3,
                                 color: AppColors.textDim)),
@@ -449,7 +456,7 @@ class _HomeTabState extends State<_HomeTab> {
                   ),
                   IconButton(
                     tooltip: 'Ocultar sugerencia',
-                    icon: const Icon(Icons.close_rounded,
+                    icon: Icon(Icons.close_rounded,
                         color: AppColors.textDim, size: 20),
                     onPressed: () => setState(() => _nudgeClosed = true),
                   ),
@@ -481,7 +488,7 @@ class _HomeTabState extends State<_HomeTab> {
       title: Row(children: [
         const PickLogo(size: 34),
         const SizedBox(width: 10),
-        Text('ROCKPLAY', style: AppType.oswald(AppType.title)),
+        Text(byMode('ROCKPLAY', 'Pulso'), style: AppType.oswald(AppType.title)),
       ]),
       actions: [
         IconButton(
@@ -597,7 +604,7 @@ class _HomeTabState extends State<_HomeTab> {
   int _disc = 0;
 
   Widget _discoverChips() {
-    const labels = ['Bandas', 'Lanzamientos', 'Mixes'];
+    final labels = [byMode('Bandas', 'Artistas'), 'Lanzamientos', 'Mixes'];
     return Dense(child: SizedBox(
       height: 48,
       child: ListView.separated(
@@ -671,7 +678,7 @@ class _HomeTabState extends State<_HomeTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('La música se detuvo a las $hora',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.amber,
                             fontWeight: FontWeight.w800,
                             fontSize: AppType.label)),
@@ -807,7 +814,7 @@ class _HomeTabState extends State<_HomeTab> {
                       Text(r.artist,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textDim, fontSize: AppType.caption)),
                     ],
                   ),
@@ -830,12 +837,9 @@ class _HomeTabState extends State<_HomeTab> {
     if (seeds.length < 3) {
       seeds = [
         ...seeds,
-        'Nirvana',
-        'Foo Fighters',
-        'Soda Stereo',
-        'Pearl Jam',
-        'Green Day',
-        'Metallica',
+        ...(MusicModeService.general
+            ? const ['Karol G', 'Carlos Vives', 'Grupo Niche', 'Dua Lipa', 'Morat', 'Feid']
+            : const ['Nirvana', 'Foo Fighters', 'Soda Stereo', 'Pearl Jam', 'Green Day', 'Metallica']),
       ];
     }
     seeds = (seeds.toSet().toList()..shuffle()).take(6).toList();
@@ -860,7 +864,7 @@ class _HomeTabState extends State<_HomeTab> {
               child: StateMessage(
                 compact: true,
                 icon: Icons.cloud_off_rounded,
-                title: 'No pude cargar bandas',
+                title: byMode('No pude cargar bandas', 'No pude cargar artistas'),
                 message: 'Revisa tu conexión.',
                 actionLabel: 'Reintentar',
                 isError: true,
@@ -888,7 +892,7 @@ class _HomeTabState extends State<_HomeTab> {
                           width: 88,
                           height: 88,
                           child: a.picture.isEmpty
-                              ? const ColoredBox(color: AppColors.surfaceWarm)
+                              ? ColoredBox(color: AppColors.surfaceWarm)
                               : Image.network(a.picture, fit: BoxFit.cover),
                         ),
                       ),
@@ -945,7 +949,7 @@ class _HomeTabState extends State<_HomeTab> {
             ),
             child: Stack(
               children: [
-                const Positioned(
+                Positioned(
                   right: 0,
                   bottom: 0,
                   child: Opacity(
@@ -963,9 +967,9 @@ class _HomeTabState extends State<_HomeTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('TU MIX', style: AppType.overline),
+                      Text('TU MIX', style: AppType.overline),
                       const SizedBox(height: 6),
-                      Text('SUENA COMO\nTÚ ERES',
+                      Text(byMode('SUENA COMO\nTÚ ERES', 'Lo que más\nte suena'),
                           style: AppType.oswald(AppType.display)),
                       const SizedBox(height: 8),
                       ConstrainedBox(
@@ -985,7 +989,7 @@ class _HomeTabState extends State<_HomeTab> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.play_arrow_rounded,
@@ -1045,7 +1049,7 @@ class _HomeTabState extends State<_HomeTab> {
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: AppColors.outline),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.headphones_rounded, color: AppColors.amber, size: 30),
               SizedBox(width: 14),
@@ -1124,13 +1128,13 @@ class _QuickTile extends StatelessWidget {
                       Text(subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: AppType.label,
                               color: AppColors.textDim)),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded,
+                Icon(Icons.chevron_right_rounded,
                     color: AppColors.textDim),
               ],
             ),
@@ -1179,7 +1183,7 @@ class _RecentCard extends StatelessWidget {
               song.artist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
+              style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
             ),
           ],
         ),
@@ -1223,7 +1227,9 @@ class _MixCard extends StatelessWidget {
               children: [
                 Positioned.fill(
                   child: CustomPaint(
-                      painter: const PickPatternPainter(Color(0x0FFFFFFF))),
+                      painter: MusicModeService.general
+                          ? null
+                          : const PickPatternPainter(Color(0x0FFFFFFF))),
                 ),
                 Positioned(
                   right: -14,
@@ -1245,7 +1251,7 @@ class _MixCard extends StatelessWidget {
                     children: [
                       const Spacer(),
                       Text(
-                        def.title.toUpperCase(),
+                        MusicModeService.general ? def.title : def.title.toUpperCase(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(

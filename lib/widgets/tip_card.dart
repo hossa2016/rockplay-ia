@@ -46,7 +46,7 @@ class _TipCardState extends State<TipCard> {
                   Border.all(color: AppColors.amberLine),
             ),
             child: Row(children: [
-              const Icon(Icons.lightbulb_outline_rounded,
+              Icon(Icons.lightbulb_outline_rounded,
                   color: AppColors.amber, size: 22),
               const SizedBox(width: 10),
               Expanded(

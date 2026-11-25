@@ -8,6 +8,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
+import 'music_mode.dart';
+
 /// Qué suena en una alarma.
 enum AlarmSource { mix, radio, list, song }
 
@@ -314,17 +316,23 @@ class AlarmService {
           'Toca para apagar la alarma',
           back,
           NotificationDetails(
+            // El sonido de un canal no cambia una vez creado: cada tono
+            // tiene su propio canal.
             android: AndroidNotificationDetails(
-              'rp_alarm_backup',
-              'Despertador (respaldo)',
-              channelDescription:
-                  'Riff guardado en el celular si la música no arranca',
+              MusicModeService.general ? 'rp_alarm_backup_soft' : 'rp_alarm_backup',
+              MusicModeService.general
+                  ? 'Despertador (respaldo suave)'
+                  : 'Despertador (respaldo)',
+              channelDescription: MusicModeService.general
+                  ? 'Tono suave guardado en el celular si la música no arranca'
+                  : 'Riff guardado en el celular si la música no arranca',
               importance: Importance.max,
               priority: Priority.max,
               category: AndroidNotificationCategory.alarm,
               fullScreenIntent: true,
               playSound: true,
-              sound: const RawResourceAndroidNotificationSound('rock_riff'),
+              sound: RawResourceAndroidNotificationSound(
+                  MusicModeService.general ? 'soft_chime' : 'rock_riff'),
               audioAttributesUsage: AudioAttributesUsage.alarm,
               enableVibration: true,
               visibility: NotificationVisibility.public,

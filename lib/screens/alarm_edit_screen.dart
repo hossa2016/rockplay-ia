@@ -10,6 +10,7 @@ import '../services/alarm_service.dart';
 import '../services/library_service.dart';
 import '../services/playlist_service.dart';
 import '../services/radio_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/undo.dart';
 
@@ -117,7 +118,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               title: Text('Listas',
                   style: TextStyle(fontWeight: FontWeight.w800))),
           ListTile(
-            leading: const Icon(Icons.favorite_rounded, color: AppColors.redText),
+            leading: Icon(Icons.favorite_rounded, color: AppColors.redText),
             title: const Text('Tus favoritas'),
             subtitle: Text('${favs.length} canciones · en orden aleatorio'),
             onTap: () => Navigator.pop(
@@ -233,7 +234,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: on ? const Color(0x1FC92B26) : AppColors.surfaceHigh,
+        color: on ? AppColors.redBtn.withValues(alpha: 0.12) : AppColors.surfaceHigh,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.md),
           side: BorderSide(color: on ? AppColors.redBtn : AppColors.outline),
@@ -252,7 +253,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppRadius.sm),
                     gradient: on
-                        ? const LinearGradient(colors: AppPalettes.fire)
+                        ? LinearGradient(colors: AppPalettes.fire)
                         : null,
                     color: on ? null : AppColors.outline,
                   ),
@@ -271,7 +272,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                       Text(sub,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: AppType.label,
                               color: AppColors.textDim)),
                     ],
@@ -355,11 +356,11 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
           const SizedBox(height: 10),
           Center(
             child: Text(_untilLabel(),
-                style: const TextStyle(
+                style: TextStyle(
                     fontSize: AppType.label, color: AppColors.textDim)),
           ),
           const SizedBox(height: 22),
-          const Text('REPETIR', style: AppType.overline),
+          Text('REPETIR', style: AppType.overline),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -376,14 +377,14 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
             ],
           ),
           if (_a.days.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 6),
               child: Text('Sin días marcados: suena una sola vez.',
                   style: TextStyle(
                       fontSize: AppType.caption, color: AppColors.textDim)),
             ),
           const SizedBox(height: 22),
-          const Text('QUÉ SUENA', style: AppType.overline),
+          Text('QUÉ SUENA', style: AppType.overline),
           const SizedBox(height: 8),
           _source(Icons.music_note_rounded, 'Tu mix', 'Tus artistas de siempre',
               _a.source == AlarmSource.mix, () {
@@ -409,14 +410,14 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               _pickList),
           const SizedBox(height: 22),
           Row(children: [
-            const Text('VOLUMEN DE LA ALARMA', style: AppType.overline),
+            Text('VOLUMEN DE LA ALARMA', style: AppType.overline),
             const Spacer(),
             Text('${(_a.volume * 100).round()} %',
                 style: const TextStyle(
                     fontWeight: FontWeight.w800, fontSize: AppType.body)),
           ]),
           Row(children: [
-            const Icon(Icons.volume_down_rounded, color: AppColors.textDim),
+            Icon(Icons.volume_down_rounded, color: AppColors.textDim),
             Expanded(
               child: Slider(
                 value: _a.volume,
@@ -431,9 +432,9 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                 },
               ),
             ),
-            const Icon(Icons.volume_up_rounded, color: AppColors.textDim),
+            Icon(Icons.volume_up_rounded, color: AppColors.textDim),
           ]),
-          const Text(
+          Text(
               'Pone el volumen del celular a este nivel mientras suena y lo deja como estaba al apagar.',
               style: TextStyle(fontSize: AppType.caption, color: AppColors.textDim)),
           const SizedBox(height: 14),
@@ -447,7 +448,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               SwitchListTile(
                 title: const Text('Subir el volumen poco a poco',
                     style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text('Empieza al 40 % y llega al máximo en 30 s',
+                subtitle: Text('Empieza al 40 % y llega al máximo en 30 s',
                     style: TextStyle(color: AppColors.textDim)),
                 value: _a.ramp,
                 activeTrackColor: AppColors.redBtn,
@@ -457,7 +458,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
               SwitchListTile(
                 title: const Text('Tono de respaldo',
                     style: TextStyle(fontWeight: FontWeight.w700)),
-                subtitle: const Text(
+                subtitle: Text(
                     'Si en 15 s no arranca la música, suena un tono guardado',
                     style: TextStyle(color: AppColors.textDim)),
                 value: _a.backup,
@@ -468,20 +469,20 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                 const Divider(height: 1, indent: 16, endIndent: 16),
                 ListTile(
                   minVerticalPadding: 12,
-                  leading: const Icon(Icons.graphic_eq_rounded,
+                  leading: Icon(Icons.graphic_eq_rounded,
                       color: AppColors.amber),
                   title: Text(_a.backupPath.isEmpty
-                      ? 'Riff de rock (incluido)'
+                      ? byMode('Riff de rock (incluido)', 'Tono suave (incluido)')
                       : _a.backupLabel),
                   subtitle: Text(
                       _a.backupPath.isEmpty
                           ? 'Toca para usar una canción tuya del celular'
                           : 'Canción tuya · toca para cambiarla',
-                      style: const TextStyle(color: AppColors.textDim)),
+                      style: TextStyle(color: AppColors.textDim)),
                   trailing: _a.backupPath.isEmpty
                       ? const Icon(Icons.chevron_right_rounded)
                       : IconButton(
-                          tooltip: 'Volver al riff de rock',
+                          tooltip: byMode('Volver al riff de rock', 'Volver al tono suave'),
                           icon: const Icon(Icons.close_rounded),
                           onPressed: () => setState(() {
                             _a.backupPath = '';
@@ -494,10 +495,10 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
             ]),
           ),
           if (_a.backup && _a.backupPath.isNotEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.fromLTRB(4, 8, 4, 0),
               child: Text(
-                  'Si la app no alcanza a abrir, igual suena el riff de rock desde el aviso del sistema.',
+                  byMode('Si la app no alcanza a abrir, igual suena el riff de rock desde el aviso del sistema.', 'Si la app no alcanza a abrir, igual suena el tono suave desde el aviso del sistema.'),
                   style: TextStyle(
                       fontSize: AppType.caption, color: AppColors.textDim)),
             ),

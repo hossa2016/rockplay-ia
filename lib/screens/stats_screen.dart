@@ -66,7 +66,7 @@ class _StatsScreenState extends State<StatsScreen> {
                           fontWeight: FontWeight.w600, fontSize: AppType.bodySm)),
                 ),
                 Text('$count',
-                    style: const TextStyle(color: AppColors.textDim)),
+                    style: TextStyle(color: AppColors.textDim)),
               ],
             ),
             const SizedBox(height: 6),
@@ -116,18 +116,18 @@ class _StatsScreenState extends State<StatsScreen> {
                 color: AppColors.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadius.lg),
-                  side: const BorderSide(color: AppColors.outline),
+                  side: BorderSide(color: AppColors.outline),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: ListTile(
                   minVerticalPadding: 12,
-                  leading: const Icon(Icons.auto_awesome_rounded,
+                  leading: Icon(Icons.auto_awesome_rounded,
                       color: AppColors.amber),
                   title: const Text('Tu gusto',
                       style: TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: const Text('Lo que aprendí de lo que escuchas',
+                  subtitle: Text('Lo que aprendí de lo que escuchas',
                       style: TextStyle(color: AppColors.textDim)),
-                  trailing: const Icon(Icons.chevron_right_rounded,
+                  trailing: Icon(Icons.chevron_right_rounded,
                       color: AppColors.textDim),
                   onTap: () => Navigator.of(context).push(
                       MaterialPageRoute<void>(
@@ -165,7 +165,7 @@ class _StatsScreenState extends State<StatsScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
                 child: Text('$label: ${_plays.length} canciones escuchadas',
-                    style: const TextStyle(color: AppColors.amber)),
+                    style: TextStyle(color: AppColors.amber)),
               ),
               const SectionTitle('Artistas más escuchados'),
               for (final a in artists)
