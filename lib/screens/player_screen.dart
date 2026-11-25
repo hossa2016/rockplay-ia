@@ -18,6 +18,7 @@ import '../services/block_service.dart';
 import '../widgets/add_to_playlist.dart';
 import '../widgets/cover_art.dart';
 import '../services/playback_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/favorite_button.dart';
 import '../widgets/music_card.dart';
@@ -533,7 +534,10 @@ class _PlayerScreenState extends State<PlayerScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        info?.title ?? song.title,
+                        // Rock: título en mayúsculas, como el resto de títulos.
+                        MusicModeService.general
+                            ? (info?.title ?? song.title)
+                            : (info?.title ?? song.title).toUpperCase(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

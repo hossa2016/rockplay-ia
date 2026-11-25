@@ -338,21 +338,11 @@ class _RadioScreenState extends State<RadioScreen> {
               onChanged: (_) => setState(() {}),
                 ),
               ),
-              PopupMenuButton<String>(
-                tooltip: 'Más opciones',
-                icon: const Icon(Icons.more_vert_rounded),
-                color: AppColors.surfaceHigh,
-                onSelected: (_) => _addByLink(),
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: 'link',
-                    child: ListTile(
-                      dense: true,
-                      leading: Icon(Icons.add_link_rounded),
-                      title: Text('Agregar emisora por enlace'),
-                    ),
-                  ),
-                ],
+              // Acción visible en vez de un ⋮ que no decía qué tenía.
+              IconButton(
+                tooltip: 'Agregar emisora por enlace',
+                icon: const Icon(Icons.add_link_rounded),
+                onPressed: _addByLink,
               ),
             ]),
           ),

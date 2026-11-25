@@ -20,6 +20,7 @@ Future<void> main() async {
   // Primero el modo de música: define colores, textos y géneros.
   await MusicModeService.load();
   await ModeCleanup.run();
+  unawaited(ModeCleanup.fixTitles());
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
