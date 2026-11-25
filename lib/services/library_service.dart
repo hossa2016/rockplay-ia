@@ -75,9 +75,16 @@ class LibraryService {
 
   Future<void> clearHistory() => _save(_histKey, <Song>[]);
 
+  static String _same(Song s) =>
+      '${s.artist.toLowerCase().trim()}|${s.title.toLowerCase().trim()}';
+
   Future<void> addToHistory(Song song) async {
-    final h = await history();
-    h.removeWhere((s) => s.videoId == song.videoId);
+    // Va al historial del modo donde empezó la cola (no del que esté
+    // abierto si cambiaste de modo con música sonando).
+    final key = playKey('history');
+    final h = await _load(key);
+    // Sin repetidas: misma canción aunque YouTube la dé con otro video.
+    h.removeWhere((s) => s.videoId == song.videoId || _same(s) == _same(song));
     h.insert(0, await _withCover(song));
     // Completa también algunas anteriores que quedaron sin portada.
     var fixed = 0;
@@ -87,6 +94,6 @@ class LibraryService {
         fixed++;
       }
     }
-    await _save(_histKey, h.take(50).toList());
+    await _save(key, h.take(50).toList());
   }
 }
