@@ -35,6 +35,23 @@ class StatsService {
 
   static String cleanArtist(String a) => SongMeta.cleanChannel(a);
 
+  Future<List<PlayEntry>> _loadKey(String key) async {
+    if (key == _key) return _load();
+    final out = <PlayEntry>[];
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final raw = sp.getString(key);
+      if (raw != null) {
+        for (final e in jsonDecode(raw) as List) {
+          final l = e as List;
+          out.add(PlayEntry(l[0] as int, l[1] as String, l[2] as String,
+              l[3] as String, l[4] as String));
+        }
+      }
+    } catch (_) {}
+    return out;
+  }
+
   Future<List<PlayEntry>> _load() async {
     if (_cache != null && _cacheMode == MusicModeService.mode.value) {
       return _cache!;
@@ -56,8 +73,10 @@ class StatsService {
   }
 
   Future<void> record(Song s) async {
+    // La cola es del otro modo (cambiaste con música sonando): se anota allá.
+    final key = playKey('plays_v1');
     try {
-      final list = await _load();
+      final list = await _loadKey(key);
       var artist = cleanArtist(s.artist);
       // Canal que sube música ajena («Music Uploader», «… Vault»): se
       // confirma el artista real con Deezer para que Tus números y los
@@ -76,7 +95,7 @@ class StatsService {
       if (list.length > _cap) list.removeRange(0, list.length - _cap);
       final sp = await SharedPreferences.getInstance();
       await sp.setString(
-        _key,
+        key,
         jsonEncode([
           for (final p in list) [p.ts, p.artist, p.title, p.videoId, p.image]
         ]),

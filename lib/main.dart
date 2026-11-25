@@ -10,6 +10,7 @@ import 'services/data_saver.dart';
 import 'services/block_service.dart';
 import 'services/concert_service.dart';
 import 'services/eq_service.dart';
+import 'services/mode_cleanup.dart';
 import 'services/music_mode.dart';
 import 'services/playback_service.dart';
 import 'widgets/playback_ui.dart';
@@ -18,6 +19,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Primero el modo de música: define colores, textos y géneros.
   await MusicModeService.load();
+  await ModeCleanup.run();
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,

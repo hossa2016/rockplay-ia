@@ -22,6 +22,12 @@ class MusicModeService {
   static int generation = 0;
 
   static bool get general => mode.value == MusicMode.general;
+
+  /// Modo en que se armó la cola que está sonando. Si cambias de modo con
+  /// música sonando, esas canciones se siguen anotando en el historial y
+  /// las escuchas del modo donde empezaron, no en el nuevo.
+  static MusicMode? queueMode;
+  static MusicMode get playMode => queueMode ?? mode.value;
   static bool get rock => mode.value == MusicMode.rock;
 
   /// Nombre visible de la app según el modo.
@@ -66,6 +72,10 @@ String byMode(String rock, String general) =>
 /// favoritas y las búsquedas de «Todos los géneros» no se mezclan con las
 /// de rock. En rock se usan las claves de siempre.
 String modeKey(String key) => MusicModeService.general ? 'g_$key' : key;
+
+/// Igual que [modeKey], pero para el modo de la cola que está sonando.
+String playKey(String key) =>
+    MusicModeService.playMode == MusicMode.general ? 'g_$key' : key;
 
 /// Ajustes propios del modo «Todos los géneros» y del saludo.
 class PulsoPrefs {

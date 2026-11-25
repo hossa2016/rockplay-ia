@@ -17,6 +17,7 @@ import 'music_api_service.dart';
 import 'stream_resolver.dart';
 import 'data_saver.dart';
 import 'block_service.dart';
+import 'music_mode.dart';
 
 
 /// Estado observable compartido entre el handler y PlaybackService.
@@ -243,6 +244,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   Future<void> playQueue(List<Song> songs, int index) async {
     if (songs.isEmpty) return;
+    MusicModeService.queueMode = MusicModeService.mode.value;
     // Quita artistas bloqueados, pero respeta la canción que tocaste.
     final chosen = songs[index.clamp(0, songs.length - 1)];
     final bl = BlockService.instance;
