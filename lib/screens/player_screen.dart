@@ -76,7 +76,14 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   static Color _readable(Color c) {
     final h = HSLColor.fromColor(c);
-    if (h.saturation < 0.18) return AppColors.red; // gris: color de marca
+    // Croma real (no la saturación HSL, que se dispara en los casi negros).
+    final r = (c.r * 255), g = (c.g * 255), b = (c.b * 255);
+    final chroma = ([r, g, b].reduce(math.max) - [r, g, b].reduce(math.min)) / 255;
+    if (chroma < 0.10 || h.saturation < 0.18) return AppColors.red; // gris
+    // En rock solo tonos cálidos (rojos, naranjas, ámbar); si no, el rojo.
+    if (!MusicModeService.general && h.hue > 50 && h.hue < 330) {
+      return AppColors.red;
+    }
     final c2 = h
         .withSaturation(h.saturation.clamp(0.55, 0.9))
         .withLightness(h.lightness.clamp(0.52, 0.62))
@@ -428,6 +435,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                       builder: (_) => ArtistScreen(
                           name: _info?.artist ?? s.artist)));
                 }
+              } else if (v == 'playlist') {
+                final s = pb.song.value;
+                if (s != null) showAddToPlaylist(context, s);
               } else if (v == 'share') {
                 final s = pb.song.value;
                 if (s != null) ShareService.song(s);
@@ -452,6 +462,14 @@ class _PlayerScreenState extends State<PlayerScreen>
                   dense: true,
                   leading: Icon(Icons.person_outline_rounded),
                   title: Text('Ver artista y discos'),
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'playlist',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(Icons.playlist_add_rounded),
+                  title: Text('Agregar a lista'),
                 ),
               ),
               const PopupMenuItem(
@@ -1008,7 +1026,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(_fmt(shown), style: _timeStyle),
-                    Text(total > 0 ? '-${_fmt(remaining)}' : '--:--',
+                    Text(total > 0 ? '-${_fmt(remaining)}' : '',
                         style: _timeStyle),
                   ],
                 ),

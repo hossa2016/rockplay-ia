@@ -54,7 +54,7 @@ class MusicCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
               child: Row(
                 children: [
-                  CoverArt(url: song.image, size: 56, radius: 8, seed: song.artist),
+                  SongCover(song, size: 56, radius: 8),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -92,7 +92,7 @@ class MusicCard extends StatelessWidget {
                   end,
                   if (actions && trailing == null)
                     SizedBox(
-                      width: 40,
+                      width: 48,
                       height: 48,
                       child: IconButton(
                         padding: EdgeInsets.zero,
@@ -196,17 +196,20 @@ class _PlayingBarsState extends State<PlayingBars>
         animation: _c,
         builder: (context, _) {
           const phases = [0.0, 0.35, 0.7];
+          // En pausa: escalonadas y quietas (no tres puntos iguales que
+          // parezcan un menú).
+          const still = [0.45, 0.85, 0.6];
           return Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              for (final p in phases)
+              for (var i = 0; i < phases.length; i++)
                 Container(
                   width: s / 6,
                   margin: EdgeInsets.symmetric(horizontal: s / 24),
                   height: widget.playing
-                      ? s * (0.3 + 0.7 * (0.5 + 0.5 * math.sin(2 * math.pi * (_c.value + p))))
-                      : s * 0.25,
+                      ? s * (0.3 + 0.7 * (0.5 + 0.5 * math.sin(2 * math.pi * (_c.value + phases[i]))))
+                      : s * still[i],
                   decoration: BoxDecoration(
                       color: color, borderRadius: BorderRadius.circular(2)),
                 ),

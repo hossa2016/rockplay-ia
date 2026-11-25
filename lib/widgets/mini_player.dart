@@ -45,8 +45,9 @@ class _MiniBody extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
       child: FutureBuilder<Color?>(
-        future: CoverColor.of(song.image),
-        initialData: CoverColor.peek(song.image),
+        // El color sale de la misma carátula que se muestra.
+        future: SongArtwork.of(song).then(CoverColor.of),
+        initialData: CoverColor.peek(SongArtwork.peek(song)),
         builder: (context, snap) => AnimatedContainer(
           duration: const Duration(milliseconds: 500),
           decoration: BoxDecoration(
@@ -95,11 +96,8 @@ class _MiniBody extends StatelessWidget {
                   children: [
                     Hero(
                       tag: kNowPlayingHero,
-                      child: CoverArt(
-                          url: song.image,
-                          size: 44,
-                          radius: AppRadius.sm,
-                          seed: song.artist),
+                      child: SongCover(song,
+                          size: 44, radius: AppRadius.sm),
                     ),
                     const SizedBox(width: 12),
                     Expanded(

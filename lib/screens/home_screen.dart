@@ -38,6 +38,7 @@ import 'onboarding_screen.dart';
 import 'settings_hub_screen.dart';
 import '../services/track_info_service.dart';
 import '../services/data_saver.dart';
+import '../widgets/app_button.dart';
 
 /// Contenedor principal: pestañas + mini-reproductor sobre la navegación.
 class HomeScreen extends StatefulWidget {
@@ -77,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     AlarmService.instance.ringRequest.removeListener(_checkAlarm);
+    mainTabWant.removeListener(_onTabWant);
     super.dispose();
   }
 
@@ -110,6 +112,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     _setupShortcuts();
     WidgetsBinding.instance.addObserver(this);
     AlarmService.instance.ringRequest.addListener(_checkAlarm);
+    mainTabWant.addListener(_onTabWant);
     HelpSettings.load();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _checkAlarm();
@@ -121,6 +124,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             builder: (_) => const OnboardingScreen()));
       }
     });
+  }
+
+  void _onTabWant() {
+    final t = mainTabWant.value;
+    if (t < 0 || !mounted) return;
+    mainTabWant.value = -1;
+    _go(t);
   }
 
   void _go(int i) {
@@ -334,11 +344,17 @@ class _HomeTabState extends State<_HomeTab> {
     for (final a in arts) {
       if (seen.add(a.toLowerCase())) uniq.add(a);
     }
-    if (uniq.length < 3) return const <MixDef>[];
+    // Pocos datos: se completa con artistas de arranque del modo.
+    if (uniq.length < 4) {
+      for (final a in MixService.modeSeeds) {
+        if (uniq.length >= 4) break;
+        if (seen.add(a.toLowerCase())) uniq.add(a);
+      }
+    }
     final d = DateTime.now().subtract(const Duration(hours: 5));
     final seed = d.year * 400 + d.month * 32 + d.day;
     uniq.shuffle(math.Random(seed));
-    final n = uniq.length >= 12 ? 4 : (uniq.length >= 6 ? 3 : 1);
+    final n = uniq.length >= 12 ? 4 : (uniq.length >= 8 ? 3 : 2);
     final per = (uniq.length / n).ceil().clamp(3, 10).toInt();
     return [
       for (var i = 0; i < n; i++)
@@ -365,10 +381,16 @@ class _HomeTabState extends State<_HomeTab> {
       builder: (context, snap) {
         final l = snap.data ?? const <MixDef>[];
         if (snap.connectionState != ConnectionState.done) {
-          return const SizedBox(height: 176, child: SkeletonRow(itemWidth: 150, coverHeight: 150));
+          return const Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            SectionTitle('Tus mixes diarios'),
+            SizedBox(height: 176, child: SkeletonRow(itemWidth: 150, coverHeight: 150)),
+          ]);
         }
+        // Sin tarjetas no se muestra ni el título.
         if (l.isEmpty) return const SizedBox.shrink();
-        return SizedBox(
+        return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          const SectionTitle('Tus mixes diarios'),
+          SizedBox(
           height: 176,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
@@ -385,7 +407,8 @@ class _HomeTabState extends State<_HomeTab> {
               );
             },
           ),
-        );
+        ),
+        ]);
       },
     );
   }
@@ -417,7 +440,7 @@ class _HomeTabState extends State<_HomeTab> {
       final a = top.first;
       if (a.count < 5) return null;
       return _Nudge(
-        '${a.name}, ${a.count} veces esta semana',
+        '${a.name}, ${a.count}\u00A0veces esta semana',
         byMode('Toca y te armo algo con bandas nuevas',
             'Toca y te armo algo con artistas nuevos'),
         Icons.auto_awesome_rounded,
@@ -636,7 +659,6 @@ class _HomeTabState extends State<_HomeTab> {
                   _personalMix(),
                   const SizedBox(height: 12),
                   _nudgeCard(),
-                  const SectionTitle('Tus mixes diarios'),
                   _dailyRow(),
                   _quickAccess(),
                   const SizedBox(height: 4),
@@ -1058,26 +1080,12 @@ class _HomeTabState extends State<_HomeTab> {
                                 color: Color(0xE6FFFFFF))),
                       ),
                       const SizedBox(height: 16),
-                      Container(
-                        height: 46,
-                        padding: const EdgeInsets.symmetric(horizontal: 22),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(AppRadius.pill),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.play_arrow_rounded,
-                                size: 22, color: AppColors.bg),
-                            SizedBox(width: 6),
-                            Text('Reproducir',
-                                style: TextStyle(
-                                    color: AppColors.bg,
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: AppType.body)),
-                          ],
-                        ),
+                      // Botón con la regla común (blanco sobre tarjeta de color).
+                      AppButton.primary(
+                        label: 'Reproducir',
+                        icon: Icons.play_arrow_rounded,
+                        onColor: true,
+                        onPressed: _playMix,
                       ),
                     ],
                   ),
@@ -1241,12 +1249,8 @@ class _RecentCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CoverArt(
-                url: song.image,
-                size: 140,
-                radius: AppRadius.md,
-                shadow: true,
-                seed: song.artist),
+            SongCover(song,
+                size: 140, radius: AppRadius.md, shadow: true),
             const SizedBox(height: 10),
             Text(
               song.title,

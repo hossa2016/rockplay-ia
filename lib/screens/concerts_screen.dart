@@ -50,8 +50,20 @@ class ConcertDateBox extends StatelessWidget {
   }
 }
 
-String concertPlace(Concert c) =>
-    [c.venue, c.city].where((e) => e.isNotEmpty).join(' · ');
+String concertPlace(Concert c) {
+  String f(String s) => s
+      .toLowerCase()
+      .replaceAll(RegExp('[áà]'), 'a')
+      .replaceAll(RegExp('[éè]'), 'e')
+      .replaceAll(RegExp('[íì]'), 'i')
+      .replaceAll(RegExp('[óò]'), 'o')
+      .replaceAll(RegExp('[úù]'), 'u');
+  final v = c.venue.trim(), city = c.city.trim();
+  if (v.isEmpty && city.isEmpty) return 'Lugar por confirmar';
+  // La ciudad no se repite si ya va en el nombre del lugar.
+  if (v.isNotEmpty && city.isNotEmpty && f(v).contains(f(city))) return v;
+  return [v, city].where((e) => e.isNotEmpty).join(' · ');
+}
 
 Future<void> openConcertLink(BuildContext context, String url) async {
   final ok = url.isNotEmpty &&

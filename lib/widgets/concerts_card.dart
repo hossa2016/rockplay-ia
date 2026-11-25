@@ -84,7 +84,7 @@ class _ConcertsCardState extends State<ConcertsCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(c.title,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       fontSize: AppType.body, fontWeight: FontWeight.w800)),

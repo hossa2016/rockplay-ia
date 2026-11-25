@@ -74,18 +74,58 @@ class RadioStation {
   /// como respaldo, el departamento/estado que trae Radio Browser.
   String get city {
     final p = _cityParen.firstMatch(name)?.group(1)?.trim() ?? '';
-    if (p.isNotEmpty && !RegExp(r'\d').hasMatch(p)) return p;
+    if (p.isNotEmpty && !RegExp(r'\d').hasMatch(p)) return _accent(p);
     final n = _fold(name);
     for (final c in _cities) {
       if (RegExp('\\b${RegExp.escape(_fold(c))}\\b').hasMatch(n)) return c;
     }
-    return state;
+    return _accent(state);
+  }
+
+  /// «Medellin» → «Medellín» si está en la lista.
+  static String _accent(String c) {
+    final f = _fold(c.trim());
+    for (final x in _cities) {
+      if (_fold(x) == f) return x;
+    }
+    return c.trim();
   }
 
   /// Nombre sin la ciudad entre paréntesis: «Radioacktiva (Medellín)».
+  /// Nombre limpio: sin la ciudad, el país, la frecuencia, el indicativo
+  /// (HJJK) ni el dueño («PRISA Radio»), que ya van en el subtítulo.
+  /// «La Ochentera Medellin Colombia» → «La Ochentera».
   String get shortName {
-    final n = name.replaceAll(_cityParen, ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
-    return n.isEmpty ? name : n;
+    var n = name.replaceAll(_cityParen, ' ');
+    final c = city;
+    final drop = <String>[
+      if (c.isNotEmpty) c,
+      if (country.isNotEmpty) country,
+      'Colombia',
+    ];
+    for (final d in drop) {
+      final f = _fold(d);
+      n = n.replaceAllMapped(RegExp(r'[^\s\-–|,]+(\s+[^\s\-–|,]+)*', unicode: true), (m) {
+        return _fold(m[0]!) == f ? '' : m[0]!;
+      });
+      // Palabra suelta (sin tildes) igual a la ciudad o al país.
+      n = n
+          .split(' ')
+          .where((w) => _fold(w.replaceAll(RegExp(r'[,.]'), '')) != f || f.contains(' '))
+          .join(' ');
+      if (f.contains(' ')) {
+        n = n.replaceAll(RegExp(RegExp.escape(d), caseSensitive: false), '');
+      }
+    }
+    n = n
+        .replaceAll(RegExp(r'\b\d{2,3}[.,]\d\s*(fm|am)?\b', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\b[HX][A-Z]{2,3}\b'), '') // indicativo
+        .replaceAll(RegExp(r'\b(prisa|caracol|rcn|todelar|olímpica|olimpica)\s*radio\b', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s*[-–|]\s*([-–|]\s*)*'), ' - ')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .replaceAll(RegExp(r'^[\s\-–|,]+|[\s\-–|,]+$'), '')
+        .trim();
+    return n.length < 2 ? name : n;
   }
 
   static const Map<String, String> _tagEs = {
@@ -97,6 +137,15 @@ class RadioStation {
     'dance': 'Dance', 'jazz': 'Jazz', 'classical': 'Clásica', 'metal': 'Metal',
     'oldies': 'Clásicos', '80s': 'Años 80', '90s': 'Años 90', 'hits': 'Éxitos',
     'music': '', 'variety': 'Variada', 'christian': 'Cristiana',
+    'top 40': 'Éxitos', 'cumbia': 'Cumbia', 'merengue': 'Merengue',
+    'bachata': 'Bachata', 'regional mexicana': 'Regional mexicana',
+    'ranchera': 'Ranchera', 'romantic': 'Romántica', 'ballads': 'Baladas',
+    'urban': 'Urbana', 'hip hop': 'Hip hop', 'hip-hop': 'Hip hop',
+    'indie': 'Indie', 'folk': 'Folk', 'electronica': 'Electrónica',
+    'house': 'House', 'techno': 'Techno', 'blues': 'Blues', 'soul': 'Soul',
+    'funk': 'Funk', 'reggae': 'Reggae', 'punk': 'Punk', 'grunge': 'Grunge',
+    'hard rock': 'Hard rock', 'heavy metal': 'Heavy metal', 'news talk': 'Noticias',
+    'popular': 'Popular', 'tropical music': 'Tropical', 'latin pop': 'Pop latino',
   };
 
   /// «Medellín · 91.9 FM · Alternativa». El país solo fuera de Colombia
@@ -114,7 +163,8 @@ class RadioStation {
       // Etiquetas que repiten la ciudad o el país no aportan.
       if (fc.isNotEmpty && _fold(k).contains(fc)) continue;
       if (k == country.toLowerCase() || k == 'colombia') continue;
-      tag = _tagEs[k] ?? (k[0].toUpperCase() + k.substring(1));
+      // Solo etiquetas conocidas y traducidas (nada de «Armenian»).
+      tag = _tagEs[k] ?? '';
       if (tag.isNotEmpty) break;
     }
     final parts = <String>[

@@ -220,8 +220,12 @@ class _RadioScreenState extends State<RadioScreen> {
             child: InkWell(
               borderRadius: BorderRadius.circular(AppRadius.lg),
               onTap: () => playStation(context, s),
-              child: SizedBox(
-                height: 72,
+              // Alto mínimo (no fijo): con nombres de 2 líneas el
+              // subtítulo ya no se sale de la tarjeta.
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 72),
+                child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
                 child: Row(
                   children: [
                     const SizedBox(width: 12),
@@ -284,6 +288,7 @@ class _RadioScreenState extends State<RadioScreen> {
                       onPressed: () => _toggleSave(s, saved),
                     ),
                   ],
+                ),
                 ),
               ),
             ),

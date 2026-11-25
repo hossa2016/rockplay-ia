@@ -34,6 +34,12 @@ class LibraryService {
   }
 
   Future<List<Song>> favorites() => _load(_favKey);
+
+  /// Cuántas favoritas hay en el otro modo (para el estado vacío).
+  Future<int> otherModeFavoritesCount() async {
+    final k = MusicModeService.general ? 'favorites' : 'g_favorites';
+    return (await _load(k)).length;
+  }
   Future<List<Song>> history() => _load(_histKey);
 
   Future<bool> isFavorite(String videoId) async {
