@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'artist_pools.dart';
+import 'deezer_service.dart';
 import 'general_catalog.dart';
 
 /// Arreglo de una sola vez: en la versión anterior, si cambiabas de modo con
@@ -91,6 +92,67 @@ class ModeCleanup {
         }
         await sp.setStringList('history', keep);
       }
+    } catch (_) {}
+  }
+
+  /// Arreglo de una sola vez para canciones guardadas antes de la versión
+  /// que separa bien título y artista: «1993 / Killing In The Name» pasa a
+  /// «Killing In The Name / Rage Against The Machine» (artista confirmado
+  /// con Deezer). Corre en segundo plano al abrir la app.
+  static Future<void> fixTitles() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      if (sp.getBool('fix_titles_v1') == true) return;
+      final bad = RegExp(r'^\d{1,4}$');
+      final fixes = <String, String>{}; // título real -> artista real
+      Future<String?> real(String title) async {
+        if (fixes.containsKey(title)) return fixes[title];
+        final a = await DeezerService().artistForTitle(title);
+        if (a != null) fixes[title] = a;
+        return a;
+      }
+
+      for (final key in const ['history', 'g_history', 'favorites', 'g_favorites']) {
+        final list = sp.getStringList(key);
+        if (list == null) continue;
+        var changed = false;
+        final out = <String>[];
+        for (final raw in list) {
+          try {
+            final j = jsonDecode(raw) as Map<String, dynamic>;
+            final t = '${j['title'] ?? ''}'.trim(), a = '${j['artist'] ?? ''}'.trim();
+            if (bad.hasMatch(t) && a.isNotEmpty) {
+              final r = await real(a);
+              if (r != null) {
+                j['title'] = a;
+                j['artist'] = r;
+                out.add(jsonEncode(j));
+                changed = true;
+                continue;
+              }
+            }
+          } catch (_) {}
+          out.add(raw);
+        }
+        if (changed) await sp.setStringList(key, out);
+      }
+      for (final key in const ['plays_v1', 'g_plays_v1']) {
+        final raw = sp.getString(key);
+        if (raw == null) continue;
+        final list = jsonDecode(raw) as List;
+        var changed = false;
+        for (final e in list) {
+          final l = e as List;
+          final a = l[1] as String, t = l[2] as String;
+          if (bad.hasMatch(t.trim()) && fixes.containsKey(a.trim())) {
+            l[1] = fixes[a.trim()]!;
+            l[2] = a;
+            changed = true;
+          }
+        }
+        if (changed) await sp.setString(key, jsonEncode(list));
+      }
+      await sp.setBool('fix_titles_v1', true);
     } catch (_) {}
   }
 }
