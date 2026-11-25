@@ -82,7 +82,7 @@ class _TasteScreenState extends State<TasteScreen> {
     final top = StatsService.topArtists(_plays, n: 8);
     final pattern = _pattern();
     return Scaffold(
-      appBar: AppBar(title: const Text('Tu gusto')),
+      appBar: AppBar(title: AppTitle('Tu gusto')),
       body: _loading
           ? const SkeletonList()
           : ListView(

@@ -15,6 +15,7 @@ class RadioStation {
   final String country;
   final String tags;
   final int bitrate;
+  final String state;
 
   const RadioStation({
     required this.id,
@@ -24,6 +25,7 @@ class RadioStation {
     this.country = '',
     this.tags = '',
     this.bitrate = 0,
+    this.state = '',
   });
 
   Map<String, dynamic> toJson() => {
@@ -34,6 +36,7 @@ class RadioStation {
         'country': country,
         'tags': tags,
         'bitrate': bitrate,
+        'state': state,
       };
 
   factory RadioStation.fromJson(Map<String, dynamic> j) => RadioStation(
@@ -44,14 +47,44 @@ class RadioStation {
         country: (j['country'] ?? '') as String,
         tags: (j['tags'] ?? '') as String,
         bitrate: (j['bitrate'] as num?)?.toInt() ?? 0,
+        state: (j['state'] ?? '') as String,
       );
 
-  /// Una línea tenue: país · primer género.
-  static final RegExp _cityTail = RegExp(r'\s*\(([^)]+)\)\s*$');
+  /// Ciudad entre paréntesis en cualquier parte del nombre.
+  static final RegExp _cityParen = RegExp(r'\s*\(([^)]+)\)\s*');
 
-  /// Nombre sin la ciudad del final: «Radioacktiva (Medellín)» → Radioacktiva.
+  static const List<String> _cities = [
+    'Bogotá', 'Medellín', 'Cali', 'Barranquilla', 'Cartagena', 'Bucaramanga',
+    'Pereira', 'Manizales', 'Cúcuta', 'Ibagué', 'Santa Marta', 'Villavicencio',
+    'Pasto', 'Neiva', 'Armenia', 'Montería', 'Popayán', 'Tunja', 'Valledupar',
+    'Sincelejo', 'Riohacha', 'Quibdó', 'Yopal', 'Florencia',
+    'Ciudad de México', 'Monterrey', 'Guadalajara', 'Buenos Aires',
+    'Santiago', 'Lima', 'Quito', 'Caracas', 'Madrid', 'Barcelona',
+  ];
+
+  static String _fold(String s) => s
+      .toLowerCase()
+      .replaceAll(RegExp('[áà]'), 'a')
+      .replaceAll(RegExp('[éè]'), 'e')
+      .replaceAll(RegExp('[íì]'), 'i')
+      .replaceAll(RegExp('[óò]'), 'o')
+      .replaceAll(RegExp('[úù]'), 'u');
+
+  /// Ciudad: la del paréntesis, la de la lista que aparezca en el nombre o,
+  /// como respaldo, el departamento/estado que trae Radio Browser.
+  String get city {
+    final p = _cityParen.firstMatch(name)?.group(1)?.trim() ?? '';
+    if (p.isNotEmpty && !RegExp(r'\d').hasMatch(p)) return p;
+    final n = _fold(name);
+    for (final c in _cities) {
+      if (RegExp('\\b${RegExp.escape(_fold(c))}\\b').hasMatch(n)) return c;
+    }
+    return state;
+  }
+
+  /// Nombre sin la ciudad entre paréntesis: «Radioacktiva (Medellín)».
   String get shortName {
-    final n = name.replaceAll(_cityTail, '').trim();
+    final n = name.replaceAll(_cityParen, ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
     return n.isEmpty ? name : n;
   }
 
@@ -69,7 +102,8 @@ class RadioStation {
   /// «Medellín · 91.9 FM · Alternativa». El país solo fuera de Colombia
   /// (dentro de la pestaña Colombia sobra).
   String get subtitle {
-    final city = _cityTail.firstMatch(name)?.group(1)?.trim() ?? '';
+    final city = this.city;
+    final fc = _fold(city);
     final freq = RegExp(r'\b(\d{2,3}[.,]\d)\s*(fm)?\b', caseSensitive: false)
         .firstMatch('$name $tags')
         ?.group(1);
@@ -77,6 +111,9 @@ class RadioStation {
     for (final t in tags.split(',')) {
       final k = t.trim().toLowerCase();
       if (k.isEmpty || RegExp(r'\d').hasMatch(k)) continue;
+      // Etiquetas que repiten la ciudad o el país no aportan.
+      if (fc.isNotEmpty && _fold(k).contains(fc)) continue;
+      if (k == country.toLowerCase() || k == 'colombia') continue;
       tag = _tagEs[k] ?? (k[0].toUpperCase() + k.substring(1));
       if (tag.isNotEmpty) break;
     }
@@ -208,6 +245,7 @@ class RadioService {
         country: ((e['country'] ?? '') as String).trim(),
         tags: ((e['tags'] ?? '') as String).trim(),
         bitrate: (e['bitrate'] as num?)?.toInt() ?? 0,
+        state: ((e['state'] ?? '') as String).trim(),
       ));
     }
     return out;

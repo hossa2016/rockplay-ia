@@ -104,6 +104,18 @@ class DeezerService {
     return null;
   }
 
+  /// ¿Existe en Deezer la canción [title] de [artist]?
+  Future<bool> trackExists(String artist, String title) async {
+    try {
+      final j = await _get('/search',
+          {'q': 'artist:"$artist" track:"$title"', 'limit': '3'},
+          ttl: const Duration(days: 30));
+      return ((j['data'] as List?) ?? const []).isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Future<String> coverFor(String query) async {
     final q = query
         .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')

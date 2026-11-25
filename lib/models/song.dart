@@ -70,6 +70,16 @@ class Song {
         videoId: videoId,
       ).cleaned();
 
+  Song withMeta({String? title, String? artist}) => Song(
+        title: title ?? this.title,
+        artist: artist ?? this.artist,
+        album: album,
+        image: image,
+        url: url,
+        videoId: videoId,
+        query: query,
+      );
+
   Song cleaned() {
     final m = SongMeta.split(title, artist);
     if (m.title == title && m.artist == artist) return this;
@@ -117,11 +127,16 @@ class SongMeta {
     if (t.length < 2 || t.length > 40) return false;
     final l = t.toLowerCase();
     if (_noArtist.contains(l)) return false;
-    if (RegExp(r'["“”:\[\]]|type ?beat|\bprod\.? by\b|\bfree\b|\s[x×]\s')
+    if (RegExp(r'["“”:\[\]]|type ?beat|\bprod\.? by\b|\[free\]|\(free\)|\s[x×]\s')
         .hasMatch(l)) return false;
     if (RegExp(r'^\d+$').hasMatch(l)) return false;
     return !looksLikeUploader(t);
   }
+
+  /// Etiquetas que nunca son título (a diferencia de «1979» o «2112»).
+  static final RegExp _tagOnly = RegExp(
+      r'^(live|en vivo|directo|remaster(ed)?( \d{4})?|demo|hd|hq|4k|lyrics?|letra)$',
+      caseSensitive: false);
 
   /// Lado derecho que no es un título: un año, un número o una etiqueta.
   static final RegExp _notTitle = RegExp(
@@ -162,11 +177,17 @@ class SongMeta {
       final right = t.substring(m.end).trim().replaceAll(RegExp(r'^["“]|["”]$'), '');
       if (left.isNotEmpty && right.isNotEmpty && left.length <= 60) {
         final nc = _norm(channel), nl = _norm(left), nr = _norm(right);
-        if (_notTitle.hasMatch(right)) {
-          // «Killing In The Name - 1993»: la derecha no es un título; la
-          // izquierda es la canción y el artista es el canal (si lo es).
+        final leftIsChannel = nc.isNotEmpty && nl.contains(nc);
+        final tag = _tagOnly.hasMatch(right);
+        final channelArtist =
+            channel.isNotEmpty && !looksLikeUploader(channel) && !leftIsChannel;
+        if (tag || (_notTitle.hasMatch(right) && channelArtist)) {
+          // «Du Hast - Live» o «Killing In The Name - 1993» subido por el
+          // artista: la derecha no es título. Con «Smashing Pumpkins - 1979»
+          // (izquierda = canal) o un canal ajeno se deja «Artista - Canción»
+          // y lo dudoso se confirma con Deezer al sonar (SongFix).
           t = left;
-          if (!looksLikeUploader(channel) && channel.isNotEmpty) artist = channel;
+          if (channelArtist) artist = channel;
         } else if (nc.isNotEmpty && nr.contains(nc) && !nl.contains(nc)) {
           // «Canción - Artista»
           artist = right;

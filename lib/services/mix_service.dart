@@ -199,10 +199,22 @@ class MixService {
   static String _cleanArtist(String a) => SongMeta.cleanChannel(a);
 
   /// Artistas más presentes en favoritos (peso 2) e historial (peso 1).
+  static List<String>? _paCache;
+  static String _paMode = '';
+  static DateTime _paAt = DateTime(2000);
+
   static Future<List<String>> personalArtists() async {
+    final mk = modeKey('pa');
+    if (_paCache != null &&
+        _paMode == mk &&
+        DateTime.now().difference(_paAt) < const Duration(minutes: 10)) {
+      return _paCache!;
+    }
     final score = <String, int>{};
     final display = <String, String>{};
+    final titles = <String>{};
     void add(List<Song> list, int w) {
+      for (final s in list) titles.add(s.title.trim().toLowerCase());
       for (final s in list) {
         final a = _cleanArtist(s.artist);
         if (a.isEmpty || !SongMeta.isPlausibleArtist(a)) continue;
@@ -216,9 +228,17 @@ class MixService {
       add(await LibraryService.instance.favorites(), 2);
       add(await LibraryService.instance.history(), 1);
     } catch (_) {}
-    final keys = score.keys.toList()
+    // Fuera: nombres que en realidad son títulos de canción («Killing In
+    // The Name» guardado como artista) y los que aparecen una sola vez.
+    final keys = score.keys
+        .where((k) => score[k]! >= 2 && !titles.contains(k))
+        .toList()
       ..sort((a, b) => score[b]!.compareTo(score[a]!));
-    return [for (final k in keys.take(30)) display[k]!];
+    final out = [for (final k in keys.take(30)) display[k]!];
+    _paCache = out;
+    _paMode = mk;
+    _paAt = DateTime.now();
+    return out;
   }
 
   /// Emite la lista acumulada (intercalando artistas) a medida que llegan

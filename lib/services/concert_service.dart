@@ -68,7 +68,8 @@ class Concert {
   static Concert? fromJson(dynamic j) {
     if (j is! Map) return null;
     String s(String k) => (j[k] ?? '').toString().trim();
-    final band = s('banda');
+    // Sin banda pero con lugar = toque sin cartel («Toques en…»).
+    final band = s('banda').isEmpty ? s('lugar') : s('banda');
     final date = DateTime.tryParse(s('fecha'));
     if (band.isEmpty) return null;
     return Concert(

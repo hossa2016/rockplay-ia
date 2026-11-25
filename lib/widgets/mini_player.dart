@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import 'cover_art.dart';
 import 'player_route.dart';
 import 'playback_ui.dart';
+import '../services/music_mode.dart';
 
 /// Etiqueta Hero de la carátula: vuela del mini player al reproductor.
 const String kNowPlayingHero = 'now-playing-cover';
@@ -53,8 +54,14 @@ class _MiniBody extends StatelessWidget {
             border: Border.all(color: AppColors.borderSubtle),
             boxShadow: AppShadow.card,
             gradient: LinearGradient(colors: [
-              Color.lerp(AppColors.surfaceHigh,
-                      snap.data ?? AppColors.surfaceHigh, 0.7) ??
+              Color.lerp(
+                      AppColors.surfaceHigh,
+                      snap.data == null
+                          ? AppColors.surfaceHigh
+                          : MusicModeService.general
+                              ? Color.lerp(snap.data, const Color(0xFF6A4CF0), 0.5)!
+                              : snap.data!,
+                      0.7) ??
                   AppColors.surfaceHigh,
               AppColors.surfaceHigh,
             ]),

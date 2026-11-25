@@ -57,6 +57,12 @@ class PlaylistService {
           if (p.visibleIn(MusicModeService.mode.value)) p
       ];
 
+  /// Listas del otro modo (no se ven aquí).
+  Future<List<Playlist>> others() async => [
+        for (final p in await _raw())
+          if (!p.visibleIn(MusicModeService.mode.value)) p
+      ];
+
   /// Lista visible solo en el modo donde se creó, o en los dos.
   Future<void> setBoth(String id, bool both) async {
     final lists = await _raw();

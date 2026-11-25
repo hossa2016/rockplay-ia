@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../services/eq_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/section_header.dart';
+import '../widgets/app_button.dart';
 
 /// Ecualizador de 10 bandas con preajustes de rock y sugerencia del asistente.
 class EqScreen extends StatefulWidget {
@@ -60,7 +62,7 @@ class _EqScreenState extends State<EqScreen> {
     final on = eq.enabled;
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Ecualizador')),
+      appBar: AppBar(title: AppTitle('Ecualizador')),
       // Interruptor abajo, al alcance del pulgar.
       bottomNavigationBar: SafeArea(
         child: Padding(
@@ -186,9 +188,20 @@ class _EqScreenState extends State<EqScreen> {
               child: Text('SUGERENCIA DEL ASISTENTE',
                   style: TextStyle(fontSize: AppType.caption, letterSpacing: 1.2, color: AppColors.amber, fontWeight: FontWeight.w700)),
             ),
-            if (s != null)
-              Text(s.source, style: TextStyle(fontSize: AppType.micro, color: AppColors.textDim)),
           ]),
+          // Fuente (Gemini, Groq, reglas) como chip debajo del título.
+          if (s != null && s.source.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.outline),
+              ),
+              child: Text(s.source,
+                  style: TextStyle(fontSize: AppType.micro, color: AppColors.textDim)),
+            ),
+          ],
           const SizedBox(height: 8),
           if (song == null || song.isRadio)
             const Text('Pon una canción y te sugiero el mejor ajuste para ella.',
@@ -213,12 +226,8 @@ class _EqScreenState extends State<EqScreen> {
             const Text('Toca "Sugerir" para que el asistente elija el ajuste.', style: TextStyle(fontSize: AppType.bodySm)),
           const SizedBox(height: 10),
           Row(children: [
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: rockRed,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                minimumSize: const Size(0, 48),
-              ),
+            AppButton.primary(
+              label: s != null ? 'Aplicar' : 'Sugerir',
               onPressed: (song == null || song.isRadio || eq.suggesting || !eq.enabled)
                   ? null
                   : () {
@@ -228,10 +237,14 @@ class _EqScreenState extends State<EqScreen> {
                         eq.suggestCurrent();
                       }
                     },
-              child: Text(s != null ? 'Aplicar' : 'Sugerir'),
             ),
-            const Spacer(),
-            Text('Auto en cada canción', style: TextStyle(fontSize: AppType.caption, color: AppColors.textDim)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('Auto en cada canción',
+                  textAlign: TextAlign.end,
+                  maxLines: 2,
+                  style: TextStyle(fontSize: AppType.caption, color: AppColors.textDim)),
+            ),
             Switch(
               value: eq.auto,
               activeColor: Colors.white,

@@ -145,3 +145,13 @@ class AppSearchField extends StatelessWidget {
     );
   }
 }
+
+/// Título de AppBar con la regla del modo: mayúsculas en rock, normal en Pulso.
+class AppTitle extends StatelessWidget {
+  const AppTitle(this.text, {super.key});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) =>
+      Text(MusicModeService.general ? text : text.toUpperCase());
+}

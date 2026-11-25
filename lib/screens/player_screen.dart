@@ -61,7 +61,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   String _accentUrl = '';
 
   void _ensureAccent(Song song) {
-    final url = song.image;
+    // El color sale de la carátula que se ve (la de Deezer si ya llegó).
+    final art = _info?.artwork ?? '';
+    final url = !song.isRadio && art.isNotEmpty ? art : song.image;
     if (url == _accentUrl) return;
     _accentUrl = url;
     final peek = CoverColor.peek(url);
@@ -74,11 +76,16 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   static Color _readable(Color c) {
     final h = HSLColor.fromColor(c);
-    if (h.saturation < 0.18) return AppColors.red; // gris: usa el rojo de marca
-    return h
+    if (h.saturation < 0.18) return AppColors.red; // gris: color de marca
+    final c2 = h
         .withSaturation(h.saturation.clamp(0.55, 0.9))
         .withLightness(h.lightness.clamp(0.52, 0.62))
         .toColor();
+    // En Pulso se mezcla con el violeta de la marca para no salirse de la
+    // paleta (nada de naranjas ni ámbar).
+    return MusicModeService.general
+        ? Color.lerp(c2, const Color(0xFF6A4CF0), 0.5)!
+        : c2;
   }
 
   void _ensureInfo(Song song) {
@@ -1321,7 +1328,12 @@ class _EqPainter extends CustomPainter {
       ..shader = LinearGradient(
         begin: Alignment.bottomCenter,
         end: Alignment.topCenter,
-        colors: [color, AppColors.amber],
+        colors: [
+          color,
+          MusicModeService.general
+              ? HSLColor.fromColor(color).withLightness(0.75).toColor()
+              : AppColors.amber,
+        ],
       ).createShader(Offset.zero & size);
     for (var i = 0; i < n; i++) {
       final a = math.sin(2 * math.pi * (t * (1 + (i % 3)) + i * 0.17));

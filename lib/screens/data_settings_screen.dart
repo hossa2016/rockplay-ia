@@ -3,6 +3,7 @@ import '../services/block_service.dart';
 
 import '../services/data_saver.dart';
 import '../theme/app_theme.dart';
+import '../widgets/section_header.dart';
 
 /// Ajustes de datos y caché.
 class DataSettingsScreen extends StatefulWidget {
@@ -83,7 +84,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Almacenamiento')),
+      appBar: AppBar(title: AppTitle('Almacenamiento')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [

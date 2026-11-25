@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import '../services/playback_service.dart';
 import 'package:flutter/services.dart';
@@ -40,10 +42,7 @@ class MusicCard extends StatelessWidget {
                 // un ícono de pausa que contradecía al mini player).
                 ? Semantics(
                     label: pb.playing.value ? 'Sonando' : 'En pausa',
-                    child: Icon(Icons.graphic_eq_rounded,
-                        color: pb.playing.value
-                            ? AppColors.amber
-                            : AppColors.textFaint))
+                    child: PlayingBars(playing: pb.playing.value))
                 : const SizedBox.shrink());
         final card = Material(
           color: Colors.transparent,
@@ -69,7 +68,11 @@ class MusicCard extends StatelessWidget {
                             fontSize: AppType.body,
                             fontWeight: FontWeight.w600,
                             height: 1.2,
-                            color: isCurrent ? AppColors.amber : AppColors.text,
+                            // En pausa, título neutro: el estado lo dicen las
+                            // barras (quietas) y no solo el color.
+                            color: isCurrent && pb.playing.value
+                                ? AppColors.amber
+                                : AppColors.text,
                           ),
                         ),
                         const SizedBox(height: 3),
@@ -133,6 +136,84 @@ class MusicCard extends StatelessWidget {
           child: card,
         );
       },
+    );
+  }
+}
+
+
+/// Barras de reproducción: se mueven al sonar; en pausa quedan bajas, quietas
+/// y en gris (el estado no depende solo del color).
+class PlayingBars extends StatefulWidget {
+  const PlayingBars({super.key, required this.playing, this.size = 22});
+  final bool playing;
+  final double size;
+
+  @override
+  State<PlayingBars> createState() => _PlayingBarsState();
+}
+
+class _PlayingBarsState extends State<PlayingBars>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+      vsync: this, duration: const Duration(milliseconds: 900));
+
+  @override
+  void initState() {
+    super.initState();
+    _sync();
+  }
+
+  @override
+  void didUpdateWidget(covariant PlayingBars old) {
+    super.didUpdateWidget(old);
+    _sync();
+  }
+
+  void _sync() {
+    final reduce = WidgetsBinding.instance.platformDispatcher
+        .accessibilityFeatures.disableAnimations;
+    if (widget.playing && !reduce) {
+      if (!_c.isAnimating) _c.repeat();
+    } else {
+      _c.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.playing ? AppColors.amber : AppColors.textFaint;
+    final s = widget.size;
+    return SizedBox(
+      width: s,
+      height: s,
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (context, _) {
+          const phases = [0.0, 0.35, 0.7];
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              for (final p in phases)
+                Container(
+                  width: s / 6,
+                  margin: EdgeInsets.symmetric(horizontal: s / 24),
+                  height: widget.playing
+                      ? s * (0.3 + 0.7 * (0.5 + 0.5 * math.sin(2 * math.pi * (_c.value + p))))
+                      : s * 0.25,
+                  decoration: BoxDecoration(
+                      color: color, borderRadius: BorderRadius.circular(2)),
+                ),
+            ],
+          );
+        },
+      ),
     );
   }
 }

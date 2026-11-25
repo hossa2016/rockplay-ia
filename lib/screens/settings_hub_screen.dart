@@ -16,6 +16,7 @@ import '../services/help_settings.dart';
 import '../services/music_mode.dart';
 import '../services/stats_service.dart';
 import 'mode_pick_screen.dart';
+import '../widgets/section_header.dart';
 
 /// Un solo lugar para todos los ajustes (agrupados).
 class SettingsHubScreen extends StatefulWidget {
@@ -357,7 +358,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
     final bad = BadVideos.ids.length;
     final blocked = BlockService.instance.names.length;
     return Scaffold(
-      appBar: AppBar(title: const Text('Ajustes')),
+      appBar: AppBar(title: AppTitle('Ajustes')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
         children: [
@@ -374,16 +375,12 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 () => _go(const MusicModeScreen()),
                 tip: 'Decide si la app es solo de rock o de todos los géneros. Cambia colores, textos, mixes, asistente y conciertos.'),
           ]),
-          _group('ASISTENTE'),
+          _group('ASISTENTE Y MIXES'),
           _box([
             _row(Icons.vpn_key_rounded, 'Inteligencia artificial', aiLabel,
                 () => _go(const AiSettingsScreen()),
                 badge: aiOn ? null : '!',
                 tip: 'Pega aquí tus claves gratis de Gemini o Groq para que el asistente piense con IA.'),
-          ]),
-          // Los dos tamaños juntos: antes estaban en grupos distintos.
-          _group('TAMAÑO DE LISTAS Y MIXES'),
-          _box([
             _row(Icons.format_list_numbered_rounded, 'Listas del asistente',
                 '${ai.maxSongs} canciones como máximo', _pickListSize,
                 tip: 'Cuántas canciones como máximo trae el asistente. Menos es más rápido.'),

@@ -110,31 +110,6 @@ class _StatsScreenState extends State<StatsScreen> {
                 title: 'Tus números',
                 subtitle: 'Lo que más escuchas y lo que la app sabe de tu gusto'),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Material(
-                color: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  side: BorderSide(color: AppColors.outline),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  minVerticalPadding: 12,
-                  leading: Icon(Icons.auto_awesome_rounded,
-                      color: AppColors.amber),
-                  title: const Text('Tu gusto',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text('Lo que aprendí de lo que escuchas',
-                      style: TextStyle(color: AppColors.textDim)),
-                  trailing: Icon(Icons.chevron_right_rounded,
-                      color: AppColors.textDim),
-                  onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                          builder: (_) => const TasteScreen())),
-                ),
-              ),
-            ),
-            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Wrap(
                 spacing: 8,
@@ -174,7 +149,7 @@ class _StatsScreenState extends State<StatsScreen> {
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 6),
                         child: Text(
-                            '${_plays.length == 1 ? 'canción' : 'canciones'} ${['esta semana', 'este mes', 'desde siempre'][_range]}',
+                            '${_plays.length == 1 ? 'escucha' : 'escuchas'} ${['esta semana', 'este mes', 'desde siempre'][_range]}',
                             style: TextStyle(
                                 fontSize: AppType.body,
                                 color: AppColors.textDim)),
@@ -198,6 +173,33 @@ class _StatsScreenState extends State<StatsScreen> {
                             context, [for (final x in songs) _song(x.sample!)],
                             songs.indexOf(s))),
             ],
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Material(
+                color: AppColors.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.lg),
+                  side: BorderSide(color: AppColors.outline),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: ListTile(
+                  minVerticalPadding: 12,
+                  leading: Icon(Icons.auto_awesome_rounded,
+                      color: AppColors.amber),
+                  title: const Text('Tu gusto',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text('Lo que aprendí de lo que escuchas',
+                      style: TextStyle(color: AppColors.textDim)),
+                  trailing: Icon(Icons.chevron_right_rounded,
+                      color: AppColors.textDim),
+                  onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                          builder: (_) => const TasteScreen())),
+                ),
+              ),
+            ),
+
           ],
         ),
       ),

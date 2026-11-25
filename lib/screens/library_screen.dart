@@ -15,6 +15,8 @@ import '../widgets/playback_ui.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
 import '../widgets/state_views.dart';
+import '../services/music_mode.dart';
+import '../widgets/app_button.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -27,6 +29,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   List<Song> _favs = [];
   List<Song> _hist = [];
   List<Playlist> _lists = [];
+  List<Playlist> _others = [];
   bool _loading = true;
   String _q = '';
   int _sort = 0;
@@ -47,16 +50,51 @@ class _LibraryScreenState extends State<LibraryScreen> {
     super.dispose();
   }
 
+  Future<void> _showOthers() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Text(
+                  'Listas de ${MusicModeService.general ? 'Solo rock' : 'Todos los géneros'}. «Traer» las muestra en los dos modos.',
+                  style: TextStyle(color: AppColors.textDim, height: 1.4)),
+            ),
+            for (final p in _others)
+              ListTile(
+                title: Text(p.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                subtitle: Text('${p.songs.length} canciones'),
+                trailing: TextButton(
+                  onPressed: () async {
+                    await PlaylistService.instance.setBoth(p.id, true);
+                    if (ctx.mounted) Navigator.of(ctx).pop();
+                    PlaybackUi.instance.bumpLibrary();
+                  },
+                  child: const Text('Traer'),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _load() async {
     try {
       final f = await LibraryService.instance.favorites();
       final h = await LibraryService.instance.history();
       final pl = await PlaylistService.instance.all();
+      final ot = await PlaylistService.instance.others();
       if (!mounted) return;
       setState(() {
         _favs = f;
         _hist = h;
         _lists = pl;
+        _others = ot;
         _loading = false;
         _failed = false;
       });
@@ -225,13 +263,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     icon: const Icon(Icons.delete_outline_rounded),
                     onPressed: _confirmClearHistory,
                   ),
-                FilledButton.icon(
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 42),
-                  ),
+                AppButton.primary(
+                  label: 'Reproducir',
+                  icon: Icons.play_arrow_rounded,
                   onPressed: () => playSongs(context, songs, 0),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Reproducir'),
                 ),
               ],
             ),
@@ -297,13 +332,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
               style: TextStyle(fontWeight: FontWeight.w700)),
           onTap: _newList,
         ),
-        if (_lists.isEmpty)
+        if (_lists.isEmpty && _others.isEmpty)
           Padding(
             padding: EdgeInsets.all(20),
             child: Text(
               'Aún no tienes listas. Crea una o guarda la que arme el asistente.',
               style: TextStyle(color: AppColors.textDim, height: 1.4),
             ),
+          ),
+        // Las listas del otro modo no desaparecen: se ven y se pueden traer.
+        if (_others.isNotEmpty)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(Icons.swap_horiz_rounded, color: AppColors.textDim),
+            title: Text(
+                'Tienes ${_others.length} ${_others.length == 1 ? 'lista' : 'listas'} en ${MusicModeService.general ? 'Solo rock' : 'Todos los géneros'}',
+                style: TextStyle(color: AppColors.textDim)),
+            trailing: Text('Ver ›',
+                style: TextStyle(
+                    color: AppColors.redText, fontWeight: FontWeight.w700)),
+            onTap: _showOthers,
           ),
         for (final p in _lists)
           ListTile(
