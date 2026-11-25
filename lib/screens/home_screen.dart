@@ -15,7 +15,6 @@ import '../services/library_service.dart';
 import '../services/mix_service.dart';
 import 'song_list_screen.dart';
 import '../services/day_part.dart';
-import '../services/deezer_service.dart';
 import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_art.dart';
@@ -37,6 +36,8 @@ import 'search_hub.dart';
 import '../services/help_settings.dart';
 import 'onboarding_screen.dart';
 import 'settings_hub_screen.dart';
+import '../services/track_info_service.dart';
+import '../services/data_saver.dart';
 
 /// Contenedor principal: pestañas + mini-reproductor sobre la navegación.
 class HomeScreen extends StatefulWidget {
@@ -250,9 +251,12 @@ class _HomeTabState extends State<_HomeTab> {
     if (_coverFor != key) {
       _coverFor = key;
       _coverHd = '';
-      DeezerService().coverFor('${s.artist} ${s.title}').then((u) {
+      // La misma fuente que el reproductor (TrackInfoService), para que
+      // Inicio y el reproductor muestren la misma carátula.
+      TrackInfoService.instance.fetch(s.artist, s.title).then((i) {
+        final u = i?.artwork ?? '';
         if (!mounted || _coverFor != key || u.isEmpty) return;
-        setState(() => _coverHd = u.replaceAll('250x250', '500x500'));
+        setState(() => _coverHd = u);
       }).catchError((_) {});
     }
     return _coverHd.isNotEmpty ? _coverHd : s.image;
@@ -414,8 +418,8 @@ class _HomeTabState extends State<_HomeTab> {
       if (a.count < 5) return null;
       return _Nudge(
         '${a.name}, ${a.count} veces esta semana',
-        byMode('Toca y te armo algo parecido con bandas nuevas',
-            'Toca y te armo algo parecido con artistas nuevos'),
+        byMode('Toca y te armo algo con bandas nuevas',
+            'Toca y te armo algo con artistas nuevos'),
         Icons.auto_awesome_rounded,
         prompt:
             'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con ${byMode('bandas', 'artistas')} que probablemente no conozco.',
@@ -546,12 +550,32 @@ class _HomeTabState extends State<_HomeTab> {
                 child: Transform.rotate(
                   // Pulso: sin girar.
                   angle: MusicModeService.general ? 0 : 0.06,
-                  child: CoverArt(
-                      url: cover,
-                      size: 92,
-                      radius: AppRadius.md,
-                      shadow: true,
-                      seed: _recent.first.artist),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 350),
+                    child: DecoratedBox(
+                      key: ValueKey(cover),
+                      // Pulso: esquinas de 20 y brillo violeta.
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(
+                            MusicModeService.general ? 20 : AppRadius.md),
+                        boxShadow: MusicModeService.general
+                            ? [
+                                BoxShadow(
+                                    color: const Color(0xFF6A4CF0)
+                                        .withValues(alpha: 0.45),
+                                    blurRadius: 24,
+                                    offset: const Offset(0, 8)),
+                              ]
+                            : null,
+                      ),
+                      child: CoverArt(
+                          url: cover,
+                          size: 92,
+                          radius: MusicModeService.general ? 20 : AppRadius.md,
+                          shadow: !MusicModeService.general,
+                          seed: _recent.first.artist),
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -1281,7 +1305,7 @@ class _MixCard extends StatelessWidget {
             child: Stack(
               children: [
                 if (photos)
-                  Positioned.fill(child: _ArtistCollage(def.artists))
+                  Positioned.fill(child: _ArtistCollage(def.artists, def.colors))
                 else ...[
                 Positioned.fill(
                   child: CustomPaint(
@@ -1352,13 +1376,17 @@ class _Nudge {
 /// texto. Mientras cargan se ve el degradado de la tarjeta.
 class _ArtistCollage extends StatefulWidget {
   final List<String> artists;
-  const _ArtistCollage(this.artists);
+  final List<Color> colors;
+  const _ArtistCollage(this.artists, this.colors);
 
   @override
   State<_ArtistCollage> createState() => _ArtistCollageState();
 }
 
 class _ArtistCollageState extends State<_ArtistCollage> {
+  /// Fotos ya usadas por otro mix: así dos tarjetas no repiten la misma.
+  static final Set<String> _used = <String>{};
+  static final Map<String, List<String>> _cache = {};
   List<String> _pics = const [];
 
   @override
@@ -1368,35 +1396,74 @@ class _ArtistCollageState extends State<_ArtistCollage> {
   }
 
   Future<void> _load() async {
+    final key = widget.artists.take(8).join('|');
+    final hit = _cache[key];
+    if (hit != null) {
+      _pics = hit;
+      return;
+    }
+    // Sin imágenes en datos móviles si el usuario lo pidió.
+    final ds = DataSaver.instance;
+    if (ds.noMobileImages && !await ds.onWifi()) return;
+    // En paralelo, no una tras otra.
+    final infos = await Future.wait([
+      for (final a in widget.artists.take(8))
+        ArtistInfoService.instance
+            .artist(a)
+            .then<ArtistInfo?>((i) => i)
+            .catchError((_) => null),
+    ]);
     final out = <String>[];
-    for (final a in widget.artists.take(6)) {
-      try {
-        final i = await ArtistInfoService.instance.artist(a);
-        if (i != null && i.picture.isNotEmpty) out.add(i.picture);
-      } catch (_) {}
+    for (final i in infos) {
+      if (i == null || i.picture.isEmpty) continue;
+      // Versión mediana (250 px): basta para una celda.
+      final u = i.picture.replaceAll(RegExp(r'\d{3,4}x\d{3,4}'), '250x250');
+      if (_used.contains(u) || out.contains(u)) continue;
+      out.add(u);
       if (out.length == 4) break;
     }
+    _used.addAll(out);
+    _cache[key] = out;
     if (mounted && out.isNotEmpty) setState(() => _pics = out);
   }
 
   @override
   Widget build(BuildContext context) {
     if (_pics.isEmpty) return const SizedBox.shrink();
-    final p = _pics.length >= 4 ? _pics : [..._pics, ..._pics, ..._pics].take(4).toList();
+    final dpr = MediaQuery.devicePixelRatioOf(context);
     Widget cell(String u) => Image.network(u,
         fit: BoxFit.cover,
+        cacheWidth: (100 * dpr).round(),
         errorBuilder: (_, __, ___) => const SizedBox.shrink());
+    final p = _pics;
+    // Composición según cuántas fotos hay (sin repetir ninguna).
+    final Widget grid = switch (p.length) {
+      1 => cell(p[0]),
+      2 => Row(children: [Expanded(child: cell(p[0])), Expanded(child: cell(p[1]))]),
+      3 => Row(children: [
+          Expanded(child: cell(p[0])),
+          Expanded(
+              child: Column(children: [
+            Expanded(child: cell(p[1])),
+            Expanded(child: cell(p[2])),
+          ])),
+        ]),
+      _ => Column(children: [
+          Expanded(child: Row(children: [Expanded(child: cell(p[0])), Expanded(child: cell(p[1]))])),
+          Expanded(child: Row(children: [Expanded(child: cell(p[2])), Expanded(child: cell(p[3]))])),
+        ]),
+    };
+    final tint = widget.colors.isEmpty ? Colors.black : widget.colors.first;
+    final deep = widget.colors.length > 1 ? widget.colors.last : Colors.black;
     return Stack(fit: StackFit.expand, children: [
-      Column(children: [
-        Expanded(child: Row(children: [Expanded(child: cell(p[0])), Expanded(child: cell(p[1]))])),
-        Expanded(child: Row(children: [Expanded(child: cell(p[2])), Expanded(child: cell(p[3]))])),
-      ]),
-      const DecoratedBox(
+      grid,
+      // Velo teñido con el color del mix: cada tarjeta conserva su color.
+      DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0x33000000), Color(0xCC000000)],
+            colors: [tint.withValues(alpha: 0.35), deep.withValues(alpha: 0.9)],
           ),
         ),
       ),

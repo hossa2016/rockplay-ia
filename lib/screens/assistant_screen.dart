@@ -653,7 +653,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
     ['Para concentrarme', AppPalettes.steel],
     ['De carretera', AppPalettes.rust],
     ['Quiero algo nuevo', AppPalettes.amber],
-    if (MusicModeService.general) ['Para bailar', AppPalettes.burgundy],
+    MusicModeService.general
+        ? ['Para bailar', AppPalettes.burgundy]
+        : ['Para entrenar', AppPalettes.burgundy],
   ];
 
   Widget _moodTile(List<Object> t) {

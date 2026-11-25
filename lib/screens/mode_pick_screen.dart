@@ -4,6 +4,7 @@ import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/rock_decor.dart';
 import 'concerts_screen.dart';
+import '../widgets/section_header.dart';
 
 /// Primera vez: «¿Qué vas a escuchar?». Decide cómo opera la app.
 class ModePickScreen extends StatefulWidget {
@@ -298,7 +299,7 @@ class MusicModeScreen extends StatelessWidget {
     return ValueListenableBuilder<MusicMode>(
       valueListenable: MusicModeService.mode,
       builder: (context, mode, _) => Scaffold(
-        appBar: AppBar(title: const Text('Modo de música')),
+        appBar: AppBar(title: AppTitle('Modo de música')),
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
@@ -479,7 +480,7 @@ class MusicModeScreen extends StatelessWidget {
             ? '¿Cambiar a Todos los géneros?'
             : '¿Volver a Solo rock?'),
         content: Text(
-            'La app se recarga con los nuevos colores y géneros y vuelve a Inicio. La música que suena no se detiene. El ícono del celular cambia a «${m == MusicMode.general ? 'Pulso' : 'RockPlay IA'}»; puede desaparecer unos segundos del escritorio.'),
+            'La app se recarga con los nuevos colores y géneros y vuelve a Inicio. La música que suena no se detiene.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(c, false),

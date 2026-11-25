@@ -13,6 +13,7 @@ import '../services/radio_service.dart';
 import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/undo.dart';
+import '../widgets/section_header.dart';
 
 /// Crear o editar una alarma: hora, días, qué suena, volumen que sube y
 /// tono de respaldo.
@@ -298,7 +299,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
     final isList = _a.source == AlarmSource.list || _a.source == AlarmSource.song;
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isNew ? 'Nueva alarma' : 'Editar alarma'),
+        title: AppTitle(_isNew ? 'Nueva alarma' : 'Editar alarma'),
         actions: [
           if (!_isNew)
             IconButton(

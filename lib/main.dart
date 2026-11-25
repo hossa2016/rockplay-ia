@@ -10,7 +10,6 @@ import 'services/data_saver.dart';
 import 'services/block_service.dart';
 import 'services/concert_service.dart';
 import 'services/eq_service.dart';
-import 'services/launcher_alias.dart';
 import 'services/mode_cleanup.dart';
 import 'services/music_mode.dart';
 import 'services/playback_service.dart';
@@ -22,7 +21,6 @@ Future<void> main() async {
   await MusicModeService.load();
   await ModeCleanup.run();
   unawaited(ModeCleanup.fixTitles());
-  unawaited(LauncherAlias.sync());
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
@@ -33,8 +31,7 @@ Future<void> main() async {
     EqService.instance.syncMode();
     unawaited(AlarmService.instance.scheduleAll());
     ConcertService.instance.resetForMode();
-    unawaited(LauncherAlias.sync());
-    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
       systemNavigationBarColor: AppColors.surface,

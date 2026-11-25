@@ -3,7 +3,8 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'artist_pools.dart';
-import 'deezer_service.dart';
+import '../models/song.dart';
+import 'song_fix.dart';
 import 'general_catalog.dart';
 
 /// Arreglo de una sola vez: en la versión anterior, si cambiabas de modo con
@@ -95,64 +96,70 @@ class ModeCleanup {
     } catch (_) {}
   }
 
-  /// Arreglo de una sola vez para canciones guardadas antes de la versión
-  /// que separa bien título y artista: «1993 / Killing In The Name» pasa a
-  /// «Killing In The Name / Rage Against The Machine» (artista confirmado
-  /// con Deezer). Corre en segundo plano al abrir la app.
+  /// Corrige canciones guardadas con título o artista dudoso («1993 /
+  /// Killing In The Name», canales como artista) en historial, favoritas,
+  /// la cola guardada y las escuchas, de los dos modos. Se marca como hecho
+  /// solo si Deezer respondió; si no, reintenta en la siguiente apertura.
   static Future<void> fixTitles() async {
     try {
       final sp = await SharedPreferences.getInstance();
-      if (sp.getBool('fix_titles_v1') == true) return;
-      final bad = RegExp(r'^\d{1,4}$');
-      final fixes = <String, String>{}; // título real -> artista real
-      Future<String?> real(String title) async {
-        if (fixes.containsKey(title)) return fixes[title];
-        final a = await DeezerService().artistForTitle(title);
-        if (a != null) fixes[title] = a;
-        return a;
+      if (sp.getBool('fix_titles_v2') == true) return;
+      var pending = 0;
+      final fixes = <String, Song>{};
+
+      Future<Map<String, dynamic>> fix(Map<String, dynamic> j) async {
+        final s = Song.fromJson(j);
+        if (!SongFix.doubtful(s)) return j;
+        final f = await SongFix.verify(s);
+        if (f.title == s.title && f.artist == s.artist) {
+          pending++;
+          return j;
+        }
+        fixes['${s.artist}|${s.title}'] = f;
+        return {...j, 'title': f.title, 'artist': f.artist};
       }
 
       for (final key in const ['history', 'g_history', 'favorites', 'g_favorites']) {
         final list = sp.getStringList(key);
         if (list == null) continue;
-        var changed = false;
         final out = <String>[];
         for (final raw in list) {
           try {
-            final j = jsonDecode(raw) as Map<String, dynamic>;
-            final t = '${j['title'] ?? ''}'.trim(), a = '${j['artist'] ?? ''}'.trim();
-            if (bad.hasMatch(t) && a.isNotEmpty) {
-              final r = await real(a);
-              if (r != null) {
-                j['title'] = a;
-                j['artist'] = r;
-                out.add(jsonEncode(j));
-                changed = true;
-                continue;
-              }
-            }
-          } catch (_) {}
-          out.add(raw);
+            out.add(jsonEncode(await fix(jsonDecode(raw) as Map<String, dynamic>)));
+          } catch (_) {
+            out.add(raw);
+          }
         }
-        if (changed) await sp.setStringList(key, out);
+        await sp.setStringList(key, out);
+      }
+      final q = sp.getString('queue_v1');
+      if (q != null) {
+        final j = jsonDecode(q) as Map<String, dynamic>;
+        j['s'] = [
+          for (final e in (j['s'] as List))
+            await fix(Map<String, dynamic>.from(e as Map))
+        ];
+        await sp.setString('queue_v1', jsonEncode(j));
       }
       for (final key in const ['plays_v1', 'g_plays_v1']) {
         final raw = sp.getString(key);
         if (raw == null) continue;
         final list = jsonDecode(raw) as List;
-        var changed = false;
         for (final e in list) {
           final l = e as List;
-          final a = l[1] as String, t = l[2] as String;
-          if (bad.hasMatch(t.trim()) && fixes.containsKey(a.trim())) {
-            l[1] = fixes[a.trim()]!;
-            l[2] = a;
-            changed = true;
+          final f = fixes['${l[1]}|${l[2]}'];
+          if (f != null) {
+            l[1] = f.artist;
+            l[2] = f.title;
           }
         }
-        if (changed) await sp.setString(key, jsonEncode(list));
+        await sp.setString(key, jsonEncode(list));
       }
-      await sp.setBool('fix_titles_v1', true);
+      // Quedaron dudosas sin respuesta (sin internet): se reintenta luego,
+      // como mucho 5 veces.
+      final tries = (sp.getInt('fix_titles_tries') ?? 0) + 1;
+      await sp.setInt('fix_titles_tries', tries);
+      if (pending == 0 || tries >= 5) await sp.setBool('fix_titles_v2', true);
     } catch (_) {}
   }
 }

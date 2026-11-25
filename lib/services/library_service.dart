@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 import 'deezer_service.dart';
 import 'music_mode.dart';
+import 'song_fix.dart';
 
 class LibraryService {
   LibraryService._();
@@ -79,6 +80,7 @@ class LibraryService {
       '${s.artist.toLowerCase().trim()}|${s.title.toLowerCase().trim()}';
 
   Future<void> addToHistory(Song song) async {
+    song = await SongFix.verify(song);
     // Va al historial del modo donde empezó la cola (no del que esté
     // abierto si cambiaste de modo con música sonando).
     final key = playKey('history');

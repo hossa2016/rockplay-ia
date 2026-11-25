@@ -70,7 +70,7 @@ const _pulso = _Tone(
   redDeep: Color(0xFF2A1F6B),
   amber: Color(0xFF2EC5D3),
   textDim: Color(0xFFA9A9BC),
-  textFaint: Color(0xFF7D7D93),
+  textFaint: Color(0xFF8D8DA3),
   redText: Color(0xFFB8A8FF),
   redSoft: Color(0xFFCFC4FF),
   surfaceWarm: Color(0xFF141429),
@@ -83,7 +83,7 @@ const _pulso = _Tone(
     [Color(0xFF3A5BD9), Color(0xFF0E1640)],
     [Color(0xFFC0407A), Color(0xFF330F22)],
     [Color(0xFF4A4A60), Color(0xFF16161E)],
-    [Color(0xFF2E9E7A), Color(0xFF0A2A20)],
+    [Color(0xFF1F7A5E), Color(0xFF0A2A20)],
     [Color(0xFF7A5AE0), Color(0xFF1C1440)],
   ],
   head: 'SpaceGrotesk',
@@ -194,7 +194,7 @@ class AppType {
   /// rock y cian claro en Pulso, para pasar 4,5:1 en todo el degradado.
   static TextStyle get overlineOnAccent => overline.copyWith(
       color: MusicModeService.general
-          ? const Color(0xFF7FE3EC)
+          ? const Color(0xFFB5F1F6)
           : const Color(0xFFFFD27A));
 
   /// Etiqueta en mayúsculas espaciadas (ej. TU MIX).

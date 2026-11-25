@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../services/ai_settings.dart';
 import '../theme/app_theme.dart';
+import '../widgets/section_header.dart';
 
 /// Claves gratuitas de Groq y Gemini. Se guardan solo en este teléfono.
 class AiSettingsScreen extends StatefulWidget {
@@ -184,7 +185,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Claves del asistente')),
+      appBar: AppBar(title: AppTitle('Claves del asistente')),
       body: !_ready
           ? const Center(child: CircularProgressIndicator())
           : ListView(

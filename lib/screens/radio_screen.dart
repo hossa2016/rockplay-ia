@@ -249,7 +249,7 @@ class _RadioScreenState extends State<RadioScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(s.shortName,
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                   fontSize: AppType.body,
@@ -301,7 +301,7 @@ class _RadioScreenState extends State<RadioScreen> {
     if (widget.embedded) return list;
     // Pantalla suelta (por si se abre fuera de Buscar).
     return Scaffold(
-      appBar: AppBar(title: const Text('Radio en vivo')),
+      appBar: AppBar(title: AppTitle('Radio en vivo')),
       bottomNavigationBar: const MiniPlayer(),
       body: list,
     );

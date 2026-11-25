@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
 import 'music_mode.dart';
-import 'deezer_service.dart';
+import 'song_fix.dart';
 
 class PlayEntry {
   final int ts; // segundos desde epoch
@@ -77,14 +77,9 @@ class StatsService {
     final key = playKey('plays_v1');
     try {
       final list = await _loadKey(key);
-      var artist = cleanArtist(s.artist);
-      // Canal que sube música ajena («Music Uploader», «… Vault»): se
-      // confirma el artista real con Deezer para que Tus números y los
-      // mixes no se llenen de canales.
-      if (SongMeta.looksLikeUploader(artist)) {
-        final real = await DeezerService().artistForTitle(s.title);
-        if (real != null) artist = real;
-      }
+      // Título o artista dudoso: se confirma con Deezer (SongFix).
+      s = await SongFix.verify(s);
+      final artist = cleanArtist(s.artist);
       list.add(PlayEntry(
         DateTime.now().millisecondsSinceEpoch ~/ 1000,
         artist,
@@ -139,7 +134,8 @@ class StatsService {
   static List<CountItem> topArtists(List<PlayEntry> plays, {int n = 10}) {
     final m = <String, int>{};
     for (final p in plays) {
-      if (p.artist.isEmpty) continue;
+      // Sin canales ni nombres basura («Kaelia Ash: "Self Destruction»).
+      if (p.artist.isEmpty || !SongMeta.isPlausibleArtist(p.artist)) continue;
       m[p.artist] = (m[p.artist] ?? 0) + 1;
     }
     final l = m.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
