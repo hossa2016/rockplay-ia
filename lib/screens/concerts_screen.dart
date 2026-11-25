@@ -86,6 +86,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
   /// Filtro por género (solo en el modo «Todos los géneros»).
   static const List<String> _genres = [
     'Todos',
+    'Mis géneros',
     'Pop',
     'Salsa',
     'Urbano',
@@ -106,7 +107,27 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
   };
   String _genre = 'Todos';
 
+  /// Tus géneros favoritos (Ajustes) llevados a los grupos del filtro.
+  static const Map<String, String> _favMap = {
+    'Pop': 'Pop',
+    'Pop latino': 'Pop',
+    'Baladas': 'Pop',
+    'Salsa': 'Salsa',
+    'Reguetón': 'Urbano',
+    'Vallenato': 'Vallenato',
+    'Rock': 'Rock',
+    'Electrónica': 'Electrónica',
+    'Jazz': 'Jazz y clásica',
+    'Clásica': 'Jazz y clásica',
+  };
+
   bool _inGenre(Concert c, String g) {
+    if (g == 'Mis géneros') {
+      final groups = {
+        for (final f in PulsoPrefs.favGenres.value) _favMap[f] ?? f
+      };
+      return groups.any((x) => _inGenre(c, x));
+    }
     final t = c.genre.toLowerCase();
     if (g == 'Otros') {
       return !_genreWords.keys.any((k) => _inGenre(c, k));

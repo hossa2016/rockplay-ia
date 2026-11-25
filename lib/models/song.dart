@@ -98,6 +98,13 @@ class SongMeta {
   static final RegExp _sep = RegExp(r'\s+[-–—|]\s+');
 
   /// «Rammstein Official», «PearlJamVEVO», «Korn - Topic» → nombre del artista.
+  static final RegExp _uploader = RegExp(
+      r'(uploader|vault|records\b|recordings|music\s*(channel|tv)?$|heartbeats|lyrics|letras|hits|classics|mix(es)?$|channel$|^\w+chef$|\btv$|archive|collection)',
+      caseSensitive: false);
+
+  /// ¿El «artista» parece un canal que sube música de otros?
+  static bool looksLikeUploader(String a) => _uploader.hasMatch(a.trim());
+
   static String cleanChannel(String a) => a
       .replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), '')
       .replaceAll(RegExp(r'\s*vevo$', caseSensitive: false), '')

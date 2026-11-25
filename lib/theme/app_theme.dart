@@ -338,7 +338,15 @@ class AppTheme {
       ),
       // Chip elegido: ámbar con texto oscuro (11:1). Blanco sobre ámbar
       // daba 1,8:1 y no se leía.
-      chipTheme: ChipThemeData(
+      tabBarTheme: TabBarThemeData(
+        labelStyle: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+        unselectedLabelStyle:
+            const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+        labelColor: AppColors.text,
+        unselectedLabelColor: AppColors.textDim,
+        indicatorColor: AppColors.red,
+      ),
+            chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceHigh,
         selectedColor: AppColors.amber,
         checkmarkColor: const Color(0xFF14110A),

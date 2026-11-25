@@ -240,9 +240,13 @@ class _HomeTabState extends State<_HomeTab> {
 
   String _greeting() {
     final h = DateTime.now().hour;
-    if (h >= 6 && h < 12) return 'Buenos días';
-    if (h >= 12 && h < 20) return 'Buenas tardes';
-    return 'Buenas noches';
+    final base = h >= 6 && h < 12
+        ? 'Buenos días'
+        : h >= 12 && h < 20
+            ? 'Buenas tardes'
+            : 'Buenas noches';
+    final n = PulsoPrefs.userName.value;
+    return n.isEmpty ? base : '$base, $n';
   }
 
   /// Frase grande de portada según la hora (estilo revista).
@@ -488,7 +492,10 @@ class _HomeTabState extends State<_HomeTab> {
       title: Row(children: [
         const PickLogo(size: 34),
         const SizedBox(width: 10),
-        Text(byMode('ROCKPLAY', 'Pulso'), style: AppType.oswald(AppType.title)),
+        ValueListenableBuilder<String>(
+            valueListenable: PulsoPrefs.brand,
+            builder: (context, b, _) => Text(byMode('ROCKPLAY', b),
+                style: AppType.oswald(AppType.title))),
       ]),
       actions: [
         IconButton(
@@ -530,7 +537,13 @@ class _HomeTabState extends State<_HomeTab> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_greeting().toUpperCase(), style: AppType.overline),
+                  ValueListenableBuilder<String>(
+                      valueListenable: PulsoPrefs.userName,
+                      builder: (context, _, __) => Text(
+                          _greeting().toUpperCase(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppType.overline)),
                   const SizedBox(height: 4),
                   Text(_coverLine(),
                       maxLines: 2,
@@ -650,7 +663,17 @@ class _HomeTabState extends State<_HomeTab> {
       case 1:
         return _releasesRow();
       default:
-        return _mixRow(MixService.genre);
+        // En Pulso, tus géneros favoritos van primero.
+        final gs = List<MixDef>.of(MixService.genre);
+        if (MusicModeService.general) {
+          final fav = PulsoPrefs.favGenres.value;
+          int rank(MixDef d) {
+            final i = fav.indexOf(d.title);
+            return i < 0 ? 99 : i;
+          }
+          gs.sort((a, b) => rank(a).compareTo(rank(b)));
+        }
+        return _mixRow(gs);
     }
   }
 

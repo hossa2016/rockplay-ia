@@ -79,6 +79,31 @@ class DeezerService {
   }
 
   /// Portada de la mejor coincidencia (vacía si no hay).
+  /// Artista real de una canción por su título (para videos subidos por
+  /// canales que no son del artista). null si no hay coincidencia clara.
+  Future<String?> artistForTitle(String title) async {
+    String n(String s) => s
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
+        .replaceAll(RegExp(r'[^a-z0-9áéíóúñü ]'), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+    final t = n(title);
+    if (t.length < 2) return null;
+    try {
+      final j = await _get('/search', {'q': 'track:"$t"', 'limit': '5'},
+          ttl: const Duration(days: 30));
+      for (final e in (j['data'] as List?) ?? <dynamic>[]) {
+        if (e is! Map) continue;
+        if (n((e['title'] ?? '').toString()) != t) continue;
+        final a = e['artist'];
+        final name = a is Map ? (a['name'] ?? '').toString() : '';
+        if (name.isNotEmpty) return name;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<String> coverFor(String query) async {
     final q = query
         .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')

@@ -236,7 +236,30 @@ class _SearchScreenState extends State<SearchScreen> {
     _search();
   }
 
-  static List<String> get _genres => MusicModeService.general
+  String _gFilter = 'Todos';
+
+  List<String> get _genres {
+    if (!MusicModeService.general) return _rockGenres;
+    if (_gFilter == 'Mis géneros') {
+      final f = PulsoPrefs.favGenres.value;
+      if (f.isNotEmpty) return f;
+    }
+    if (_gFilter == 'En español') {
+      return const [
+        'Pop latino',
+        'Salsa',
+        'Reguetón',
+        'Vallenato',
+        'Baladas',
+        'Rock en español',
+        'Merengue',
+        'Bachata',
+      ];
+    }
+    return _allGenres;
+  }
+
+  static List<String> get _allGenres => MusicModeService.general
       ? const [
           'Pop',
           'Salsa',
@@ -331,6 +354,18 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
         const SizedBox(height: 24),
+        if (MusicModeService.general)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final f in const ['Todos', 'Mis géneros', 'En español'])
+                ChoiceChip(
+                  label: Text(f),
+                  selected: _gFilter == f,
+                  onSelected: (_) => setState(() => _gFilter = f),
+                ),
+            ]),
+          ),
         _label('Explorar por género'),
         Dense(child: GridView.count(
           crossAxisCount: 2,
@@ -436,7 +471,9 @@ class _SearchScreenState extends State<SearchScreen> {
             const SizedBox(height: 12),
             AppSearchField(
               controller: _controller,
-              hint: widget.hint,
+              hint: MusicModeService.general && widget.hint == 'Artista o canción'
+                  ? 'Artista, canción o género'
+                  : widget.hint,
               onSubmit: _search,
             ),
             if (_showSugs) _suggestBox(),
