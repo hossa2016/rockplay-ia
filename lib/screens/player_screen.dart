@@ -672,11 +672,11 @@ class _PlayerScreenState extends State<PlayerScreen>
   Widget _cover(Song song) {
     return LayoutBuilder(builder: (context, box) {
       final art = song.isRadio ? song.image : (_info?.artwork ?? '');
+      // Siempre cuadrada: sin portada real, se recorta el centro del video
+      // (sin las bandas negras de las miniaturas de YouTube).
       final square = art.isNotEmpty;
-      final w = square
-          ? math.min(box.maxWidth - 56, box.maxHeight - 90)
-          : math.min(box.maxWidth - 40, (box.maxHeight - 90) * 16 / 9);
-      final h = square ? w : w * 9 / 16;
+      final w = math.min(box.maxWidth - 56, box.maxHeight - 90);
+      final h = w;
       final fallback = song.image;
       final thumb = square
           ? art
@@ -704,7 +704,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 builder: (context, child) {
                   final t = math.sin(_spin.value * 2 * math.pi);
                   return Transform.scale(
-                      scale: (square ? 1.0 : 1.12) + 0.04 * t,
+                      scale: (square ? 1.0 : 1.34) + 0.04 * t,
                       child: child);
                 },
                 child: thumb.isEmpty

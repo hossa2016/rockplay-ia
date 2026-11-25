@@ -60,15 +60,13 @@ class _SearchHubState extends State<SearchHub> {
               color: on ? AppColors.redBtn : Colors.transparent,
               borderRadius: BorderRadius.circular(AppRadius.md),
             ),
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Text(label,
-                  maxLines: 1,
-                  style: TextStyle(
-                      fontSize: AppType.bodySm,
-                      fontWeight: FontWeight.w800,
-                      color: on ? Colors.white : AppColors.textDim)),
-            ),
+            child: Text(label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: AppType.bodySm,
+                    fontWeight: FontWeight.w800,
+                    color: on ? Colors.white : AppColors.textDim)),
           ),
         ),
       ),
@@ -91,11 +89,11 @@ class _SearchHubState extends State<SearchHub> {
                 borderRadius: BorderRadius.circular(AppRadius.lg),
                 border: Border.all(color: AppColors.outline),
               ),
-              child: Row(children: [
+              child: Dense(child: Row(children: [
                 _seg('Canciones', 0),
                 _seg('Mix de artista', 1),
-                _seg('Radio en vivo', 2),
-              ]),
+                _seg('Radio', 2),
+              ])),
             ),
             Expanded(
               child: IndexedStack(

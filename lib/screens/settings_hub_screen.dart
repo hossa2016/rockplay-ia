@@ -269,7 +269,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
           ListTile(
             minVerticalPadding: 12,
             leading: const Icon(Icons.bug_report_outlined),
-            title: const Text('Canciones que no sonaron'),
+            title: const Text('Versiones reemplazadas'),
             subtitle: Text(
                 '${BadVideos.ids.length} que YouTube no deja reproducir',
                 style: const TextStyle(color: AppColors.textDim)),
@@ -369,10 +369,9 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 () => showSleepWakeSheet(context, showTimer: false),
                 tip: 'Alarmas que suenan con tu música a la hora que elijas.'),
             _row(Icons.filter_alt_outlined, 'Filtros',
-                '${blocked == 0 ? 'Ningún artista bloqueado' : '$blocked ${blocked == 1 ? 'artista bloqueado' : 'artistas bloqueados'}'} · ${bad == 0 ? 'ninguna canción saltada' : '$bad ${bad == 1 ? 'canción saltada' : 'canciones saltadas'}'}',
+                '${blocked == 0 ? 'Ningún artista bloqueado' : '$blocked ${blocked == 1 ? 'artista bloqueado' : 'artistas bloqueados'}'} · ${bad == 0 ? 'todo suena bien' : '$bad ${bad == 1 ? 'versión cambiada' : 'versiones cambiadas'} automáticamente'}',
                 _showFilters,
-                badge: bad == 0 ? null : '$bad',
-                tip: 'Artistas que bloqueaste y canciones que YouTube no deja sonar en apps (la app las salta sola).'),
+                tip: 'Artistas que bloqueaste. Si YouTube no deja sonar una versión en apps, la app busca otra sola; no tienes que hacer nada.'),
           ]),
           _group('AYUDA'),
           _box([
@@ -460,14 +459,14 @@ Future<void> showSkippedDialog(BuildContext context) {
         ];
         final unnamed = BadVideos.ids.length - BadVideos.names.length;
         return AlertDialog(
-          title: const Text('Canciones que no sonaron'),
+          title: const Text('Versiones reemplazadas'),
           content: SizedBox(
             width: double.maxFinite,
             child: BadVideos.ids.isEmpty && SkipLog.entries.isEmpty
                 ? const Text('Todavía no se ha saltado ninguna.')
                 : ListView(shrinkWrap: true, children: [
                     Text(
-                        'YouTube no deja reproducir ${BadVideos.ids.length} canciones en apps. Se ocultan de tus búsquedas.',
+                        '${BadVideos.ids.length} versiones de YouTube no se pueden reproducir en apps. La app ya las cambia por otra versión de la misma canción; no tienes que hacer nada.',
                         style: const TextStyle(
                             color: AppColors.textDim, fontSize: AppType.caption)),
                     const SizedBox(height: 10),

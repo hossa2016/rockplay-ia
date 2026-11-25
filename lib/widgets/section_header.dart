@@ -45,13 +45,20 @@ class SectionTitle extends StatelessWidget {
   final String text;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final EdgeInsetsGeometry padding;
 
-  const SectionTitle(this.text, {super.key, this.actionLabel, this.onAction});
+  /// Único estilo de encabezado de sección de la app: barra roja-ámbar +
+  /// título en Oswald mayúsculas. La acción va en gris (no ámbar).
+  const SectionTitle(this.text,
+      {super.key,
+      this.actionLabel,
+      this.onAction,
+      this.padding = const EdgeInsets.fromLTRB(16, 24, 12, 12)});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 12, 12),
+      padding: padding,
       child: Row(
         children: [
           Container(
@@ -80,7 +87,8 @@ class SectionTitle extends StatelessWidget {
               onPressed: onAction,
               child: Text(
                 actionLabel!,
-                style: const TextStyle(color: AppColors.amber),
+                style: const TextStyle(
+                    color: AppColors.textDim, fontWeight: FontWeight.w700),
               ),
             ),
         ],

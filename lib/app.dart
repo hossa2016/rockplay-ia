@@ -27,7 +27,7 @@ class RockPlayApp extends StatelessWidget {
       ],
       builder: (context, child) => MediaQuery.withClampedTextScaling(
         minScaleFactor: 1.0,
-        maxScaleFactor: 1.6,
+        maxScaleFactor: 1.3,
         child: EmbedOverlay(child: child ?? const SizedBox.shrink()),
       ),
       home: const _IntroGate(),

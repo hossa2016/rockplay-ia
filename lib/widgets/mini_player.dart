@@ -27,7 +27,7 @@ class MiniPlayer extends StatelessWidget {
           alignment: Alignment.bottomCenter,
           child: song == null
               ? const SizedBox(width: double.infinity)
-              : _MiniBody(song: song),
+              : Dense(child: _MiniBody(song: song)),
         );
       },
     );

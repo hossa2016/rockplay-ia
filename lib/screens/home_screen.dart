@@ -152,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   top: BorderSide(color: AppColors.navLine, width: 1),
                 ),
               ),
-              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: NavigationBar(
+              child: Padding(padding: const EdgeInsets.symmetric(horizontal: 4), child: Dense(child: NavigationBar(
               selectedIndex: _tab,
               onDestinationSelected: _go,
               labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
@@ -178,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   label: 'Asistente',
                 ),
               ],
-            )),
+            ))),
             ),
           ],
         ),
@@ -376,8 +376,8 @@ class _HomeTabState extends State<_HomeTab> {
       final a = top.first;
       if (a.count < 5) return null;
       return _Nudge(
-        'Llevas una semana con ${a.name}',
-        '¿Te armo algo parecido pero de bandas que no conoces?',
+        'Una semana con ${a.name}',
+        '¿Algo parecido con bandas nuevas?',
         Icons.auto_awesome_rounded,
         prompt:
             'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con bandas que probablemente no conozco.',
@@ -395,12 +395,12 @@ class _HomeTabState extends State<_HomeTab> {
         final n = snap.data;
         if (n == null || _nudgeClosed) return const SizedBox.shrink();
         return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
           child: Material(
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              side: const BorderSide(color: AppColors.borderAccent),
+              side: const BorderSide(color: AppColors.outline),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -419,11 +419,11 @@ class _HomeTabState extends State<_HomeTab> {
                 padding: const EdgeInsets.fromLTRB(16, 14, 4, 14),
                 child: Row(children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 36,
+                    height: 36,
                     decoration: const BoxDecoration(
                         shape: BoxShape.circle, gradient: AppColors.accent),
-                    child: Icon(n.icon, color: Colors.white, size: 22),
+                    child: Icon(n.icon, color: Colors.white, size: 18),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -431,11 +431,15 @@ class _HomeTabState extends State<_HomeTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(n.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                fontSize: AppType.body,
+                                fontSize: AppType.bodySm,
                                 fontWeight: FontWeight.w800)),
                         const SizedBox(height: 2),
                         Text(n.text,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: AppType.label,
                                 height: 1.3,
@@ -557,8 +561,9 @@ class _HomeTabState extends State<_HomeTab> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _stopNotice(),
-                  _nudgeCard(),
                   _personalMix(),
+                  const SizedBox(height: 12),
+                  _nudgeCard(),
                   const SectionTitle('Tus mixes diarios'),
                   _dailyRow(),
                   _quickAccess(),
@@ -574,7 +579,7 @@ class _HomeTabState extends State<_HomeTab> {
                   _recentSection(),
                   SectionTitle(_hourTitle()),
                   _mixRow(_hourMixes()),
-                  const SectionTitle('Conciertos'),
+                  const SizedBox(height: 24),
                   ConcertsCard(onListen: _listenBand),
                   const SectionTitle('Descubrir'),
                   _discoverChips(),
@@ -593,7 +598,7 @@ class _HomeTabState extends State<_HomeTab> {
 
   Widget _discoverChips() {
     const labels = ['Bandas', 'Lanzamientos', 'Mixes'];
-    return SizedBox(
+    return Dense(child: SizedBox(
       height: 48,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
@@ -628,7 +633,7 @@ class _HomeTabState extends State<_HomeTab> {
           ));
         },
       ),
-    );
+    ));
   }
 
   Widget _discoverBody() {
@@ -1144,7 +1149,7 @@ class _RecentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(child: _card());
+    return Dense(child: Pressable(child: _card()));
   }
 
   Widget _card() {
@@ -1192,7 +1197,7 @@ class _MixCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Pressable(child: _card(context));
+    return Dense(child: Pressable(child: _card(context)));
   }
 
   Widget _card(BuildContext context) {

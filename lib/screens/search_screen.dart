@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
+import '../widgets/undo.dart';
 import '../widgets/state_views.dart';
 
 /// Pide buscar algo en la pestaña Buscar desde fuera (ej. «Escuchar banda»).
@@ -162,11 +163,21 @@ class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _clearHistory() async {
+    final old = List<String>.of(_history);
     setState(() => _history = []);
     try {
       final sp = await SharedPreferences.getInstance();
       await sp.remove(_histKey);
     } catch (_) {}
+    if (!mounted) return;
+    showUndo(context, 'Búsquedas recientes borradas', () async {
+      if (!mounted) return;
+      setState(() => _history = old);
+      try {
+        final sp = await SharedPreferences.getInstance();
+        await sp.setStringList(_histKey, old);
+      } catch (_) {}
+    });
   }
 
   void _wantQuery() {
@@ -246,15 +257,11 @@ class _SearchScreenState extends State<SearchScreen> {
     'Indie rock',
   ];
 
-  Widget _label(String t) => Padding(
-        padding: const EdgeInsets.only(left: 4, bottom: 10),
-        child: Text(t,
-            style: const TextStyle(
-                fontSize: AppType.caption,
-                letterSpacing: 1.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.amber)),
-      );
+  Widget _label(String t, {String? action, VoidCallback? onAction}) =>
+      SectionTitle(t,
+          actionLabel: action,
+          onAction: onAction,
+          padding: const EdgeInsets.fromLTRB(0, 8, 0, 8));
 
   Widget _genreTile(int i) {
     final name = _genres[i];
@@ -295,13 +302,7 @@ class _SearchScreenState extends State<SearchScreen> {
       children: [
         if (_history.isNotEmpty) ...[
           const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(child: _label('RECIENTES')),
-              TextButton(
-                  onPressed: _clearHistory, child: const Text('Borrar')),
-            ],
-          ),
+          _label('Recientes', action: 'Borrar', onAction: _clearHistory),
           Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -327,8 +328,8 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
         const SizedBox(height: 24),
-        _label('EXPLORAR POR GÉNERO'),
-        GridView.count(
+        _label('Explorar por género'),
+        Dense(child: GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -336,7 +337,7 @@ class _SearchScreenState extends State<SearchScreen> {
           crossAxisSpacing: 10,
           childAspectRatio: 2.3,
           children: [for (var i = 0; i < _genres.length; i++) _genreTile(i)],
-        ),
+        )),
       ],
     );
   }

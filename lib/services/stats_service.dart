@@ -29,10 +29,7 @@ class StatsService {
   static const int _cap = 3000;
   List<PlayEntry>? _cache;
 
-  static String cleanArtist(String a) => a
-      .replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), '')
-      .replaceAll(RegExp(r'vevo$', caseSensitive: false), '')
-      .trim();
+  static String cleanArtist(String a) => SongMeta.cleanChannel(a);
 
   Future<List<PlayEntry>> _load() async {
     if (_cache != null) return _cache!;
@@ -80,10 +77,24 @@ class StatsService {
     } catch (_) {}
   }
 
+  /// Solo cuentan las canciones que sonaron al menos 30 s (si la siguiente
+  /// empezó antes, fue un salto o una versión que falló). Artista y título se
+  /// limpian (canales de YouTube → artista real).
+  static List<PlayEntry> _real(List<PlayEntry> all) {
+    final out = <PlayEntry>[];
+    for (var i = 0; i < all.length; i++) {
+      final p = all[i];
+      if (i + 1 < all.length && all[i + 1].ts - p.ts < 30) continue;
+      final m = SongMeta.split(p.title, p.artist);
+      out.add(PlayEntry(p.ts, m.artist, m.title, p.videoId, p.image));
+    }
+    return out;
+  }
+
   /// [days] null = todo el tiempo.
   Future<List<PlayEntry>> plays({int? days}) async {
-    final all = await _load();
-    if (days == null) return List<PlayEntry>.of(all);
+    final all = _real(await _load());
+    if (days == null) return all;
     final from = DateTime.now()
             .subtract(Duration(days: days))
             .millisecondsSinceEpoch ~/

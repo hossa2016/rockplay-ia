@@ -183,11 +183,7 @@ class MixService {
     return [...own, ...extra];
   }
 
-  static String _cleanArtist(String a) => a
-      .replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), '')
-      .replaceAll(RegExp(r'vevo$', caseSensitive: false), '')
-      .replaceAll(RegExp(r'\(official\)|official$', caseSensitive: false), '')
-      .trim();
+  static String _cleanArtist(String a) => SongMeta.cleanChannel(a);
 
   /// Artistas más presentes en favoritos (peso 2) e historial (peso 1).
   static Future<List<String>> personalArtists() async {

@@ -178,12 +178,10 @@ class ArtistInfoService {
           }
           if (BlockService.instance.isBlockedAuthor(v.author)) continue;
           if (!seen.add(v.id.value)) continue;
-          out.add(Song(
+          out.add(Song.fromYoutube(
             title: v.title,
-            artist: v.author
-                .replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), ''),
+            channel: v.author,
             image: v.thumbnails.mediumResUrl,
-            url: 'https://www.youtube.com/watch?v=${v.id.value}',
             videoId: v.id.value,
           ));
         }

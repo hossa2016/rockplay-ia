@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../widgets/undo.dart';
+import '../widgets/section_header.dart';
 
 import '../models/song.dart';
 import '../services/ai_client.dart';
@@ -307,6 +308,45 @@ class _AssistantScreenState extends State<AssistantScreen> {
     );
   }
 
+  /// Convierte notas técnicas («Gemini: error 503») en algo entendible.
+  static String _humanNote(String note, String source) {
+    final n = note.toLowerCase();
+    final who = n.startsWith('groq') ? 'Groq' : 'Gemini';
+    final other = source.isEmpty || source == who ? 'la otra IA' : source;
+    if (n.contains('límite') || n.contains('429') || n.contains('quota')) {
+      return '$who llegó a su límite gratis de hoy; armé la lista con $other.';
+    }
+    if (n.contains('503') || n.contains('500') || n.contains('overload')) {
+      return '$who estaba saturado en este momento; armé la lista con $other.';
+    }
+    if (n.contains('error') || n.contains('timeout') || n.contains('tiempo')) {
+      return '$who no respondió bien; armé la lista con $other.';
+    }
+    return note;
+  }
+
+  Widget _infoBanner(String text) => Container(
+        margin: const EdgeInsets.only(top: AppSpace.sm),
+        padding: const EdgeInsets.all(AppSpace.md),
+        decoration: BoxDecoration(
+          color: AppColors.amberTint,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: Border.all(color: AppColors.amberLine),
+        ),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Icon(Icons.info_outline_rounded,
+              color: AppColors.amber, size: 20),
+          const SizedBox(width: AppSpace.sm),
+          Expanded(
+            child: Text(text,
+                style: const TextStyle(
+                    fontSize: AppType.label,
+                    height: 1.35,
+                    color: AppColors.amber)),
+          ),
+        ]),
+      );
+
   void _clearChat() {
     final old = List<_Msg>.of(_msgs);
     setState(() => _msgs.clear());
@@ -368,28 +408,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 if (r != null && r.source == 'Reglas simples' && !_noKeys)
                   _quotaBanner(r.note ?? ''),
                 if (r != null && r.note != null && r.source != 'Reglas simples')
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Text(r.note!,
-                        style: const TextStyle(
-                            color: AppColors.textFaint,
-                            fontSize: AppType.caption)),
-                  ),
+                  _infoBanner(_humanNote(r.note!, r.source)),
                 if (r != null && last && r.songs.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 10),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(children: [
-                        Padding(
-                          padding: const EdgeInsets.only(right: 8),
-                          child: _chip('Ampliar (hasta ${AiSettings.instance.maxSongs})', () => _expand(r)),
-                        ),
-                        for (final t in _tweaks)
-                          Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: _chip(t, () => _send(t)),
-                          ),
+                    child: Dense(
+                      max: 1.15,
+                      child: Wrap(spacing: 8, runSpacing: 8, children: [
+                        _chip('Ampliar a ${AiSettings.instance.maxSongs}', () => _expand(r)),
+                        for (final t in _tweaks) _chip(t, () => _send(t)),
                       ]),
                     ),
                   ),
@@ -547,46 +574,59 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ),
             ),
           const SizedBox(height: 8),
-          Row(children: [
-            Expanded(
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: AppColors.bg,
-                    minimumSize: const Size(0, 48),
-                    shape: const StadiumBorder()),
-                onPressed: () => playSongs(context, r.songs, 0),
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const FittedBox(
-                    fit: BoxFit.scaleDown, child: Text('Reproducir')),
+          // Principal arriba a lo ancho; secundarios en dos columnas: con
+          // letra grande nada queda cortado.
+          Dense(
+            max: 1.15,
+            child: Column(children: [
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.redBtn,
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(0, 48),
+                      shape: const StadiumBorder()),
+                  onPressed: () => playSongs(context, r.songs, 0),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Reproducir'),
+                ),
               ),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 48),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  side: const BorderSide(color: Color(0xFF3A3A46)),
-                  shape: const StadiumBorder()),
-              onPressed: () {
-                final mix = List<Song>.of(r.songs)..shuffle();
-                playSongs(context, mix, 0);
-              },
-              icon: const Icon(Icons.shuffle_rounded, size: 20),
-              label: const Text('Aleatorio'),
-            ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(0, 48),
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  side: const BorderSide(color: Color(0xFF3A3A46)),
-                  shape: const StadiumBorder()),
-              onPressed: () => _save(r),
-              icon: const Icon(Icons.bookmark_border_rounded, size: 20),
-              label: const Text('Guardar'),
-            ),
-          ]),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        side: const BorderSide(color: AppColors.outline),
+                        shape: const StadiumBorder()),
+                    onPressed: () {
+                      final mix = List<Song>.of(r.songs)..shuffle();
+                      playSongs(context, mix, 0);
+                    },
+                    icon: const Icon(Icons.shuffle_rounded, size: 20),
+                    label: const Text('Aleatorio',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        side: const BorderSide(color: AppColors.outline),
+                        shape: const StadiumBorder()),
+                    onPressed: () => _save(r),
+                    icon: const Icon(Icons.bookmark_border_rounded, size: 20),
+                    label: const Text('Guardar',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+              ]),
+            ]),
+          ),
         ],
       ),
     );
@@ -707,16 +747,9 @@ class _AssistantScreenState extends State<AssistantScreen> {
           ),
         ],
         const SizedBox(height: 22),
-        const Padding(
-          padding: EdgeInsets.only(left: 4, bottom: 10),
-          child: Text('ELIGE UN ÁNIMO',
-              style: TextStyle(
-                  fontSize: AppType.caption,
-                  letterSpacing: 1.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.amber)),
-        ),
-        GridView.count(
+        const SectionTitle('Elige un ánimo',
+            padding: EdgeInsets.fromLTRB(0, 0, 0, 10)),
+        Dense(child: GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -724,7 +757,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
           crossAxisSpacing: 10,
           childAspectRatio: 1.9,
           children: [for (final t in _moodTiles) _moodTile(t)],
-        ),
+        )),
       ],
     );
   }
@@ -820,7 +853,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                     textInputAction: TextInputAction.send,
                     onSubmitted: _send,
                     decoration: InputDecoration(
-                      hintText: 'Escribe lo que quieras escuchar',
+                      hintText: 'Pide una lista…',
                       filled: true,
                       fillColor: AppColors.surfaceHigh,
                       contentPadding: const EdgeInsets.symmetric(

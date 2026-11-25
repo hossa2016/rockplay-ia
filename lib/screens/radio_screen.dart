@@ -6,6 +6,7 @@ import '../services/radio_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/playback_ui.dart';
+import '../widgets/section_header.dart';
 import '../widgets/player_route.dart';
 import '../widgets/state_views.dart';
 
@@ -291,15 +292,7 @@ class _RadioScreenState extends State<RadioScreen> {
     );
   }
 
-  Widget _label(String t) => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 18, 20, 10),
-        child: Text(t,
-            style: const TextStyle(
-                fontSize: AppType.caption,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1.4,
-                color: AppColors.textDim)),
-      );
+  Widget _label(String t) => SectionTitle(t);
 
   @override
   Widget build(BuildContext context) {
@@ -328,7 +321,7 @@ class _RadioScreenState extends State<RadioScreen> {
               textInputAction: TextInputAction.search,
               onSubmitted: (_) => _search(),
               decoration: InputDecoration(
-                hintText: 'Buscar emisora (ej. Radioacktiva)',
+                hintText: 'Buscar emisora',
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: _q.text.isEmpty
                     ? null
@@ -364,18 +357,18 @@ class _RadioScreenState extends State<RadioScreen> {
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: SegmentedButton<bool>(
+            child: Dense(child: SegmentedButton<bool>(
               showSelectedIcon: false,
               segments: const [
                 ButtonSegment(value: true, label: Text('Colombia')),
-                ButtonSegment(value: false, label: Text('Todo el mundo')),
+                ButtonSegment(value: false, label: Text('Mundo')),
               ],
               selected: {_colombia},
               onSelectionChanged: (v) {
                 setState(() => _colombia = v.first);
                 _search();
               },
-            ),
+            )),
           ),
           if (_saved.isNotEmpty) ...[
             _label('MIS EMISORAS'),
@@ -401,7 +394,7 @@ class _RadioScreenState extends State<RadioScreen> {
               title: _lastQuery.isEmpty
                   ? 'No hay emisoras para mostrar'
                   : 'Sin resultados para «$_lastQuery»',
-              message: 'Prueba otro nombre o cambia a Todo el mundo.',
+              message: 'Prueba otro nombre o cambia a Mundo.',
             )
           else
             for (final s in shown) _tile(s),

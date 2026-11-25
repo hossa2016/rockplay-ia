@@ -235,13 +235,20 @@ class AppTheme {
           textStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
         ),
       ),
+      // Chip elegido: ámbar con texto oscuro (11:1). Blanco sobre ámbar
+      // daba 1,8:1 y no se leía.
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceHigh,
+        selectedColor: AppColors.amber,
+        checkmarkColor: const Color(0xFF14110A),
         side: const BorderSide(color: AppColors.outline),
         shape: const StadiumBorder(),
-        labelStyle: const TextStyle(
-          color: AppColors.text,
-          fontWeight: FontWeight.w600,
+        labelStyle: TextStyle(
+          color: WidgetStateColor.resolveWith((st) =>
+              st.contains(WidgetState.selected)
+                  ? const Color(0xFF14110A)
+                  : AppColors.text),
+          fontWeight: FontWeight.w700,
           fontSize: 13,
         ),
       ),
@@ -266,4 +273,17 @@ class AppTheme {
       dividerColor: AppColors.outline,
     );
   }
+}
+
+/// Limita la letra grande del sistema en piezas densas (pestañas, chips,
+/// tarjetas pequeñas, mini player) para que no se corten. El texto normal
+/// sigue creciendo hasta 1,3×.
+class Dense extends StatelessWidget {
+  final Widget child;
+  final double max;
+  const Dense({super.key, required this.child, this.max = 1.1});
+
+  @override
+  Widget build(BuildContext context) =>
+      MediaQuery.withClampedTextScaling(maxScaleFactor: max, child: child);
 }

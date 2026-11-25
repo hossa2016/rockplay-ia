@@ -157,16 +157,16 @@ class _SongListScreenState extends State<SongListScreen> {
               runSpacing: 8,
               children: [
                 FilledButton.icon(
-                  onPressed: _songs.isEmpty ? null : _shuffle,
-                  icon: const Icon(Icons.shuffle_rounded),
-                  label: const Text('Aleatorio'),
-                ),
-                OutlinedButton.icon(
                   onPressed: _songs.isEmpty
                       ? null
                       : () => playSongs(context, _songs, 0),
                   icon: const Icon(Icons.play_arrow_rounded),
                   label: const Text('Reproducir'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _songs.isEmpty ? null : _shuffle,
+                  icon: const Icon(Icons.shuffle_rounded),
+                  label: const Text('Aleatorio'),
                 ),
               ],
             ),

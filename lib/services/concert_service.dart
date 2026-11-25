@@ -294,6 +294,22 @@ class ConcertService {
     return DateTime(n.year, n.month, n.day);
   }
 
+  static String _fuzzy(String s) {
+    const from = 'áàäâéèëêíìïîóòöôúùüûñç';
+    const to = 'aaaaeeeeiiiioooouuuunc';
+    final b = StringBuffer();
+    String prev = '';
+    for (final ch in s.toLowerCase().split('')) {
+      final i = from.indexOf(ch);
+      final c = i >= 0 ? to[i] : ch;
+      if (!RegExp(r'[a-z0-9]').hasMatch(c) || c == prev) continue;
+      b.write(c);
+      prev = c;
+    }
+    final r = b.toString();
+    return r.startsWith('the') && r.length > 5 ? r.substring(3) : r;
+  }
+
   static DateTime _limit() {
     final t = _today();
     return DateTime(t.year + 1, t.month, t.day);
@@ -310,12 +326,18 @@ class ConcertService {
     for (final c in list) {
       final d = c.date;
       if (d != null && (d.isBefore(from) || d.isAfter(to))) continue;
-      final k = '${c.band.toLowerCase()}|${d == null ? '' : _ymd(d)}';
+      // Nombre "difuso": sin tildes/símbolos y sin letras repetidas, así
+      // "Kakkmaddafakk" y "Kakkmadafakk" cuentan como la misma banda.
+      final k = '${_fuzzy(c.band)}|${d == null ? '' : _ymd(d)}';
+      final k3 = d != null && c.city.trim().isNotEmpty
+          ? '${_fuzzy(c.band)}|${_fuzzy(c.city)}|${_ymd(d)}'
+          : null;
       // Mismo lugar y misma fecha = mismo evento aunque lo nombren distinto.
       final v = c.venue.toLowerCase().trim();
       final k2 = d != null && v.length > 3 && v != 'tba' ? '$v|${_ymd(d)}' : null;
       if (!seen.add(k)) continue;
       if (k2 != null && !seen.add(k2)) continue;
+      if (k3 != null && !seen.add(k3)) continue;
       (d == null ? tbd : dated).add(c);
     }
     dated.sort((a, b) => a.date!.compareTo(b.date!));

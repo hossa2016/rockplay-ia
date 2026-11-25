@@ -323,7 +323,7 @@ class _DjScreenState extends State<DjScreen> {
           child: const Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.radio_rounded, color: AppColors.amber, size: 34),
+              Icon(Icons.person_search_rounded, color: AppColors.amber, size: 34),
               SizedBox(height: 14),
               Text(
                 'ELIGE UN ARTISTA',
@@ -466,23 +466,24 @@ class _DjScreenState extends State<DjScreen> {
               spacing: 10,
               runSpacing: 8,
               children: [
+                // Principal = relleno (Reproducir); secundario = contorno.
                 FilledButton.icon(
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black,
                   ),
-                  onPressed: _shuffle,
-                  icon: const Icon(Icons.shuffle_rounded),
-                  label: const Text('Aleatorio'),
+                  onPressed: () => _play(0),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Reproducir'),
                 ),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white54),
                   ),
-                  onPressed: () => _play(0),
-                  icon: const Icon(Icons.play_arrow_rounded),
-                  label: const Text('Reproducir'),
+                  onPressed: _shuffle,
+                  icon: const Icon(Icons.shuffle_rounded),
+                  label: const Text('Aleatorio'),
                 ),
               ],
             ),
@@ -522,7 +523,7 @@ class _DjScreenState extends State<DjScreen> {
             AppSearchField(
               controller: _controller,
               hint: 'Artista, ej: Linkin Park',
-              icon: Icons.radio_rounded,
+              icon: Icons.person_search_rounded,
               onSubmit: _create,
             ),
             const SizedBox(height: 4),

@@ -394,7 +394,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   borderRadius: BorderRadius.circular(AppRadius.lg),
                   border: Border.all(color: AppColors.outline),
                 ),
-                child: TabBar(
+                child: Dense(child: TabBar(
                   dividerColor: Colors.transparent,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicator: BoxDecoration(
@@ -411,7 +411,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     Tab(height: 48, text: 'Listas'),
                     Tab(height: 48, text: 'Historial'),
                   ],
-                ),
+                )),
               ),
               const SizedBox(height: 8),
               Expanded(
