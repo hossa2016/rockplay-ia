@@ -14,6 +14,7 @@ import '../widgets/sleep_wake_sheet.dart';
 import 'onboarding_screen.dart';
 import '../services/help_settings.dart';
 import '../services/music_mode.dart';
+import '../services/stats_service.dart';
 import 'mode_pick_screen.dart';
 
 /// Un solo lugar para todos los ajustes (agrupados).
@@ -50,7 +51,28 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
     await BlockService.instance.ensureLoaded();
     await BadVideos.load();
     final b = await DataSaver.instance.sizeBytes();
-    if (mounted) setState(() => _bytes = b);
+    var plays = 0;
+    try {
+      plays = (await StatsService.instance.plays()).length;
+    } catch (_) {}
+    if (mounted) {
+      setState(() {
+        _bytes = b;
+        _plays = plays;
+      });
+    }
+  }
+
+  int _plays = 0;
+
+  /// Porcentaje de lo que suena que la app cambió por otra versión.
+  String _badPct(int bad) {
+    if (bad == 0) return 'todo suena bien';
+    final total = _plays + bad;
+    final p = (bad * 100 / total).round();
+    return p < 1
+        ? 'menos del 1 % se cambia solo'
+        : '$p % de lo que suena se cambia solo';
   }
 
   Future<void> _go(Widget page) async {
@@ -384,7 +406,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 () => showSleepWakeSheet(context, showTimer: false),
                 tip: 'Alarmas que suenan con tu música a la hora que elijas.'),
             _row(Icons.filter_alt_outlined, 'Filtros',
-                '${blocked == 0 ? 'Ningún artista bloqueado' : '$blocked ${blocked == 1 ? 'artista bloqueado' : 'artistas bloqueados'}'} · ${bad == 0 ? 'todo suena bien' : '$bad ${bad == 1 ? 'versión cambiada' : 'versiones cambiadas'} automáticamente'}',
+                '${blocked == 0 ? 'Ningún artista bloqueado' : '$blocked ${blocked == 1 ? 'artista bloqueado' : 'artistas bloqueados'}'} · ${_badPct(bad)}',
                 _showFilters,
                 tip: 'Artistas que bloqueaste. Si YouTube no deja sonar una versión en apps, la app busca otra sola; no tienes que hacer nada.'),
           ]),

@@ -70,7 +70,9 @@ class RadioService {
   RadioService._();
   static final RadioService instance = RadioService._();
 
-  static const String _key = 'radio_v1';
+  // Cada modo de música tiene sus emisoras guardadas.
+  static String get _key => modeKey('radio_v1');
+  MusicMode? _savedMode;
   static const List<String> _hosts = [
     'https://de1.api.radio-browser.info',
     'https://at1.api.radio-browser.info',
@@ -83,7 +85,10 @@ class RadioService {
   List<RadioStation>? _saved;
 
   Future<List<RadioStation>> saved() async {
-    if (_saved != null) return List<RadioStation>.of(_saved!);
+    if (_saved != null && _savedMode == MusicModeService.mode.value) {
+      return List<RadioStation>.of(_saved!);
+    }
+    _savedMode = MusicModeService.mode.value;
     final out = <RadioStation>[];
     try {
       final sp = await SharedPreferences.getInstance();

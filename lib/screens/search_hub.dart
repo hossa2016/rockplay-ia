@@ -65,7 +65,8 @@ class _SearchHubState extends State<SearchHub> {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                     fontSize: AppType.bodySm,
-                    fontWeight: FontWeight.w800,
+                    // No solo color: el elegido también va en negrita.
+                    fontWeight: on ? FontWeight.w800 : FontWeight.w500,
                     color: on ? Colors.white : AppColors.textDim)),
           ),
         ),

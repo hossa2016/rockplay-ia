@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
 import 'music_mode.dart';
+import 'deezer_service.dart';
 
 class PlayEntry {
   final int ts; // segundos desde epoch
@@ -57,9 +58,17 @@ class StatsService {
   Future<void> record(Song s) async {
     try {
       final list = await _load();
+      var artist = cleanArtist(s.artist);
+      // Canal que sube música ajena («Music Uploader», «… Vault»): se
+      // confirma el artista real con Deezer para que Tus números y los
+      // mixes no se llenen de canales.
+      if (SongMeta.looksLikeUploader(artist)) {
+        final real = await DeezerService().artistForTitle(s.title);
+        if (real != null) artist = real;
+      }
       list.add(PlayEntry(
         DateTime.now().millisecondsSinceEpoch ~/ 1000,
-        cleanArtist(s.artist),
+        artist,
         s.title,
         s.videoId,
         s.image,

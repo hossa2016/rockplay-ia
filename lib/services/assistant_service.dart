@@ -58,6 +58,10 @@ Reglas:
     await AiSettings.instance.load();
     if (!AiSettings.instance.learn) return '';
     final b = StringBuffer();
+    if (MusicModeService.general && PulsoPrefs.favGenres.value.isNotEmpty) {
+      b.write('Géneros que más le gustan (úsalos como base cuando no pida uno): ');
+      b.writeln(PulsoPrefs.favGenres.value.join(', '));
+    }
     try {
       final plays = await StatsService.instance.plays(days: 60);
       final top = StatsService.topArtists(plays, n: 8);

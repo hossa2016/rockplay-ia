@@ -25,9 +25,10 @@ class MusicModeService {
   static bool get rock => mode.value == MusicMode.rock;
 
   /// Nombre visible de la app según el modo.
-  static String get appName => general ? 'Pulso' : 'RockPlay IA';
+  static String get appName => general ? PulsoPrefs.brand.value : 'RockPlay IA';
 
   static Future<void> load() async {
+    await PulsoPrefs.load();
     try {
       final sp = await SharedPreferences.getInstance();
       mode.value =
@@ -65,3 +66,66 @@ String byMode(String rock, String general) =>
 /// favoritas y las búsquedas de «Todos los géneros» no se mezclan con las
 /// de rock. En rock se usan las claves de siempre.
 String modeKey(String key) => MusicModeService.general ? 'g_$key' : key;
+
+/// Ajustes propios del modo «Todos los géneros» y del saludo.
+class PulsoPrefs {
+  PulsoPrefs._();
+
+  /// Géneros que más te gustan (Buscar → «Mis géneros», conciertos,
+  /// asistente y orden de los mixes en Inicio).
+  static final ValueNotifier<List<String>> favGenres =
+      ValueNotifier(const ['Pop', 'Salsa', 'Vallenato', 'Rock']);
+
+  /// Nombre de la app en pantalla en el modo Pulso.
+  static final ValueNotifier<String> brand = ValueNotifier('Pulso');
+
+  /// Tu nombre para el saludo de Inicio (vacío = sin nombre).
+  static final ValueNotifier<String> userName = ValueNotifier('');
+
+  static const allGenres = [
+    'Pop',
+    'Pop latino',
+    'Salsa',
+    'Reguetón',
+    'Vallenato',
+    'Rock',
+    'Electrónica',
+    'Jazz',
+    'Clásica',
+    'Baladas',
+  ];
+
+  static Future<void> load() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final g = sp.getStringList('pulso_fav_genres');
+      if (g != null && g.isNotEmpty) favGenres.value = g;
+      brand.value = sp.getString('pulso_brand') ?? 'Pulso';
+      userName.value = sp.getString('user_name') ?? '';
+    } catch (_) {}
+  }
+
+  static Future<void> setGenres(List<String> g) async {
+    favGenres.value = List.unmodifiable(g);
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setStringList('pulso_fav_genres', g);
+    } catch (_) {}
+  }
+
+  static Future<void> setBrand(String b) async {
+    brand.value = b.trim().isEmpty ? 'Pulso' : b.trim();
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString('pulso_brand', brand.value);
+    } catch (_) {}
+  }
+
+  static Future<void> setUserName(String n) async {
+    userName.value = n.trim();
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString('user_name', userName.value);
+    } catch (_) {}
+  }
+}

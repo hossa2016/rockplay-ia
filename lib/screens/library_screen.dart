@@ -405,6 +405,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   unselectedLabelColor: AppColors.textDim,
                   labelStyle: const TextStyle(
                       fontWeight: FontWeight.w800, fontSize: AppType.bodySm),
+                  unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500, fontSize: AppType.bodySm),
                   onTap: (_) => HapticFeedback.selectionClick(),
                   tabs: const [
                     Tab(height: 48, text: 'Favoritos'),

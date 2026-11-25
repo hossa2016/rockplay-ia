@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/rock_decor.dart';
+import 'concerts_screen.dart';
 
 /// Primera vez: «¿Qué vas a escuchar?». Decide cómo opera la app.
 class ModePickScreen extends StatefulWidget {
@@ -322,13 +323,151 @@ class MusicModeScreen extends StatelessWidget {
             ]),
             const SizedBox(height: 14),
             Text(
-                'Al cambiar se ajustan los géneros, mixes, asistente, conciertos, ecualizador, tono del despertador y colores. Tus favoritas, listas e historial no se tocan.',
+                'Al cambiar se ajustan los géneros, mixes, asistente, conciertos, ecualizador, tono del despertador y colores. Cada modo guarda su propio historial, escuchas y favoritas; tus listas son de los dos.',
                 style: TextStyle(
                     fontSize: 13, height: 1.45, color: AppColors.textDim)),
+            if (mode == MusicMode.general) ...[
+              const SizedBox(height: 22),
+              Padding(
+                padding: const EdgeInsets.only(left: 4, bottom: 10),
+                child: Text('EN MODO TODOS LOS GÉNEROS', style: AppType.overline),
+              ),
+              _card([
+                ValueListenableBuilder<List<String>>(
+                  valueListenable: PulsoPrefs.favGenres,
+                  builder: (context, g, _) => _row(
+                      'Géneros favoritos',
+                      g.isEmpty ? 'Ninguno' : g.join(', '),
+                      () => _pickGenres(context)),
+                ),
+                _row('Conciertos', 'Filtra por tus géneros en la pantalla de conciertos',
+                    () => Navigator.push(context,
+                        MaterialPageRoute(builder: (_) => const ConcertsScreen()))),
+                ValueListenableBuilder<String>(
+                  valueListenable: PulsoPrefs.brand,
+                  builder: (context, b, _) => _row('Nombre en pantalla', b,
+                      () => _editText(context, 'Nombre en pantalla', b,
+                          PulsoPrefs.setBrand)),
+                ),
+              ]),
+            ],
+            const SizedBox(height: 22),
+            Padding(
+              padding: const EdgeInsets.only(left: 4, bottom: 10),
+              child: Text('SALUDO', style: AppType.overline),
+            ),
+            _card([
+              ValueListenableBuilder<String>(
+                valueListenable: PulsoPrefs.userName,
+                builder: (context, n, _) => _row(
+                    'Tu nombre',
+                    n.isEmpty ? 'Sin nombre (solo «Buenos días»)' : n,
+                    () => _editText(context, 'Tu nombre', n,
+                        PulsoPrefs.setUserName)),
+              ),
+            ]),
           ],
         ),
       ),
     );
+  }
+
+  Widget _card(List<Widget> rows) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(color: AppColors.outline),
+        ),
+        child: Column(children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              Divider(height: 1, indent: 16, endIndent: 16, color: AppColors.outline),
+            rows[i],
+          ],
+        ]),
+      );
+
+  Widget _row(String t, String sub, VoidCallback onTap) => ListTile(
+        minVerticalPadding: 12,
+        title: Text(t, style: const TextStyle(fontWeight: FontWeight.w700)),
+        subtitle: Text(sub,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: AppColors.textDim)),
+        trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+        onTap: onTap,
+      );
+
+  Future<void> _pickGenres(BuildContext context) async {
+    final sel = List<String>.of(PulsoPrefs.favGenres.value);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => StatefulBuilder(
+        builder: (c, set) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Géneros favoritos', style: AppType.oswald(AppType.titleSm)),
+                const SizedBox(height: 6),
+                Text('Van primero en Inicio y en «Mis géneros».',
+                    style: TextStyle(color: AppColors.textDim)),
+                const SizedBox(height: 14),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  for (final g in PulsoPrefs.allGenres)
+                    FilterChip(
+                      label: Text(g),
+                      selected: sel.contains(g),
+                      onSelected: (v) => set(() => v ? sel.add(g) : sel.remove(g)),
+                    ),
+                ]),
+                const SizedBox(height: 18),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    onPressed: () {
+                      PulsoPrefs.setGenres(sel);
+                      Navigator.pop(c);
+                    },
+                    child: const Text('Guardar'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editText(BuildContext context, String title, String value,
+      Future<void> Function(String) save) async {
+    final ctrl = TextEditingController(text: value);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          maxLength: 20,
+          textCapitalization: TextCapitalization.words,
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Guardar')),
+        ],
+      ),
+    );
+    if (ok == true) await save(ctrl.text);
   }
 
   Future<void> _confirm(BuildContext context, MusicMode m) async {
