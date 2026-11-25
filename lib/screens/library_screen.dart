@@ -30,6 +30,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   List<Song> _hist = [];
   List<Playlist> _lists = [];
   List<Playlist> _others = [];
+  int _otherFavs = 0;
   bool _loading = true;
   String _q = '';
   int _sort = 0;
@@ -89,12 +90,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
       final h = await LibraryService.instance.history();
       final pl = await PlaylistService.instance.all();
       final ot = await PlaylistService.instance.others();
+      final of = await LibraryService.instance.otherModeFavoritesCount();
       if (!mounted) return;
       setState(() {
         _favs = f;
         _hist = h;
         _lists = pl;
         _others = ot;
+        _otherFavs = of;
         _loading = false;
         _failed = false;
       });
@@ -169,11 +172,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
       );
     }
     if (songs.isEmpty) {
+      final other = favorites ? _otherFavs : 0;
+      final otherName =
+          MusicModeService.general ? 'Solo rock' : 'Todos los géneros';
       return favorites
-          ? const StateMessage(
+          ? StateMessage(
               icon: Icons.favorite_border_rounded,
               title: 'Aún no tienes favoritos',
-              message: 'Toca el corazón en el reproductor para guardar tus temas.',
+              message: other > 0
+                  ? 'Toca el corazón en el reproductor para guardar tus temas. Tienes $other en $otherName.'
+                  : 'Toca el corazón en el reproductor para guardar tus temas.',
+              actionLabel: 'Buscar canciones',
+              onAction: () => mainTabWant.value = 1,
             )
           : const StateMessage(
               icon: Icons.history_rounded,
@@ -332,12 +342,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
               style: TextStyle(fontWeight: FontWeight.w700)),
           onTap: _newList,
         ),
+        // Mismo estilo de estado vacío que Favoritos e Historial.
         if (_lists.isEmpty && _others.isEmpty)
           Padding(
-            padding: EdgeInsets.all(20),
-            child: Text(
-              'Aún no tienes listas. Crea una o guarda la que arme el asistente.',
-              style: TextStyle(color: AppColors.textDim, height: 1.4),
+            padding: const EdgeInsets.only(top: 24),
+            child: StateMessage(
+              icon: Icons.queue_music_rounded,
+              title: 'Aún no tienes listas',
+              message: 'Crea una o guarda la que arme el asistente.',
+              actionLabel: 'Nueva lista',
+              onAction: _newList,
+              compact: true,
             ),
           ),
         // Las listas del otro modo no desaparecen: se ven y se pueden traer.
@@ -498,6 +513,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
 /// Pide abrir una pestaña de Mi música desde fuera (0 favoritos, 1 listas,
 /// 2 historial).
 final ValueNotifier<int> libraryWantTab = ValueNotifier<int>(-1);
+
+/// Pide cambiar de pestaña principal (0 Inicio, 1 Buscar, 2 Mi música…).
+final ValueNotifier<int> mainTabWant = ValueNotifier<int>(-1);
 
 class _TabJump extends StatefulWidget {
   final Widget child;

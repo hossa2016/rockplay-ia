@@ -21,29 +21,7 @@ class DjScreen extends StatefulWidget {
 }
 
 class _DjScreenState extends State<DjScreen> {
-  static List<String> get _defaults => MusicModeService.general
-      ? const [
-          'Shakira',
-          'Karol G',
-          'Carlos Vives',
-          'Grupo Niche',
-          'Bad Bunny',
-          'Dua Lipa',
-          'Morat',
-          'Silvestre Dangond',
-        ]
-      : _rockDefaults;
-
-  static const List<String> _rockDefaults = [
-    'Metallica',
-    'Linkin Park',
-    'Nirvana',
-    'Queen',
-    'AC/DC',
-    'Foo Fighters',
-    'Guns N\' Roses',
-    'Soda Stereo',
-  ];
+  static List<String> get _defaults => MixService.modeSeeds;
 
   static const List<String> _suffixes = [
     'official audio',

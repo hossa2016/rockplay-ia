@@ -12,6 +12,7 @@ import 'music_api_service.dart';
 import 'data_saver.dart';
 import 'block_service.dart';
 import '../theme/app_theme.dart';
+import 'stats_service.dart';
 
 class MixDef {
   final String title;
@@ -199,6 +200,13 @@ class MixService {
   static String _cleanArtist(String a) => SongMeta.cleanChannel(a);
 
   /// Artistas más presentes en favoritos (peso 2) e historial (peso 1).
+  /// Artistas de arranque de cada modo (cuando aún hay pocos datos).
+  static List<String> get modeSeeds => MusicModeService.general
+      ? const ['Shakira', 'Karol G', 'Carlos Vives', 'Grupo Niche',
+          'Bad Bunny', 'Dua Lipa', 'Morat', 'Silvestre Dangond']
+      : const ['Metallica', 'Linkin Park', 'Nirvana', 'Queen', 'AC/DC',
+          'Foo Fighters', "Guns N' Roses", 'Soda Stereo'];
+
   static List<String>? _paCache;
   static String _paMode = '';
   static DateTime _paAt = DateTime(2000);
@@ -227,6 +235,17 @@ class MixService {
     try {
       add(await LibraryService.instance.favorites(), 2);
       add(await LibraryService.instance.history(), 1);
+    } catch (_) {}
+    // Las escuchas también cuentan: el historial guarda cada canción una
+    // sola vez, así que 6 escuchas de un artista valían 1.
+    try {
+      for (final p in await StatsService.instance.plays(days: 30)) {
+        final a = _cleanArtist(p.artist);
+        if (a.isEmpty || !SongMeta.isPlausibleArtist(a)) continue;
+        final k = a.toLowerCase();
+        display.putIfAbsent(k, () => a);
+        score[k] = (score[k] ?? 0) + 1;
+      }
     } catch (_) {}
     // Fuera: nombres que en realidad son títulos de canción («Killing In
     // The Name» guardado como artista) y los que aparecen una sola vez.

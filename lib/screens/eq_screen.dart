@@ -23,7 +23,11 @@ class _EqScreenState extends State<EqScreen> {
   void initState() {
     super.initState();
     eq.addListener(_up);
-    if (eq.suggestion == null && !eq.suggesting) eq.suggestCurrent();
+    // Sin sugerencia, o una que no es de este modo: se pide de nuevo.
+    final sg = eq.suggestion;
+    if ((sg == null || !EqService.visible.contains(sg.preset)) && !eq.suggesting) {
+      eq.suggestCurrent();
+    }
   }
 
   @override

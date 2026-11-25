@@ -65,6 +65,20 @@ class Concert {
         'tipo': kind,
       };
 
+  /// «Teatro universidad de medellín» → «Teatro Universidad de Medellín».
+  /// Respeta lo que ya trae mayúsculas internas (siglas, «BarCo»).
+  static String _cap(String s) {
+    const small = {'de', 'del', 'la', 'las', 'el', 'los', 'y', 'en', 'a'};
+    var i = 0;
+    return s.split(' ').map((w) {
+      final first = i++ == 0;
+      if (w.isEmpty) return w;
+      if (w != w.toLowerCase()) return w;
+      if (!first && small.contains(w)) return w;
+      return w[0].toUpperCase() + w.substring(1);
+    }).join(' ');
+  }
+
   static Concert? fromJson(dynamic j) {
     if (j is! Map) return null;
     String s(String k) => (j[k] ?? '').toString().trim();
@@ -75,7 +89,7 @@ class Concert {
     return Concert(
       band: band,
       city: s('ciudad'),
-      venue: s('lugar'),
+      venue: _cap(s('lugar')),
       date: date == null ? null : DateTime(date.year, date.month, date.day),
       when: date == null ? (s('cuando').isEmpty ? 'Por confirmar' : s('cuando')) : '',
       time: s('hora'),

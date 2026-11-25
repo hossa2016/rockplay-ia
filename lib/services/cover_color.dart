@@ -51,7 +51,9 @@ class CoverColor {
           255, (rs / ws * 255).round(), (gs / ws * 255).round(), (bs / ws * 255).round());
       final hsl = HSLColor.fromColor(c);
       return hsl
-          .withSaturation(hsl.saturation.clamp(0.35, 0.85))
+          // Sin mínimo: una portada gris debe seguir siendo gris (así el
+          // reproductor usa el color de marca y no un azul inventado).
+          .withSaturation(hsl.saturation.clamp(0.0, 0.85))
           .withLightness(0.22)
           .toColor();
     } catch (_) {

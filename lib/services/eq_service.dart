@@ -66,6 +66,15 @@ class EqService extends ChangeNotifier {
   /// Al cambiar de modo: si el preajuste no existe en el nuevo, se pasa al
   /// de por defecto (los ajustes personalizados se respetan).
   void syncMode() {
+    // La sugerencia era del otro modo («Pop» en rock): se descarta y se
+    // pide de nuevo para la canción actual.
+    if (suggestion != null && !visible.contains(suggestion!.preset)) {
+      suggestion = null;
+      suggestionFor = '';
+      final s = _lastSong;
+      if (auto && s != null && !s.isRadio) unawaited(_suggestAndApply(s));
+      notifyListeners();
+    }
     if (preset == 'Personalizado' || visible.contains(preset)) return;
     applyPreset(defaultPreset);
   }
@@ -323,7 +332,7 @@ class EqService extends ChangeNotifier {
   Future<EqSuggestion?> suggest(Song s) async {
     final key = '${MusicModeService.general ? 'g|' : ''}${s.artist}|${s.title}';
     final cached = _cache[key];
-    if (cached != null) {
+    if (cached != null && visible.contains(cached.preset)) {
       suggestion = cached;
       suggestionFor = key;
       notifyListeners();

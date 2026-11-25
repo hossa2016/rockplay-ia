@@ -1180,6 +1180,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
         jsonEncode({
           'i': _index,
           'p': _embedPos.inSeconds,
+          'd': _s.duration.valueOrNull?.inSeconds,
           's': [for (final s in _songs.take(700)) s.toJson()],
         }),
       );
@@ -1206,6 +1207,9 @@ class RockPlayAudioHandler extends BaseAudioHandler
       _setIndex(i);
       _resumeAt = p > const Duration(seconds: 3) ? p : null;
       _s.position.add(p);
+      // Duración conocida al reanudar (sin «--:--»).
+      final d = (j['d'] as num?)?.toInt();
+      if (d != null && d > 0) _s.duration.add(Duration(seconds: d));
       _broadcast();
     } catch (_) {}
   }
