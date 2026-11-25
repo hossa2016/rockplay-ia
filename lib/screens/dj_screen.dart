@@ -365,20 +365,10 @@ class _DjScreenState extends State<DjScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(
-              child: Text('Prueba con',
-                  style: Theme.of(context).textTheme.titleMedium),
-            ),
-            IconButton(
-              tooltip: 'Otras sugerencias',
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: _loadSuggestions,
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
+        SectionTitle('Prueba con',
+            actionLabel: 'Otras ↻',
+            onAction: _loadSuggestions,
+            padding: const EdgeInsets.fromLTRB(0, 8, 0, 8)),
         Wrap(
           spacing: 8,
           runSpacing: 8,

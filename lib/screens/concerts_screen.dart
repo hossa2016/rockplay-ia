@@ -388,7 +388,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
           final status = s.loading
               ? 'Buscando conciertos en internet…'
               : s.noKey
-                  ? 'Falta una clave de Gemini o Groq (Ajustes → Activar la IA).'
+                  ? 'Falta una clave de Gemini o Groq (Ajustes → Inteligencia artificial).'
                   : s.error ?? concertsUpdatedLabel(s.updatedAt);
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,

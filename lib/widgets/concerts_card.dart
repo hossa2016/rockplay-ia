@@ -125,7 +125,7 @@ class _ConcertsCardState extends State<ConcertsCard> {
             msg = byMode('Buscando conciertos de rock en Colombia…', 'Buscando conciertos en Colombia…');
           } else if (s.noKey) {
             msg =
-                'Para ver conciertos, pon tu clave gratis en Ajustes → Activar la IA.';
+                'Para ver conciertos, pon tu clave gratis en Ajustes → Inteligencia artificial.';
           } else if (s.error != null) {
             msg = s.error;
           } else {

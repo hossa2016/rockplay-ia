@@ -350,9 +350,9 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
     final ds = DataSaver.instance;
     final aiOn = ai.groqKey.trim().isNotEmpty || ai.geminiKey.trim().isNotEmpty;
     final aiLabel = ai.geminiKey.trim().isNotEmpty
-        ? 'Activada con Gemini'
+        ? 'Gemini activa'
         : ai.groqKey.trim().isNotEmpty
-            ? 'Activada con Groq'
+            ? 'Groq activa'
             : 'Sin claves · usa reglas simples';
     final bad = BadVideos.ids.length;
     final blocked = BlockService.instance.names.length;
@@ -376,13 +376,21 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
           ]),
           _group('ASISTENTE'),
           _box([
-            _row(Icons.vpn_key_rounded, 'Activar la IA', aiLabel,
+            _row(Icons.vpn_key_rounded, 'Inteligencia artificial', aiLabel,
                 () => _go(const AiSettingsScreen()),
                 badge: aiOn ? null : '!',
                 tip: 'Pega aquí tus claves gratis de Gemini o Groq para que el asistente piense con IA.'),
-            _row(Icons.format_list_numbered_rounded, 'Canciones por lista',
-                '${ai.maxSongs} como máximo', _pickListSize,
+          ]),
+          // Los dos tamaños juntos: antes estaban en grupos distintos.
+          _group('TAMAÑO DE LISTAS Y MIXES'),
+          _box([
+            _row(Icons.format_list_numbered_rounded, 'Listas del asistente',
+                '${ai.maxSongs} canciones como máximo', _pickListSize,
                 tip: 'Cuántas canciones como máximo trae el asistente. Menos es más rápido.'),
+            _row(Icons.tune_rounded, 'Mixes',
+                'Hasta ${ds.mixSongs} canciones y ${ds.mixArtists} artistas',
+                _pickMixSize,
+                tip: 'Cuántas canciones y artistas usan Tu mix, los géneros y la emisora.'),
           ]),
           _group('DATOS'),
           _box([
@@ -390,10 +398,6 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 '${_size(_bytes)} en uso',
                 () => _go(const DataSettingsScreen()),
                 tip: 'Guarda portadas y datos para no bajarlos otra vez. Aquí puedes borrarlo.'),
-            _row(Icons.tune_rounded, 'Tamaño de los mixes',
-                'Hasta ${ds.mixSongs} canciones y ${ds.mixArtists} artistas',
-                _pickMixSize,
-                tip: 'Cuántas canciones y artistas usan Tu mix, los géneros y la emisora.'),
           ]),
           _group('REPRODUCCIÓN'),
           _box([

@@ -15,6 +15,7 @@ import '../services/library_service.dart';
 import '../services/mix_service.dart';
 import 'song_list_screen.dart';
 import '../services/day_part.dart';
+import '../services/deezer_service.dart';
 import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_art.dart';
@@ -239,6 +240,24 @@ class _HomeTabState extends State<_HomeTab> {
     });
   }
 
+  // Portada nítida: la carátula de Deezer (500 px) en lugar de la miniatura
+  // de YouTube ampliada; mientras llega, la miniatura.
+  String? _coverFor;
+  String _coverHd = '';
+
+  String _sharpCover(Song s) {
+    final key = '${s.artist}|${s.title}';
+    if (_coverFor != key) {
+      _coverFor = key;
+      _coverHd = '';
+      DeezerService().coverFor('${s.artist} ${s.title}').then((u) {
+        if (!mounted || _coverFor != key || u.isEmpty) return;
+        setState(() => _coverHd = u.replaceAll('250x250', '500x500'));
+      }).catchError((_) {});
+    }
+    return _coverHd.isNotEmpty ? _coverHd : s.image;
+  }
+
   String _greeting() {
     final base = switch (dayPart()) {
       DayPart.madrugada => byMode('Todavía despierto', 'Todavía despierto'),
@@ -322,13 +341,18 @@ class _HomeTabState extends State<_HomeTab> {
         if (uniq.skip(i * per).isNotEmpty)
           MixDef(
             'Mix diario ${i + 1}',
-            '${uniq[i * per]} y afines',
+            _names(uniq.skip(i * per).take(per).toList()),
             const [Icons.today_rounded, Icons.bolt_rounded, Icons.album_rounded, Icons.graphic_eq_rounded][i % 4],
             AppPalettes.cards[i % AppPalettes.cards.length],
             uniq.skip(i * per).take(per).toList(),
           ),
     ];
   }
+
+  /// «System of a Down, Mudvayne y más».
+  static String _names(List<String> a) => a.length <= 1
+      ? (a.isEmpty ? '' : a.first)
+      : '${a.take(2).join(', ')}${a.length > 2 ? ' y más' : ''}';
 
   Widget _dailyRow() {
     _dailyFuture ??= _loadDaily();
@@ -351,6 +375,7 @@ class _HomeTabState extends State<_HomeTab> {
               final m = l[i];
               return _MixCard(
                 def: m,
+                photos: true,
                 onTap: () => _openMix(m.title, m.subtitle, m.colors,
                     MixService.buildMix(m.artists, pick: 40, perArtist: 6)),
               );
@@ -481,7 +506,7 @@ class _HomeTabState extends State<_HomeTab> {
   Widget _sliverHeader(BuildContext context) {
     final top = MediaQuery.paddingOf(context).top;
     const minH = 64.0, maxH = 190.0;
-    final cover = _recent.isEmpty ? '' : _recent.first.image;
+    final cover = _recent.isEmpty ? '' : _sharpCover(_recent.first);
     return SliverAppBar(
       pinned: true,
       automaticallyImplyLeading: false,
@@ -519,7 +544,8 @@ class _HomeTabState extends State<_HomeTab> {
               child: Opacity(
                 opacity: t,
                 child: Transform.rotate(
-                  angle: 0.06,
+                  // Pulso: sin girar.
+                  angle: MusicModeService.general ? 0 : 0.06,
                   child: CoverArt(
                       url: cover,
                       size: 92,
@@ -1223,7 +1249,10 @@ class _MixCard extends StatelessWidget {
   final MixDef def;
   final VoidCallback onTap;
 
-  const _MixCard({required this.def, required this.onTap});
+  /// Mix diario: collage con fotos de sus artistas en vez del ícono.
+  final bool photos;
+
+  const _MixCard({required this.def, required this.onTap, this.photos = false});
 
   @override
   Widget build(BuildContext context) {
@@ -1251,6 +1280,9 @@ class _MixCard extends StatelessWidget {
             onTap: onTap,
             child: Stack(
               children: [
+                if (photos)
+                  Positioned.fill(child: _ArtistCollage(def.artists))
+                else ...[
                 Positioned.fill(
                   child: CustomPaint(
                       painter: MusicModeService.general
@@ -1266,6 +1298,7 @@ class _MixCard extends StatelessWidget {
                         size: 92, color: const Color(0x2EFFFFFF)),
                   ),
                 ),
+                ],
                 const Positioned.fill(
                   child: DecoratedBox(
                       decoration: BoxDecoration(gradient: AppColors.bottomScrim)),
@@ -1286,7 +1319,7 @@ class _MixCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         def.subtitle,
-                        maxLines: 1,
+                        maxLines: photos ? 2 : 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                             fontSize: AppType.caption,
@@ -1312,4 +1345,61 @@ class _Nudge {
   final String prompt;
   const _Nudge(this.title, this.text, this.icon,
       {this.concert = false, this.prompt = ''});
+}
+
+
+/// Cuatro fotos de artistas (Deezer) en cuadrícula, con velo para leer el
+/// texto. Mientras cargan se ve el degradado de la tarjeta.
+class _ArtistCollage extends StatefulWidget {
+  final List<String> artists;
+  const _ArtistCollage(this.artists);
+
+  @override
+  State<_ArtistCollage> createState() => _ArtistCollageState();
+}
+
+class _ArtistCollageState extends State<_ArtistCollage> {
+  List<String> _pics = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final out = <String>[];
+    for (final a in widget.artists.take(6)) {
+      try {
+        final i = await ArtistInfoService.instance.artist(a);
+        if (i != null && i.picture.isNotEmpty) out.add(i.picture);
+      } catch (_) {}
+      if (out.length == 4) break;
+    }
+    if (mounted && out.isNotEmpty) setState(() => _pics = out);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_pics.isEmpty) return const SizedBox.shrink();
+    final p = _pics.length >= 4 ? _pics : [..._pics, ..._pics, ..._pics].take(4).toList();
+    Widget cell(String u) => Image.network(u,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const SizedBox.shrink());
+    return Stack(fit: StackFit.expand, children: [
+      Column(children: [
+        Expanded(child: Row(children: [Expanded(child: cell(p[0])), Expanded(child: cell(p[1]))])),
+        Expanded(child: Row(children: [Expanded(child: cell(p[2])), Expanded(child: cell(p[3]))])),
+      ]),
+      const DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0x33000000), Color(0xCC000000)],
+          ),
+        ),
+      ),
+    ]);
+  }
 }

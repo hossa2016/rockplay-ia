@@ -89,7 +89,6 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget build(BuildContext context) {
     final artists = StatsService.topArtists(_plays);
     final songs = StatsService.topSongs(_plays);
-    final label = ['Esta semana', 'Este mes', 'Desde siempre'][_range];
     return Scaffold(
       body: SafeArea(
         child: ListView(
@@ -164,8 +163,25 @@ class _StatsScreenState extends State<StatsScreen> {
             else ...[
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 18, 20, 0),
-                child: Text('$label: ${_plays.length} canciones escuchadas',
-                    style: TextStyle(color: AppColors.amber)),
+                // El dato principal, grande; la explicación, debajo.
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('${_plays.length}',
+                        style: AppType.oswald(48, height: 1.0)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Text(
+                            '${_plays.length == 1 ? 'canción' : 'canciones'} ${['esta semana', 'este mes', 'desde siempre'][_range]}',
+                            style: TextStyle(
+                                fontSize: AppType.body,
+                                color: AppColors.textDim)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SectionTitle('Artistas más escuchados'),
               for (final a in artists)
