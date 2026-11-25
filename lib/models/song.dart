@@ -105,6 +105,29 @@ class SongMeta {
   /// ¿El «artista» parece un canal que sube música de otros?
   static bool looksLikeUploader(String a) => _uploader.hasMatch(a.trim());
 
+  static const _noArtist = {
+    'op', 'ed', 'hd', 'hq', 'amv', 'ost', 'lyrics', 'letra', 'audio', 'video',
+    'official', 'oficial', 'live', 'en vivo', 'cover',
+  };
+
+  /// ¿Sirve como nombre de artista? Descarta «OP», «[FREE] … Type Beat»,
+  /// «Kaelia Ash: "Self Destruction», canales que suben música ajena, etc.
+  static bool isPlausibleArtist(String a) {
+    final t = a.trim();
+    if (t.length < 2 || t.length > 40) return false;
+    final l = t.toLowerCase();
+    if (_noArtist.contains(l)) return false;
+    if (RegExp(r'["“”:\[\]]|type ?beat|\bprod\.? by\b|\bfree\b|\s[x×]\s')
+        .hasMatch(l)) return false;
+    if (RegExp(r'^\d+$').hasMatch(l)) return false;
+    return !looksLikeUploader(t);
+  }
+
+  /// Lado derecho que no es un título: un año, un número o una etiqueta.
+  static final RegExp _notTitle = RegExp(
+      r'^((19|20)\d{2}|\d+|live|en vivo|directo|remaster(ed)?( \d{4})?|demo|version|versión|hd|hq|4k|lyrics?|letra)$',
+      caseSensitive: false);
+
   static String cleanChannel(String a) => a
       .replaceAll(RegExp(r'\s*-\s*Topic$', caseSensitive: false), '')
       .replaceAll(RegExp(r'\s*vevo$', caseSensitive: false), '')
@@ -117,17 +140,34 @@ class SongMeta {
 
   static ({String artist, String title}) split(String rawTitle, String rawArtist) {
     var t = rawTitle.replaceAll(_bracketJunk, '').replaceAll(_tailJunk, '');
-    t = t.replaceAll(RegExp(r'\s+'), ' ').trim();
+    t = t
+        .replaceAll(RegExp(r'\s+(hd|hq|4k)$', caseSensitive: false), '')
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
     if (t.isEmpty) t = rawTitle.trim();
     final channel = cleanChannel(rawArtist);
     var artist = channel.isEmpty ? rawArtist.trim() : channel;
+    // «Demon Slayer OP - "Gurenge" by LiSA» → Gurenge · LiSA.
+    final by = RegExp(r'["“]([^"”]+)["”]\s+by\s+(.+)$', caseSensitive: false)
+        .firstMatch(t);
+    if (by != null) {
+      final a = by.group(2)!.trim();
+      if (a.isNotEmpty && a.length <= 40) {
+        return (artist: a, title: by.group(1)!.trim());
+      }
+    }
     final m = _sep.firstMatch(t);
     if (m != null) {
       final left = t.substring(0, m.start).trim().replaceAll(RegExp(r'^["“]|["”]$'), '');
       final right = t.substring(m.end).trim().replaceAll(RegExp(r'^["“]|["”]$'), '');
       if (left.isNotEmpty && right.isNotEmpty && left.length <= 60) {
         final nc = _norm(channel), nl = _norm(left), nr = _norm(right);
-        if (nc.isNotEmpty && nr.contains(nc) && !nl.contains(nc)) {
+        if (_notTitle.hasMatch(right)) {
+          // «Killing In The Name - 1993»: la derecha no es un título; la
+          // izquierda es la canción y el artista es el canal (si lo es).
+          t = left;
+          if (!looksLikeUploader(channel) && channel.isNotEmpty) artist = channel;
+        } else if (nc.isNotEmpty && nr.contains(nc) && !nl.contains(nc)) {
           // «Canción - Artista»
           artist = right;
           t = left;

@@ -47,10 +47,45 @@ class RadioStation {
       );
 
   /// Una línea tenue: país · primer género.
+  static final RegExp _cityTail = RegExp(r'\s*\(([^)]+)\)\s*$');
+
+  /// Nombre sin la ciudad del final: «Radioacktiva (Medellín)» → Radioacktiva.
+  String get shortName {
+    final n = name.replaceAll(_cityTail, '').trim();
+    return n.isEmpty ? name : n;
+  }
+
+  static const Map<String, String> _tagEs = {
+    'alternative': 'Alternativa', 'alternative rock': 'Rock alternativo',
+    'classic rock': 'Rock clásico', 'rock': 'Rock', 'pop': 'Pop',
+    'news': 'Noticias', 'talk': 'Habladas', 'sports': 'Deportes',
+    'latin': 'Latina', 'salsa': 'Salsa', 'tropical': 'Tropical',
+    'vallenato': 'Vallenato', 'reggaeton': 'Reguetón', 'electronic': 'Electrónica',
+    'dance': 'Dance', 'jazz': 'Jazz', 'classical': 'Clásica', 'metal': 'Metal',
+    'oldies': 'Clásicos', '80s': 'Años 80', '90s': 'Años 90', 'hits': 'Éxitos',
+    'music': '', 'variety': 'Variada', 'christian': 'Cristiana',
+  };
+
+  /// «Medellín · 91.9 FM · Alternativa». El país solo fuera de Colombia
+  /// (dentro de la pestaña Colombia sobra).
   String get subtitle {
+    final city = _cityTail.firstMatch(name)?.group(1)?.trim() ?? '';
+    final freq = RegExp(r'\b(\d{2,3}[.,]\d)\s*(fm)?\b', caseSensitive: false)
+        .firstMatch('$name $tags')
+        ?.group(1);
+    String tag = '';
+    for (final t in tags.split(',')) {
+      final k = t.trim().toLowerCase();
+      if (k.isEmpty || RegExp(r'\d').hasMatch(k)) continue;
+      tag = _tagEs[k] ?? (k[0].toUpperCase() + k.substring(1));
+      if (tag.isNotEmpty) break;
+    }
     final parts = <String>[
-      if (country.isNotEmpty) country,
-      if (tags.isNotEmpty) tags.split(',').first.trim(),
+      if (city.isNotEmpty) city,
+      if (country.isNotEmpty && country.toLowerCase() != 'colombia' && city.isEmpty)
+        country,
+      if (freq != null) '${freq.replaceAll(',', '.')} FM',
+      if (tag.isNotEmpty) tag,
     ];
     return parts.isEmpty ? 'Radio en vivo' : parts.join(' · ');
   }

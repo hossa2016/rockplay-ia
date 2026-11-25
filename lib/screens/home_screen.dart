@@ -14,6 +14,7 @@ import '../services/block_service.dart';
 import '../services/library_service.dart';
 import '../services/mix_service.dart';
 import 'song_list_screen.dart';
+import '../services/day_part.dart';
 import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_art.dart';
@@ -239,47 +240,46 @@ class _HomeTabState extends State<_HomeTab> {
   }
 
   String _greeting() {
-    final h = DateTime.now().hour;
-    final base = h >= 6 && h < 12
-        ? 'Buenos días'
-        : h >= 12 && h < 20
-            ? 'Buenas tardes'
-            : 'Buenas noches';
+    final base = switch (dayPart()) {
+      DayPart.madrugada => byMode('Todavía despierto', 'Todavía despierto'),
+      DayPart.manana => 'Buenos días',
+      DayPart.tarde => 'Buenas tardes',
+      DayPart.noche => 'Buenas noches',
+    };
     final n = PulsoPrefs.userName.value;
     return n.isEmpty ? base : '$base, $n';
   }
 
   /// Frase grande de portada según la hora (estilo revista).
   String _coverLine() {
-    final now = DateTime.now();
-    final h = now.hour;
-    final weekend = now.weekday >= DateTime.saturday;
-    if (MusicModeService.general) {
-      if (h >= 5 && h < 12) return weekend ? 'Mañana\nsin afán' : 'Empieza con\nlo tuyo';
-      if (h >= 12 && h < 19) return weekend ? 'Tarde\npara salir' : 'Tu tarde\nsuena así';
-      if (h >= 19 && h < 23) return 'Tu noche\nsuena así';
-      return 'Madrugada\nen calma';
-    }
-    if (h >= 5 && h < 12) return weekend ? 'MAÑANA DE\nCARRETERA' : 'ARRANCA\nCON RIFFS';
-    if (h >= 12 && h < 19) return weekend ? 'TARDE DE\nCARRETERA' : 'TARDE\nDE GUITARRAS';
-    if (h >= 19 && h < 23) return 'NOCHE\nDE RIFFS';
-    return 'MADRUGADA\nEN CALMA';
+    final weekend = DateTime.now().weekday >= DateTime.saturday;
+    final g = MusicModeService.general;
+    return switch (dayPart()) {
+      DayPart.manana => g
+          ? (weekend ? 'Mañana\nsin afán' : 'Empieza con\nlo tuyo')
+          : (weekend ? 'MAÑANA DE\nCARRETERA' : 'ARRANCA\nCON RIFFS'),
+      DayPart.tarde => g
+          ? (weekend ? 'Tarde\npara salir' : 'Tu tarde\nsuena así')
+          : (weekend ? 'TARDE DE\nCARRETERA' : 'TARDE\nDE GUITARRAS'),
+      DayPart.noche => g ? 'Tu noche\nsuena así' : 'NOCHE\nDE RIFFS',
+      DayPart.madrugada => g ? 'Madrugada\nen calma' : 'MADRUGADA\nEN CALMA',
+    };
   }
 
   /// Mixes de ánimo ordenados para esta hora: tranquilo de noche, con
   /// energía de mañana, de carretera el fin de semana.
   List<MixDef> _hourMixes() {
     final now = DateTime.now();
-    final h = now.hour;
     final weekend = now.weekday >= DateTime.saturday;
-    String first;
-    if (h >= 22 || h < 5) {
+    final p = dayPart(now);
+    final String first;
+    if (p == DayPart.madrugada || now.hour >= 22) {
       first = 'Tranquilo';
-    } else if (weekend && h >= 8 && h < 19) {
+    } else if (weekend && p != DayPart.noche && now.hour >= 8) {
       first = 'Para manejar';
-    } else if (h >= 5 && h < 12) {
+    } else if (p == DayPart.manana) {
       first = 'Energía';
-    } else if (h >= 17 && h < 22) {
+    } else if (p == DayPart.noche || now.hour >= 17) {
       first = 'Para entrenar';
     } else {
       first = 'Nostalgia';
@@ -290,11 +290,12 @@ class _HomeTabState extends State<_HomeTab> {
   }
 
   String _hourTitle() {
-    final h = DateTime.now().hour;
-    if (h >= 22 || h < 5) return 'Para esta noche';
-    if (h < 12) return 'Para esta mañana';
-    if (h < 19) return 'Para esta tarde';
-    return 'Para esta noche';
+    return switch (dayPart()) {
+      DayPart.madrugada => 'Para esta madrugada',
+      DayPart.manana => 'Para esta mañana',
+      DayPart.tarde => 'Para esta tarde',
+      DayPart.noche => 'Para esta noche',
+    };
   }
 
   Future<List<MixDef>>? _dailyFuture;
@@ -387,8 +388,9 @@ class _HomeTabState extends State<_HomeTab> {
       final a = top.first;
       if (a.count < 5) return null;
       return _Nudge(
-        'Una semana con ${a.name}',
-        byMode('¿Algo parecido con bandas nuevas?', '¿Algo parecido con artistas nuevos?'),
+        '${a.name}, ${a.count} veces esta semana',
+        byMode('Toca y te armo algo parecido con bandas nuevas',
+            'Toca y te armo algo parecido con artistas nuevos'),
         Icons.auto_awesome_rounded,
         prompt:
             'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con ${byMode('bandas', 'artistas')} que probablemente no conozco.',
@@ -442,7 +444,7 @@ class _HomeTabState extends State<_HomeTab> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(n.title,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                                 fontSize: AppType.bodySm,
@@ -617,7 +619,7 @@ class _HomeTabState extends State<_HomeTab> {
   int _disc = 0;
 
   Widget _discoverChips() {
-    final labels = [byMode('Bandas', 'Artistas'), 'Lanzamientos', 'Mixes'];
+    final labels = [byMode('Bandas nuevas', 'Artistas nuevos'), 'Lanzamientos', 'Mixes'];
     return Dense(child: SizedBox(
       height: 48,
       child: ListView.separated(
@@ -733,7 +735,8 @@ class _HomeTabState extends State<_HomeTab> {
       child: _QuickTile(
         icon: Icons.sensors_rounded,
         label: 'Radio en vivo',
-        subtitle: 'Radioacktiva, La Ochentera y más',
+        subtitle: byMode('Radioacktiva, La Ochentera y más',
+            'Emisoras de Colombia y del mundo'),
         onTap: () {
           widget.onNavigate(1);
           searchHubWantMode.value = 2;
@@ -990,7 +993,7 @@ class _HomeTabState extends State<_HomeTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('TU MIX', style: AppType.overline),
+                      Text('TU MIX', style: AppType.overlineOnAccent),
                       const SizedBox(height: 6),
                       Text(byMode('SUENA COMO\nTÚ ERES', 'Lo que más\nte suena'),
                           style: AppType.oswald(AppType.display)),

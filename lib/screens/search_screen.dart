@@ -354,19 +354,28 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
         ],
         const SizedBox(height: 24),
+        _label('Explorar por género'),
+        // Filtros de la grilla de géneros, justo debajo de su título.
         if (MusicModeService.general)
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Wrap(spacing: 8, runSpacing: 8, children: [
-              for (final f in const ['Todos', 'Mis géneros', 'En español'])
-                ChoiceChip(
-                  label: Text(f),
-                  selected: _gFilter == f,
-                  onSelected: (_) => setState(() => _gFilter = f),
-                ),
-            ]),
+            padding: const EdgeInsets.only(bottom: 10),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Dense(
+                child: Row(children: [
+                  for (final f in const ['Todos', 'Mis géneros', 'En español'])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(f),
+                        selected: _gFilter == f,
+                        onSelected: (_) => setState(() => _gFilter = f),
+                      ),
+                    ),
+                ]),
+              ),
+            ),
           ),
-        _label('Explorar por género'),
         Dense(child: GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,

@@ -25,6 +25,20 @@ class Concert {
   /// "bar", "escenario" o "festival".
   final String kind;
 
+  /// El bar publicó la fecha pero no quién toca: la «banda» es el lugar
+  /// («La Cúpula» en La Cúpula Rock Bar).
+  bool get lineupUnknown {
+    final b = ConcertService._fuzzy(band), v = ConcertService._fuzzy(venue);
+    if (b.isEmpty) return true;
+    if (v.isEmpty) return false;
+    return v.contains(b) || b.contains(v);
+  }
+
+  /// Nombre para mostrar.
+  String get title => lineupUnknown
+      ? 'Toques en ${venue.isNotEmpty ? venue : band}'
+      : band;
+
   const Concert({
     required this.band,
     required this.city,
@@ -855,6 +869,8 @@ class ConcertService {
     final system =
         'Extrae conciertos ${MusicModeService.general ? 'de música' : 'de rock'} de estos resultados de búsqueda. Hoy es '
         '$from. Usa SOLO la información de los resultados, no inventes nada. '
+        'Si no sabes qué banda o artista toca, deja "banda" vacía: nunca '
+        'pongas el nombre del lugar como banda. '
         'Incluye conciertos, festivales y toques en bares $_scope, que se hagan '
         'en Colombia entre $from y $to. Fíjate bien en el AÑO: los resultados '
         'pueden traer noticias viejas de la misma banda; descarta solo lo que '

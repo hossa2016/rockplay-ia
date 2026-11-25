@@ -68,8 +68,8 @@ class ArtistInfoService {
       return _artistCache[key] = ArtistInfo(
         best['id'].toString(),
         (best['name'] ?? name) as String,
-        (best['picture_xl'] ?? best['picture_big'] ?? best['picture_medium'] ?? '')
-            as String,
+        _pic((best['picture_xl'] ?? best['picture_big'] ?? best['picture_medium'] ?? '')
+            as String),
         (best['nb_fan'] as num?)?.toInt() ?? 0,
       );
     } catch (_) {
@@ -313,13 +313,30 @@ class ArtistInfoService {
                   () => ArtistInfo(
                       e['id'].toString(),
                       name,
-                      (e['picture_big'] ?? e['picture_medium'] ?? '') as String,
+                      _pic((e['picture_big'] ?? e['picture_medium'] ?? '') as String),
                       fans));
             }
           } catch (_) {}
         }(),
     ]);
     final list = found.values.toList()..shuffle();
-    return list.take(20).toList();
+    // Fuera los homónimos pequeños de bandas grandes («Korn» con 900 fans
+    // no es Korn): si la búsqueda exacta da otro con muchos fans, se omite.
+    final checked = await Future.wait([
+      for (final a in list.take(28))
+        () async {
+          try {
+            final big = await artist(a.name);
+            if (big != null && big.id != a.id && big.fans > 250000) return null;
+          } catch (_) {}
+          return a;
+        }(),
+    ]);
+    return checked.whereType<ArtistInfo>().take(20).toList();
   }
+
+  /// La foto por defecto de Deezer (silueta gris) cuenta como sin foto, para
+  /// que se vea la inicial del artista.
+  static String _pic(String url) =>
+      url.contains('/artist//') || url.contains('/images/artist/-') ? '' : url;
 }

@@ -41,7 +41,7 @@ const _rock = _Tone(
   redDeep: Color(0xFF7A1411),
   amber: Color(0xFFFFB02E),
   textDim: Color(0xFFA6A6B2),
-  textFaint: Color(0xFF7A7A88),
+  textFaint: Color(0xFF8A8A98),
   redText: Color(0xFFFF5A52),
   redSoft: Color(0xFFF08A7E),
   surfaceWarm: Color(0xFF1A1014),
@@ -78,7 +78,7 @@ const _pulso = _Tone(
   hero: [Color(0xFF5B3FE0), Color(0xFF2A1F6B), Color(0xFF141429)],
   cards: [
     [Color(0xFF5B3FE0), Color(0xFF15103A)],
-    [Color(0xFF1C8C98), Color(0xFF07262A)],
+    [Color(0xFF17707A), Color(0xFF07262A)],
     [Color(0xFF9B3FB5), Color(0xFF2A0F33)],
     [Color(0xFF3A5BD9), Color(0xFF0E1640)],
     [Color(0xFFC0407A), Color(0xFF330F22)],
@@ -189,6 +189,13 @@ class AppType {
         fontVariations: const [FontVariation('wght', 700)],
         letterSpacing: MusicModeService.general ? -0.3 : 0.5,
       );
+
+  /// Etiqueta sobre tarjetas de color (rojo o violeta): ámbar claro en
+  /// rock y cian claro en Pulso, para pasar 4,5:1 en todo el degradado.
+  static TextStyle get overlineOnAccent => overline.copyWith(
+      color: MusicModeService.general
+          ? const Color(0xFF7FE3EC)
+          : const Color(0xFFFFD27A));
 
   /// Etiqueta en mayúsculas espaciadas (ej. TU MIX).
   static TextStyle get overline => TextStyle(

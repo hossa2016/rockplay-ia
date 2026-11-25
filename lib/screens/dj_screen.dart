@@ -80,11 +80,16 @@ class _DjScreenState extends State<DjScreen> {
       mine = await MixService.personalArtists();
     } catch (_) {}
     final pinnedLower = _pinned.map((e) => e.toLowerCase()).toSet();
-    final pool = <String>[
-      for (final n in (mine.toSet().toList()..shuffle()))
-        if (!pinnedLower.contains(n.toLowerCase())) n,
-    ];
-    final auto = pool.take(8).toList();
+    // Los más escuchados primero (personalArtists ya viene ordenado);
+    // se baraja solo dentro de ese grupo para que varíe un poco.
+    final top = <String>[
+      for (final n in mine.toSet())
+        if (!pinnedLower.contains(n.toLowerCase()) &&
+            SongMeta.isPlausibleArtist(n))
+          n,
+    ].take(12).toList()
+      ..shuffle();
+    final auto = top.take(8).toList();
     if (auto.length + _pinned.length < 8) {
       for (final d in (List<String>.of(_defaults)..shuffle())) {
         if (auto.length + _pinned.length >= 8) break;

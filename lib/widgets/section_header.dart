@@ -22,7 +22,8 @@ class PageHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.displaySmall),
+                Text(MusicModeService.general ? title : title.toUpperCase(),
+                    style: Theme.of(context).textTheme.displaySmall),
                 if (subtitle != null) ...[
                   const SizedBox(height: 4),
                   Text(

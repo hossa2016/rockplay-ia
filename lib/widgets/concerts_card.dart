@@ -28,6 +28,51 @@ class _ConcertsCardState extends State<ConcertsCard> {
     if (band != null && band.isNotEmpty && mounted) widget.onListen(band);
   }
 
+  /// Toques de un bar que aún no publica quién toca, en una sola fila.
+  Widget _venueRow(_Venue v) {
+    final c = v.items.first;
+    final days = v.items
+        .where((e) => e.date != null)
+        .map((e) => e.date!.day)
+        .toSet()
+        .toList()
+      ..sort();
+    const m = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    final when = days.isEmpty || c.date == null
+        ? ''
+        : '${days.length == 1 ? days.first : '${days.sublist(0, days.length - 1).join(', ')} y ${days.last}'} ${m[c.date!.month - 1]}';
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpace.md),
+      child: Row(children: [
+        ConcertDateBox(date: c.date, size: 46),
+        const SizedBox(width: AppSpace.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(c.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: AppType.body, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 2),
+              Text(
+                  [c.city, when, 'Cartel por anunciar']
+                      .where((e) => e.isNotEmpty)
+                      .join(' · '),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppType.label,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textDim)),
+            ],
+          ),
+        ),
+      ]),
+    );
+  }
+
   Widget _row(Concert c) {
     return Padding(
       padding: const EdgeInsets.only(top: AppSpace.md),
@@ -38,7 +83,7 @@ class _ConcertsCardState extends State<ConcertsCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(c.band,
+              Text(c.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
@@ -63,9 +108,19 @@ class _ConcertsCardState extends State<ConcertsCard> {
     return ValueListenableBuilder<ConcertState>(
       valueListenable: ConcertService.instance.state,
       builder: (context, s, _) {
-        final items = s.items.take(3).toList();
+        // Primero los que dicen quién toca; los toques sin cartel del mismo
+        // bar se juntan en una sola fila.
+        final named = s.items.where((c) => !c.lineupUnknown).toList();
+        final unknown = s.items.where((c) => c.lineupUnknown).toList();
+        final items = named.take(3).toList();
+        _Venue? venueRow;
+        if (items.length < 3 && unknown.isNotEmpty) {
+          final v = unknown.first.venue;
+          final same = unknown.where((c) => c.venue == v).toList();
+          venueRow = _Venue(same);
+        }
         String? msg;
-        if (items.isEmpty) {
+        if (items.isEmpty && venueRow == null) {
           if (s.loading) {
             msg = byMode('Buscando conciertos de rock en Colombia…', 'Buscando conciertos en Colombia…');
           } else if (s.noKey) {
@@ -121,17 +176,29 @@ class _ConcertsCardState extends State<ConcertsCard> {
                                 color: AppColors.textDim)),
                       )
                     else
+                    ...[
                       for (final c in items) _row(c),
+                      if (venueRow != null) _venueRow(venueRow),
+                    ],
                     const SizedBox(height: AppSpace.md),
-                    Text(
-                      items.isEmpty
-                          ? 'Toca para ver todos y tus bares'
-                          : 'Ver todos · ${concertsUpdatedLabel(s.updatedAt)}',
-                      style: TextStyle(
-                          fontSize: AppType.caption,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textFaint),
-                    ),
+                    // «Ver todos ›» se ve como enlace; la fecha, aparte.
+                    Row(children: [
+                      Text(
+                          items.isEmpty && venueRow == null
+                              ? 'Ver todos y tus bares ›'
+                              : 'Ver todos ›',
+                          style: const TextStyle(
+                              fontSize: AppType.label,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textBody)),
+                      const Spacer(),
+                      if (items.isNotEmpty || venueRow != null)
+                        Text(concertsUpdatedLabel(s.updatedAt),
+                            style: TextStyle(
+                                fontSize: AppType.caption,
+                                color: AppColors.textDim)),
+                      const SizedBox(width: AppSpace.sm),
+                    ]),
                   ],
                 ),
               ),
@@ -141,4 +208,9 @@ class _ConcertsCardState extends State<ConcertsCard> {
       },
     );
   }
+}
+
+class _Venue {
+  final List<Concert> items;
+  _Venue(this.items);
 }

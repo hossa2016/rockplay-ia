@@ -27,6 +27,7 @@ class MusicApiService {
       r'\bvol\.? ?\d|\bdj\b|nightcore|slowed|8d audio|lofi|lo-fi|tribute|tributo|parody|parodia|'
       r'\bamv\b|gameplay|game play|walkthrough|playthrough|let.?s play|speedrun|boss fight|gaming|'
       r'videojuego|video ?game|juego|\bgame\b|\bps[345]\b|xbox|nintendo|minecraft|fortnite|roblox|\bgta\b|'
+      r'type ?beat|\[free\]|\bprod\.? by\b|instrumental beat|'
       r'\bpc\b|\bpart ?\d+|\bparte ?\d+|\bep\.? ?\d+|película|\bshorts?\b|fan ?made|soundtrack|\bost\b');
 
   static final RegExp _badChannel = RegExp(

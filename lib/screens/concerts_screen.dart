@@ -176,9 +176,13 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(c.band,
+                  Text(c.title,
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w800)),
+                  if (c.lineupUnknown)
+                    Text('Cartel por anunciar',
+                        style: TextStyle(
+                            fontSize: 13, color: AppColors.textDim)),
                   if (c.genre.isNotEmpty)
                     Text(c.genre.toUpperCase(),
                         style: TextStyle(
@@ -219,7 +223,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
               ),
             ),
             const SizedBox(width: 8),
-            Expanded(
+            if (!c.lineupUnknown) Expanded(
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
                 onPressed: () => Navigator.of(context).pop(_bandQuery(c.band)),

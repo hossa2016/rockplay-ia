@@ -36,11 +36,14 @@ class MusicCard extends StatelessWidget {
         // el ecualizador; el menú ⋮ va aparte.
         final Widget end = trailing ??
             (isCurrent
-                ? Icon(
-                    pb.playing.value
-                        ? Icons.graphic_eq_rounded
-                        : Icons.pause_rounded,
-                    color: AppColors.amber)
+                // Ecualizador: ámbar si suena, gris si está en pausa (antes
+                // un ícono de pausa que contradecía al mini player).
+                ? Semantics(
+                    label: pb.playing.value ? 'Sonando' : 'En pausa',
+                    child: Icon(Icons.graphic_eq_rounded,
+                        color: pb.playing.value
+                            ? AppColors.amber
+                            : AppColors.textFaint))
                 : const SizedBox.shrink());
         final card = Material(
           color: Colors.transparent,

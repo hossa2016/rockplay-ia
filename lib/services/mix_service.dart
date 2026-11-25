@@ -205,7 +205,7 @@ class MixService {
     void add(List<Song> list, int w) {
       for (final s in list) {
         final a = _cleanArtist(s.artist);
-        if (a.isEmpty) continue;
+        if (a.isEmpty || !SongMeta.isPlausibleArtist(a)) continue;
         final k = a.toLowerCase();
         display.putIfAbsent(k, () => a);
         score[k] = (score[k] ?? 0) + w;

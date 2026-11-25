@@ -703,7 +703,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('¿QUÉ SUENA HOY?', style: AppType.overline),
+              Text('¿QUÉ SUENA HOY?', style: AppType.overlineOnAccent),
               const SizedBox(height: 6),
               Text(byMode('CUÉNTAME CÓMO ESTÁS\nY ARMO TU LISTA', 'Cuéntame cómo estás\ny armo tu lista'),
                   style: AppType.oswald(AppType.title, height: 1.15)),
@@ -830,9 +830,19 @@ class _AssistantScreenState extends State<AssistantScreen> {
               ]),
             ),
             Expanded(
-              child: ListView(
+              // Desvanecido abajo: lo que sigue se ve como «hay más», no
+              // como botones cortados contra el campo de texto.
+              child: ShaderMask(
+                shaderCallback: (r) => const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.white, Colors.white, Colors.transparent],
+                  stops: [0, 0.94, 1],
+                ).createShader(r),
+                blendMode: BlendMode.dstIn,
+                child: ListView(
                 controller: _scroll,
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                 children: [
                   const TipCard(
                       id: 'asistente',
@@ -858,6 +868,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       ]),
                     ),
                 ],
+              ),
               ),
             ),
             Padding(
