@@ -310,20 +310,35 @@ class _AssistantScreenState extends State<AssistantScreen> {
   }
 
   /// Convierte notas técnicas («Gemini: error 503») en algo entendible.
+  /// La nota puede traer varias partes separadas por « · ».
   static String _humanNote(String note, String source) {
-    final n = note.toLowerCase();
-    final who = n.startsWith('groq') ? 'Groq' : 'Gemini';
-    final other = source.isEmpty || source == who ? 'la otra IA' : source;
-    if (n.contains('límite') || n.contains('429') || n.contains('quota')) {
-      return '$who llegó a su límite gratis de hoy; armé la lista con $other.';
+    final rules = source.isEmpty || source.toLowerCase().contains('regla');
+    final other = rules ? 'reglas simples' : source;
+    final parts = <String>{};
+    for (final raw in note.split(RegExp(r'\s+·\s+|;\s*'))) {
+      final n = raw.toLowerCase().trim();
+      if (n.isEmpty) continue;
+      if (n.contains('lanzamiento')) {
+        parts.add('No pude consultar los lanzamientos ahora.');
+        continue;
+      }
+      final who = n.startsWith('groq')
+          ? 'Groq'
+          : n.startsWith('gemini')
+              ? 'Gemini'
+              : 'La IA';
+      if (n.contains('límite') || n.contains('limite') || n.contains('429') || n.contains('quota')) {
+        parts.add('$who llegó a su límite gratis de hoy.');
+      } else if (n.contains('503') || n.contains('500') || n.contains('overload')) {
+        parts.add('$who estaba saturado en este momento.');
+      } else if (n.contains('conexi') || n.contains('socket') || n.contains('internet')) {
+        parts.add('No había conexión estable con $who.');
+      } else {
+        parts.add('$who no respondió bien.');
+      }
     }
-    if (n.contains('503') || n.contains('500') || n.contains('overload')) {
-      return '$who estaba saturado en este momento; armé la lista con $other.';
-    }
-    if (n.contains('error') || n.contains('timeout') || n.contains('tiempo')) {
-      return '$who no respondió bien; armé la lista con $other.';
-    }
-    return note;
+    if (parts.isEmpty) return note;
+    return '${parts.join(' ')} Armé la lista con $other.';
   }
 
   Widget _infoBanner(String text) => Container(

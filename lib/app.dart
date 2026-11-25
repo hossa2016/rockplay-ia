@@ -11,40 +11,40 @@ import 'widgets/rock_decor.dart';
 class RockPlayApp extends StatelessWidget {
   const RockPlayApp({super.key});
 
+  static final Map<MusicMode, GlobalKey<NavigatorState>> _navKeys = {
+    for (final m in MusicMode.values) m: GlobalKey<NavigatorState>(),
+  };
+
   @override
   Widget build(BuildContext context) {
-    // Al cambiar de modo se reconstruye toda la app (colores, fuentes,
-    // textos y géneros) y se vuelve a Inicio. La música sigue sonando.
+    // Al cambiar de modo se recrea la navegación (colores, fuentes, textos
+    // y géneros) y se vuelve a Inicio. El reproductor oculto de YouTube
+    // (EmbedOverlay) queda fuera de esa parte, así la música no se corta.
     return ValueListenableBuilder<MusicMode>(
       valueListenable: MusicModeService.mode,
-      builder: (context, mode, _) => KeyedSubtree(
-        key: ValueKey(mode),
-        child: _app(),
+      builder: (context, mode, _) => MaterialApp(
+        // Un navegador nuevo por modo: todas las pantallas se rearman.
+        navigatorKey: _navKeys[mode],
+        title: MusicModeService.appName,
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.dark(),
+        darkTheme: AppTheme.dark(),
+        themeMode: ThemeMode.dark,
+        // Textos del sistema (Atrás, Copiar, Pegar…) en español de Colombia.
+        locale: const Locale('es', 'CO'),
+        supportedLocales: const [Locale('es', 'CO'), Locale('es')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        builder: (context, child) => MediaQuery.withClampedTextScaling(
+          minScaleFactor: 1.0,
+          maxScaleFactor: 1.3,
+          child: EmbedOverlay(child: child ?? const SizedBox.shrink()),
+        ),
+        home: const _IntroGate(),
       ),
-    );
-  }
-
-  Widget _app() {
-    return MaterialApp(
-      title: MusicModeService.appName,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.dark(),
-      darkTheme: AppTheme.dark(),
-      themeMode: ThemeMode.dark,
-      // Textos del sistema (Atrás, Copiar, Pegar…) en español de Colombia.
-      locale: const Locale('es', 'CO'),
-      supportedLocales: const [Locale('es', 'CO'), Locale('es')],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
-      builder: (context, child) => MediaQuery.withClampedTextScaling(
-        minScaleFactor: 1.0,
-        maxScaleFactor: 1.3,
-        child: EmbedOverlay(child: child ?? const SizedBox.shrink()),
-      ),
-      home: const _IntroGate(),
     );
   }
 }
@@ -62,11 +62,18 @@ class _IntroGateState extends State<_IntroGate>
     with SingleTickerProviderStateMixin {
   late final AnimationController _c = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 1100));
-  bool _done = false;
+  bool _done = _shown;
+  // La animación de entrada solo al abrir la app, no al cambiar de modo.
+  static bool _shown = false;
 
   @override
   void initState() {
     super.initState();
+    _shown = true;
+    if (_done) {
+      _c.value = 1;
+      return;
+    }
     _c.forward().whenComplete(() {
       if (mounted) setState(() => _done = true);
     });
@@ -91,7 +98,11 @@ class _IntroGateState extends State<_IntroGate>
   Widget build(BuildContext context) {
     return Stack(children: [
       // Primera vez: «¿Qué vas a escuchar?» antes de Inicio.
-      MusicModeService.chosen ? const HomeScreen() : const ModePickScreen(),
+      ValueListenableBuilder<bool>(
+        valueListenable: MusicModeService.chosenN,
+        builder: (context, chosen, _) =>
+            chosen ? const HomeScreen() : const ModePickScreen(),
+      ),
       if (!_done)
         AnimatedBuilder(
           animation: _c,

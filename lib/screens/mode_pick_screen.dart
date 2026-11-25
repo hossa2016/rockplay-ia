@@ -32,7 +32,8 @@ class _ModePickScreenState extends State<ModePickScreen> {
                     style: TextStyle(
                         fontFamily: 'SpaceGrotesk',
                         fontSize: 20,
-                        fontWeight: FontWeight.w700)),
+                        fontWeight: FontWeight.w700,
+                        fontVariations: [FontVariation('wght', 700)])),
               ]),
               const SizedBox(height: 28),
               const Text('¿Qué vas a escuchar?',
@@ -246,7 +247,8 @@ class MusicModeScreen extends StatelessWidget {
                   style: TextStyle(
                       fontFamily: font,
                       fontSize: 11,
-                      fontWeight: FontWeight.w700)),
+                      fontWeight: FontWeight.w700,
+                      fontVariations: const [FontVariation('wght', 700)])),
               const SizedBox(height: 8),
               Text(rock ? 'ARRANCA\nCON RIFFS' : 'Empieza con\nlo tuyo',
                   maxLines: 2,

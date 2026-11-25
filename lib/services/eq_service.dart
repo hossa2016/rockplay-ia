@@ -141,6 +141,8 @@ class EqService extends ChangeNotifier {
         if (l.length == 10) gains = l;
       }
     } catch (_) {}
+    // Preajuste guardado de rock («Metal») abriendo en modo general.
+    syncMode();
     // Reaplica cada 3 s: YouTube puede cambiar el elemento de video al pasar de canción.
     _timer = Timer.periodic(const Duration(seconds: 3), (_) => _applyEmbed());
     try {
@@ -304,8 +306,10 @@ class EqService extends ChangeNotifier {
   }
 
   Future<void> _suggestAndApply(Song s) async {
+    final gen = MusicModeService.generation;
     final r = await suggest(s);
-    if (r != null && auto && presets.containsKey(r.preset)) applyPreset(r.preset);
+    if (gen != MusicModeService.generation) return;
+    if (r != null && visible.contains(r.preset) && auto && presets.containsKey(r.preset)) applyPreset(r.preset);
   }
 
   Future<EqSuggestion?> suggestCurrent() async {

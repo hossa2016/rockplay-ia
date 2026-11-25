@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../screens/alarm_edit_screen.dart';
 import '../services/alarm_service.dart';
 import '../services/playback_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import 'playback_ui.dart';
 
@@ -79,7 +80,7 @@ class _SleepWake extends StatelessWidget {
               const SizedBox(height: 14),
               Padding(
                 padding: const EdgeInsets.only(left: 4),
-                child: Text('DORMIR Y DESPERTAR',
+                child: Text(byMode('DORMIR Y DESPERTAR', 'Dormir y despertar'),
                     style: AppType.oswald(AppType.title)),
               ),
               if (showTimer) ...[

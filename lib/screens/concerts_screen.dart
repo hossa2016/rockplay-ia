@@ -92,24 +92,30 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     'Vallenato',
     'Rock',
     'Electrónica',
+    'Jazz y clásica',
     'Otros',
   ];
   static const Map<String, List<String>> _genreWords = {
-    'Pop': ['pop', 'balad'],
+    'Pop': ['pop', 'pop latino', 'balada', 'baladas'],
     'Salsa': ['salsa', 'tropical', 'merengue', 'bachata'],
     'Urbano': ['urban', 'regue', 'trap', 'hip', 'rap'],
-    'Vallenato': ['vallenat', 'regional', 'popular'],
+    'Vallenato': ['vallenato', 'regional', 'popular'],
     'Rock': ['rock', 'metal', 'punk', 'grunge', 'indie', 'alternativ'],
-    'Electrónica': ['electr', 'house', 'techno', 'edm'],
+    'Electrónica': ['electrónica', 'electronica', 'house', 'techno', 'edm'],
+    'Jazz y clásica': ['jazz', 'clásica', 'clasica', 'sinfónica', 'ópera', 'opera'],
   };
   String _genre = 'Todos';
 
   bool _inGenre(Concert c, String g) {
     final t = c.genre.toLowerCase();
     if (g == 'Otros') {
-      return !_genreWords.values.any((w) => w.any(t.contains));
+      return !_genreWords.keys.any((k) => _inGenre(c, k));
     }
-    return (_genreWords[g] ?? const []).any(t.contains);
+    // Palabra completa (o prefijo de palabra): «popular» no es «pop».
+    final words = t.split(RegExp(r'[^a-záéíóúñü]+'));
+    return (_genreWords[g] ?? const []).any((w) => w.contains(' ')
+        ? t.contains(w)
+        : words.any((x) => x == w || (w.length >= 5 && x.startsWith(w))));
   }
   final ConcertService _svc = ConcertService.instance;
 
@@ -239,7 +245,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
             Text(
                 'Uno por línea: nombre del bar y su @usuario de Instagram '
                 '(o el enlace del perfil).\n'
-                'Ejemplo: Kings Rock @kingsrockbar\n'
+                'Ejemplo: ${byMode('Kings Rock @kingsrockbar', 'Café Teatro @cafeteatro')}\n'
                 'Con el @usuario y el token de Apify, la app lee sus flyers.',
                 style: TextStyle(color: AppColors.textDim, fontSize: AppType.label)),
             const SizedBox(height: 12),

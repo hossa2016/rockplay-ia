@@ -194,7 +194,7 @@ Reglas:
       }
       if (songs.length < 5) return null;
       return AssistantResult(
-        'Estos son lanzamientos reales de ${year == last ? '$year' : '$year a $last'} de bandas que te pueden gustar.',
+        'Estos son lanzamientos reales de ${year == last ? '$year' : '$year a $last'} de ${byMode('bandas', 'artistas')} que te pueden gustar.',
         year == last ? 'Lanzamientos $year' : 'Lanzamientos $year-$last',
         songs,
         'Deezer',
@@ -339,9 +339,12 @@ Reglas:
       // ¿Nombró un género? (salsa, vallenato, pop…)
       for (final g in MixService.genre) {
         final k = g.title.toLowerCase();
-        if (t.contains(k) ||
+        if (RegExp('(^|[^a-záéíóúñ])${RegExp.escape(k)}(\$|[^a-záéíóúñ])').hasMatch(t) ||
             (k == 'reguetón' && (t.contains('regueton') || t.contains('urbano')))) {
-          artists.addAll(MixService.pool(g));
+          // El género manda sobre el ánimo.
+          artists
+            ..clear()
+            ..addAll(MixService.pool(g));
           title = g.title;
           reply = 'Armé una lista de ${g.title.toLowerCase()} (modo reglas simples).';
           break;

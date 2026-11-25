@@ -340,7 +340,7 @@ class _DjScreenState extends State<DjScreen> {
               Icon(Icons.person_search_rounded, color: AppColors.amber, size: 34),
               SizedBox(height: 14),
               Text(
-                'ELIGE UN ARTISTA',
+                byMode('ELIGE UN ARTISTA', 'Elige un artista'),
                 style: TextStyle(
                   fontFamily: AppType.head,
                   fontSize: AppType.title,
@@ -536,7 +536,7 @@ class _DjScreenState extends State<DjScreen> {
             const SizedBox(height: 12),
             AppSearchField(
               controller: _controller,
-              hint: 'Artista, ej: Linkin Park',
+              hint: byMode('Artista, ej: Linkin Park', 'Artista, ej: Karol G'),
               icon: Icons.person_search_rounded,
               onSubmit: _create,
             ),

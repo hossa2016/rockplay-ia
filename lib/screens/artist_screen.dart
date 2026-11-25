@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/song.dart';
 import '../services/artist_info_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/state_views.dart';
 import '../widgets/cover_art.dart';
@@ -137,7 +138,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Text(
-                          a.name.toUpperCase(),
+                          MusicModeService.general ? a.name : a.name.toUpperCase(),
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.headlineMedium,
                         ),

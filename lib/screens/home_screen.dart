@@ -969,7 +969,7 @@ class _HomeTabState extends State<_HomeTab> {
                     children: [
                       Text('TU MIX', style: AppType.overline),
                       const SizedBox(height: 6),
-                      Text('SUENA COMO\nTÚ ERES',
+                      Text(byMode('SUENA COMO\nTÚ ERES', 'Lo que más\nte suena'),
                           style: AppType.oswald(AppType.display)),
                       const SizedBox(height: 8),
                       ConstrainedBox(
@@ -1227,7 +1227,9 @@ class _MixCard extends StatelessWidget {
               children: [
                 Positioned.fill(
                   child: CustomPaint(
-                      painter: const PickPatternPainter(Color(0x0FFFFFFF))),
+                      painter: MusicModeService.general
+                          ? null
+                          : const PickPatternPainter(Color(0x0FFFFFFF))),
                 ),
                 Positioned(
                   right: -14,
@@ -1249,7 +1251,7 @@ class _MixCard extends StatelessWidget {
                     children: [
                       const Spacer(),
                       Text(
-                        def.title.toUpperCase(),
+                        MusicModeService.general ? def.title : def.title.toUpperCase(),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(

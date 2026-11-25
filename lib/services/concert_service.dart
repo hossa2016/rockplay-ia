@@ -157,6 +157,8 @@ class ConcertService {
   /// Al cambiar de modo: cada modo tiene su propia lista guardada.
   void resetForMode() {
     _cacheRead = false;
+    // Los bares de rock son solo del modo rock; en el general, los tuyos.
+    bars = MusicModeService.general ? <String>[] : List<String>.of(defaultBars);
     state.value = const ConcertState();
   }
 
@@ -168,8 +170,11 @@ class ConcertService {
     'Virus Pub',
     'Jungle Burger',
   ];
-  static const String _barsKey = 'concert_bars_v1';
-  List<String> bars = List<String>.of(defaultBars);
+  static String get _barsKey =>
+      MusicModeService.general ? 'concert_bars_general_v1' : 'concert_bars_v1';
+  List<String> bars = MusicModeService.general
+      ? <String>[]
+      : List<String>.of(defaultBars);
 
   Future<void> saveBars(List<String> list) async {
     bars = list.map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
@@ -245,12 +250,17 @@ class ConcertService {
           items: prev.items, updatedAt: prev.updatedAt, noKey: true);
       return;
     }
+    final gen = MusicModeService.generation;
     try {
-      final list = _merge(await _search(), prev.items);
+      final found = await _search();
+      // Cambió el modo mientras buscaba: este resultado es del otro modo.
+      if (gen != MusicModeService.generation) return;
+      final list = _merge(found, prev.items);
       final now = DateTime.now();
       state.value = ConcertState(items: list, updatedAt: now);
       _writeCache(list, now);
     } catch (e) {
+      if (gen != MusicModeService.generation) return;
       state.value = ConcertState(
         items: _upcoming(prev.items),
         updatedAt: prev.updatedAt,

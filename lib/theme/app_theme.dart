@@ -296,7 +296,9 @@ class AppTheme {
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.amber.withValues(alpha: 0.20),
+        indicatorColor: MusicModeService.general
+            ? const Color(0xFF26214A)
+            : AppColors.amber.withValues(alpha: 0.20),
         indicatorShape: const StadiumBorder(),
         height: 68,
         elevation: 0,

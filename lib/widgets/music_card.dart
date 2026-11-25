@@ -33,7 +33,7 @@ class MusicCard extends StatelessWidget {
         final isCurrent =
             cur != null && cur.title == song.title && cur.artist == song.artist;
         // Sin ▶ redundante (toda la fila ya reproduce): la que suena muestra
-        // el ecualizador; las demás, el menú de acciones.
+        // el ecualizador; el menú ⋮ va aparte.
         final Widget end = trailing ??
             (isCurrent
                 ? Icon(
@@ -41,14 +41,7 @@ class MusicCard extends StatelessWidget {
                         ? Icons.graphic_eq_rounded
                         : Icons.pause_rounded,
                     color: AppColors.amber)
-                : actions
-                    ? IconButton(
-                        tooltip: 'Más opciones',
-                        icon: Icon(Icons.more_vert_rounded,
-                            color: AppColors.textDim),
-                        onPressed: () => showSongActions(context, song),
-                      )
-                    : const SizedBox(width: 24));
+                : const SizedBox.shrink());
         final card = Material(
           color: Colors.transparent,
           child: InkWell(

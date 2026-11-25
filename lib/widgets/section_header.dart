@@ -62,7 +62,7 @@ class SectionTitle extends StatelessWidget {
       padding: padding,
       child: Row(
         children: [
-          Container(
+          if (MusicModeService.rock) Container(
             width: 4,
             height: 22,
             margin: const EdgeInsets.only(right: 10),
