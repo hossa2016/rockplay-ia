@@ -49,7 +49,7 @@ Armas listas de canciones REALES de cualquier género (pop, pop latino, salsa, r
 Reglas:
 - Devuelve SOLO un objeto JSON con esta forma exacta: {"reply":"texto corto (máx. 2 frases)","title":"nombre corto de la lista","songs":[{"artist":"...","title":"..."}]}
 - Entre __MIN__ y __MAX__ canciones, todas distintas. Mezcla canciones conocidas con algunas menos conocidas que encajen con sus gustos.
-- No repitas artistas más de 2 veces. No inventes canciones: si dudas de una, no la incluyas.
+- No repitas artistas más de 2 veces y no pongas dos canciones seguidas del mismo artista. No inventes canciones: si dudas de una, no la incluyas.
 - Si la persona pide cambiar la lista anterior (más tranquilo, más pesado, solo en español...), ajusta según eso.
 - Usa el contexto de gustos solo para personalizar; no lo recites.
 ''';
@@ -229,7 +229,11 @@ Reglas:
     final base = _system
         .replaceAll('__MAX__', '$mx')
         .replaceAll('__MIN__', '${mx >= 40 ? mx - 10 : mx - 5}');
-    final system = ctx.isEmpty ? base : '$base\nContexto:\n$ctx';
+    final system = ctx.isEmpty
+        ? base
+        : MusicModeService.general
+            ? '$base\nContexto (solo una pista menor: como máximo 3 canciones de estos artistas en toda la lista; el resto, de otros artistas y géneros):\n$ctx'
+            : '$base\nContexto:\n$ctx';
     final msgs = <AiMessage>[
       ...history.length > 6 ? history.sublist(history.length - 6) : history,
       AiMessage(true, text),
@@ -248,7 +252,8 @@ Reglas:
         final raw = await t.value();
         final r = _parse(raw, t.key);
         if (r != null) {
-          return AssistantResult(r.reply, r.title, r.songs, t.key,
+          final songs = await _balance(r.songs);
+          return AssistantResult(r.reply, r.title, songs, t.key,
               notes.isEmpty ? null : notes.join(' · '));
         }
         notes.add('${t.key}: respuesta no válida');
@@ -261,6 +266,50 @@ Reglas:
     final r = await _rules(text);
     return AssistantResult(r.reply, r.title, r.songs, 'Reglas simples',
         notes.isEmpty ? null : notes.join(' · '));
+  }
+
+  /// Máximo 2 canciones por artista y artistas intercalados (que no salgan
+  /// tres seguidas del mismo). En «Todos los géneros», los artistas de tu
+  /// historial ocupan como mucho 3 puestos, para no volver a lo mismo.
+  Future<List<Song>> _balance(List<Song> songs) async {
+    final known = <String>{};
+    if (MusicModeService.general) {
+      try {
+        final plays = await StatsService.instance.plays(days: 60);
+        known.addAll(StatsService.topArtists(plays, n: 8)
+            .map((e) => e.name.toLowerCase()));
+        known.addAll(
+            (await MixService.personalArtists()).map((e) => e.toLowerCase()));
+      } catch (_) {}
+    }
+    final per = <String, int>{};
+    var fromKnown = 0;
+    final byArtist = <String, List<Song>>{};
+    for (final s in songs) {
+      final a = s.artist.toLowerCase().trim();
+      if ((per[a] ?? 0) >= 2) continue;
+      if (known.contains(a)) {
+        if (fromKnown >= 3) continue;
+        fromKnown++;
+      }
+      per[a] = (per[a] ?? 0) + 1;
+      byArtist.putIfAbsent(a, () => []).add(s);
+    }
+    // Intercala: una de cada artista por vuelta, en el orden que dio la IA.
+    final out = <Song>[];
+    var round = 0;
+    var added = true;
+    while (added) {
+      added = false;
+      for (final l in byArtist.values) {
+        if (round < l.length) {
+          out.add(l[round]);
+          added = true;
+        }
+      }
+      round++;
+    }
+    return out.length >= 3 ? out : songs;
   }
 
   AssistantResult? _parse(String raw, String source) {
