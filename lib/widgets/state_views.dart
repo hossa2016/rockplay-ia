@@ -43,7 +43,7 @@ class StateMessage extends StatelessWidget {
             Container(
               width: 44,
               height: 44,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                   shape: BoxShape.circle, color: AppColors.surfaceHigh),
               child: Icon(icon, size: 22, color: tint),
             ),
@@ -60,7 +60,7 @@ class StateMessage extends StatelessWidget {
                   if (message.isNotEmpty) ...[
                     const SizedBox(height: 2),
                     Text(message,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.label,
                             height: 1.3,
                             color: AppColors.textDim)),
@@ -101,7 +101,7 @@ class StateMessage extends StatelessWidget {
               Text(
                 message,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppColors.textDim,
                   height: 1.4,
                   fontSize: AppType.bodySm,
@@ -192,7 +192,7 @@ class _ShimmerState extends State<_Shimmer>
         return ShaderMask(
           blendMode: BlendMode.srcIn,
           shaderCallback: (rect) => LinearGradient(
-            colors: const [
+            colors: [
               AppColors.surfaceHigh,
               Color(0xFF30303B),
               AppColors.surfaceHigh,

@@ -20,7 +20,7 @@ class ConcertDateBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: date == null
-          ? const Center(
+          ? Center(
               child: Text('POR\nCONF.',
                   textAlign: TextAlign.center,
                   textScaler: TextScaler.linear(1.0),
@@ -35,14 +35,14 @@ class ConcertDateBox extends StatelessWidget {
         children: [
           Text(kMonthsShort[date!.month - 1].toUpperCase(),
               textScaler: const TextScaler.linear(1.0),
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: AppType.caption,
                   fontWeight: FontWeight.w800,
                   color: AppColors.redSoft)),
           Text('${date!.day}',
               textScaler: const TextScaler.linear(1.0),
-              style: const TextStyle(
-                  fontSize: AppType.title, fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700, height: 1.1)),
+              style: TextStyle(
+                  fontSize: AppType.title, fontFamily: AppType.head, fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700, height: 1.1)),
         ],
       ),
     );
@@ -121,20 +121,20 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                           fontSize: 16, fontWeight: FontWeight.w800)),
                   if (c.genre.isNotEmpty)
                     Text(c.genre.toUpperCase(),
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.caption,
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w800,
                             color: AppColors.amber)),
                   if (concertPlace(c).isNotEmpty)
                     Text(concertPlace(c),
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.bodySm,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textDim)),
                   if (c.date == null)
                     Text('Fecha: ${c.when}',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.label,
                             fontWeight: FontWeight.w700,
                             color: AppColors.amber))
@@ -203,7 +203,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
                 'Uno por línea: nombre del bar y su @usuario de Instagram '
                 '(o el enlace del perfil).\n'
                 'Ejemplo: Kings Rock @kingsrockbar\n'
@@ -259,7 +259,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                 showCheckmark: false,
                 selectedColor: AppColors.redBtn,
                 backgroundColor: AppColors.surface,
-                side: const BorderSide(color: AppColors.outline),
+                side: BorderSide(color: AppColors.outline),
                 labelStyle: TextStyle(
                     fontWeight: FontWeight.w800,
                     color: _city == c ? Colors.white : AppColors.textDim),
@@ -319,7 +319,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   ],
                   Expanded(
                     child: Text('$status · próximos 12 meses',
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.caption,
                             fontWeight: FontWeight.w600,
                             color: AppColors.textFaint)),
@@ -340,7 +340,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                     ? 'Todavía no hay toques en tus bares.\n\nPara leer sus flyers de Instagram, toca la copa de arriba y escribe el @usuario de cada bar.'
                                     : 'No hay conciertos encontrados${_city == 'Todas' ? '' : ' en esta ciudad'}.',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.textDim),
+                            style: TextStyle(color: AppColors.textDim),
                           ),
                         ),
                       )
@@ -354,7 +354,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                 padding:
                                     const EdgeInsets.fromLTRB(4, 8, 4, 10),
                                 child: Text(_group(list[i]),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         fontSize: AppType.caption,
                                         letterSpacing: 1.5,
                                         fontWeight: FontWeight.w700,
@@ -368,7 +368,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                 ? const SizedBox.shrink()
                                 : ExpansionTile(
                                     tilePadding: EdgeInsets.zero,
-                                    title: const Text(
+                                    title: Text(
                                         'Detalles de la última búsqueda',
                                         style: TextStyle(
                                             fontSize: AppType.label,
@@ -377,7 +377,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                       Align(
                                         alignment: Alignment.centerLeft,
                                         child: SelectableText(log,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                                 fontSize: AppType.caption,
                                                 height: 1.5,
                                                 color: AppColors.textFaint)),
@@ -385,7 +385,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                                     ],
                                   ),
                           ),
-                          const Padding(
+                          Padding(
                             padding: EdgeInsets.only(top: 4),
                             child: Text(
                               'Datos buscados en internet con IA. Confirma la fecha en la fuente antes de comprar.',

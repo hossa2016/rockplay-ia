@@ -90,12 +90,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       Container(
                         width: 140,
                         height: 140,
-                        decoration: const BoxDecoration(
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           gradient: LinearGradient(
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
-                            colors: [Color(0xFFE5332E), Color(0xFF7A1411)],
+                            colors: [AppColors.red, AppColors.redDeep],
                           ),
                         ),
                         child: Icon(p.icon, size: 68, color: Colors.white),
@@ -103,12 +103,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       const SizedBox(height: 32),
                       Text(p.title,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: AppType.headline, fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700)),
+                          style: TextStyle(
+                              fontSize: AppType.headline, fontFamily: AppType.head, fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700)),
                       const SizedBox(height: 14),
                       Text(p.text,
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: AppType.body,
                               height: 1.45,
                               color: AppColors.textDim)),

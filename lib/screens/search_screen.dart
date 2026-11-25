@@ -95,7 +95,7 @@ class _SearchScreenState extends State<SearchScreen> {
         color: AppColors.surface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppRadius.lg),
-          side: const BorderSide(color: AppColors.outline),
+          side: BorderSide(color: AppColors.outline),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -122,7 +122,7 @@ class _SearchScreenState extends State<SearchScreen> {
                               fontSize: AppType.bodySm,
                               fontWeight: FontWeight.w600)),
                     ),
-                    const Icon(Icons.north_west_rounded,
+                    Icon(Icons.north_west_rounded,
                         size: 18, color: AppColors.textFaint),
                   ]),
                 ),
@@ -310,7 +310,7 @@ class _SearchScreenState extends State<SearchScreen> {
               for (final h in _history)
                 Material(
                   color: AppColors.surfaceHigh,
-                  shape: const StadiumBorder(
+                  shape: StadiumBorder(
                       side: BorderSide(color: AppColors.outline)),
                   child: InkWell(
                     customBorder: const StadiumBorder(),

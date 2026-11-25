@@ -142,14 +142,14 @@ class _SongListScreenState extends State<SongListScreen> {
             if (widget.subtitle.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(widget.subtitle,
-                  style: const TextStyle(color: AppColors.textDim)),
+                  style: TextStyle(color: AppColors.textDim)),
             ],
             const SizedBox(height: 6),
             Text(
               _loading
                   ? '${_songs.length} canciones · cargando más…'
                   : '${_songs.length} canciones',
-              style: const TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
+              style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
             ),
             const SizedBox(height: 14),
             Wrap(
@@ -209,7 +209,7 @@ class _SongListScreenState extends State<SongListScreen> {
                   ? null
                   : IconButton(
                       tooltip: 'Quitar de la lista',
-                      icon: const Icon(Icons.remove_circle_outline_rounded,
+                      icon: Icon(Icons.remove_circle_outline_rounded,
                           color: AppColors.textFaint),
                       onPressed: () => _remove(song, idx),
                     ),

@@ -13,6 +13,8 @@ import '../widgets/undo.dart';
 import '../widgets/sleep_wake_sheet.dart';
 import 'onboarding_screen.dart';
 import '../services/help_settings.dart';
+import '../services/music_mode.dart';
+import 'mode_pick_screen.dart';
 
 /// Un solo lugar para todos los ajustes (agrupados).
 class SettingsHubScreen extends StatefulWidget {
@@ -65,7 +67,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
   Widget _group(String t) => Padding(
         padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
         child: Text(t,
-            style: const TextStyle(
+            style: TextStyle(
                 fontSize: AppType.caption,
                 letterSpacing: 1.5,
                 fontWeight: FontWeight.w700,
@@ -81,7 +83,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
         clipBehavior: Clip.antiAlias,
         child: Column(children: [
           for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0) const Divider(height: 1, color: AppColors.outline),
+            if (i > 0) Divider(height: 1, color: AppColors.outline),
             rows[i],
           ],
         ]),
@@ -115,12 +117,12 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                           fontSize: AppType.body, fontWeight: FontWeight.w700)),
                   const SizedBox(height: 2),
                   Text(value,
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: AppType.label, color: AppColors.textDim)),
                   if (tip != null && HelpSettings.showTips.value) ...[
                     const SizedBox(height: 4),
                     Text(tip,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.caption,
                             height: 1.3,
                             color: AppColors.amber)),
@@ -132,11 +134,11 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
               Padding(
                 padding: const EdgeInsets.only(right: 6),
                 child: Text(badge,
-                    style: const TextStyle(
+                    style: TextStyle(
                         color: AppColors.amber,
                         fontWeight: FontWeight.w800)),
               ),
-            const Icon(Icons.chevron_right_rounded,
+            Icon(Icons.chevron_right_rounded,
                 color: AppColors.textDim),
           ]),
         ),
@@ -168,7 +170,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                   'Máximo de canciones que trae el asistente. Menos canciones = respuesta más rápida y menos gasto de tu cuota gratis.',
                   style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
               const SizedBox(height: 12),
@@ -200,7 +202,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                     'Aplica a Tu mix, los mixes por género y la emisora de artista. Menos = carga más rápida y menos datos.',
                     style:
                         TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
@@ -260,7 +262,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
             title: const Text('Artistas bloqueados'),
             subtitle: Text(
                 '${BlockService.instance.names.length} en total · no salen en búsquedas ni mixes',
-                style: const TextStyle(color: AppColors.textDim)),
+                style: TextStyle(color: AppColors.textDim)),
             onTap: () {
               Navigator.pop(c);
               _showBlocked();
@@ -272,7 +274,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
             title: const Text('Versiones reemplazadas'),
             subtitle: Text(
                 '${BadVideos.ids.length} que YouTube no deja reproducir',
-                style: const TextStyle(color: AppColors.textDim)),
+                style: TextStyle(color: AppColors.textDim)),
             onTap: () {
               Navigator.pop(c);
               _showSkipped();
@@ -337,6 +339,19 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
         children: [
+          _group('MODO DE MÚSICA'),
+          _box([
+            _row(
+                MusicModeService.general
+                    ? Icons.graphic_eq_rounded
+                    : Icons.bolt_rounded,
+                'Modo de música',
+                MusicModeService.general
+                    ? 'Todos los géneros · Pulso'
+                    : 'Solo rock · RockPlay',
+                () => _go(const MusicModeScreen()),
+                tip: 'Decide si la app es solo de rock o de todos los géneros. Cambia colores, textos, mixes, asistente y conciertos.'),
+          ]),
           _group('ASISTENTE'),
           _box([
             _row(Icons.vpn_key_rounded, 'Activar la IA', aiLabel,
@@ -363,7 +378,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
             _row(Icons.equalizer_rounded, 'Ecualizador',
                 EqService.instance.enabled ? 'Activo · ${EqService.instance.preset}' : 'Apagado',
                 () => _go(const EqScreen()),
-                tip: 'Ajusta graves y agudos con preajustes de rock; el asistente sugiere el mejor para cada canción.'),
+                tip: 'Ajusta graves y agudos con preajustes; el asistente sugiere el mejor para cada canción.'),
             _row(Icons.alarm_rounded, 'Despertador',
                 'Despierta con Tu mix, una lista o la radio',
                 () => showSleepWakeSheet(context, showTimer: false),
@@ -403,7 +418,7 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                           const Icon(Icons.lightbulb_outline_rounded, size: 22),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -433,8 +448,8 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
               final p = snap.data;
               return Center(
                 child: Text(
-                  p == null ? 'RockPlay IA' : 'RockPlay IA ${p.version} · compilación ${p.buildNumber}',
-                  style: const TextStyle(fontSize: AppType.caption, color: AppColors.textFaint),
+                  p == null ? MusicModeService.appName : '${MusicModeService.appName} ${p.version} · compilación ${p.buildNumber}',
+                  style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint),
                 ),
               );
             },
@@ -467,7 +482,7 @@ Future<void> showSkippedDialog(BuildContext context) {
                 : ListView(shrinkWrap: true, children: [
                     Text(
                         '${BadVideos.ids.length} versiones de YouTube no se pueden reproducir en apps. La app ya las cambia por otra versión de la misma canción; no tienes que hacer nada.',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.textDim, fontSize: AppType.caption)),
                     const SizedBox(height: 10),
                     for (final e in saved)
@@ -477,7 +492,7 @@ Future<void> showSkippedDialog(BuildContext context) {
                       ),
                     if (unnamed > 0)
                       Text('Y $unnamed más guardadas antes, sin nombre.',
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textDim, fontSize: AppType.caption)),
                     if (SkipLog.entries.isNotEmpty) ...[
                       const SizedBox(height: 12),

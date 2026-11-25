@@ -84,7 +84,7 @@ class _SleepWake extends StatelessWidget {
               ),
               if (showTimer) ...[
                 const SizedBox(height: 14),
-                const Padding(
+                Padding(
                   padding: EdgeInsets.only(left: 4),
                   child: Text('APAGAR LA MÚSICA', style: AppType.overline),
                 ),
@@ -111,7 +111,7 @@ class _SleepWake extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 20),
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(left: 4),
                 child: Text('DESPERTADOR', style: AppType.overline),
               ),
@@ -124,7 +124,7 @@ class _SleepWake extends StatelessWidget {
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.redText,
-                    side: const BorderSide(color: AppColors.redBtn),
+                    side: BorderSide(color: AppColors.redBtn),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppRadius.lg)),
                     textStyle: const TextStyle(
@@ -157,7 +157,7 @@ class _AlarmList extends StatelessWidget {
         builder: (context, snap) {
           final list = snap.data ?? const <Alarm>[];
           if (list.isEmpty) {
-            return const Padding(
+            return Padding(
               padding: EdgeInsets.fromLTRB(4, 0, 4, 4),
               child: Text(
                   'Aún no tienes alarmas. Despierta con Tu mix, una lista o la radio.',
@@ -211,7 +211,7 @@ class _AlarmList extends StatelessWidget {
                 Text('${a.daysLabel} · ${a.sourceLabel}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: AppType.label, color: AppColors.textDim)),
               ],
             ),

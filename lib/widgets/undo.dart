@@ -33,7 +33,7 @@ Future<bool> confirmAction(
         TextButton(
             onPressed: () => Navigator.pop(c, true),
             child: Text(confirmLabel,
-                style: const TextStyle(color: AppColors.redText))),
+                style: TextStyle(color: AppColors.redText))),
       ],
     ),
   );

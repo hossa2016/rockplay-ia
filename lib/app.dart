@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'screens/home_screen.dart';
+import 'screens/mode_pick_screen.dart';
+import 'services/music_mode.dart';
 import 'theme/app_theme.dart';
 import 'widgets/embed_overlay.dart';
 import 'widgets/rock_decor.dart';
@@ -11,8 +13,20 @@ class RockPlayApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Al cambiar de modo se reconstruye toda la app (colores, fuentes,
+    // textos y géneros) y se vuelve a Inicio. La música sigue sonando.
+    return ValueListenableBuilder<MusicMode>(
+      valueListenable: MusicModeService.mode,
+      builder: (context, mode, _) => KeyedSubtree(
+        key: ValueKey(mode),
+        child: _app(),
+      ),
+    );
+  }
+
+  Widget _app() {
     return MaterialApp(
-      title: 'RockPlay IA',
+      title: MusicModeService.appName,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark(),
       darkTheme: AppTheme.dark(),
@@ -76,7 +90,8 @@ class _IntroGateState extends State<_IntroGate>
   @override
   Widget build(BuildContext context) {
     return Stack(children: [
-      const HomeScreen(),
+      // Primera vez: «¿Qué vas a escuchar?» antes de Inicio.
+      MusicModeService.chosen ? const HomeScreen() : const ModePickScreen(),
       if (!_done)
         AnimatedBuilder(
           animation: _c,

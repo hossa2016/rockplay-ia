@@ -46,7 +46,7 @@ class _ConcertsCardState extends State<ConcertsCard> {
               Text(concertPlace(c),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: AppType.label,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textDim)),
@@ -82,7 +82,7 @@ class _ConcertsCardState extends State<ConcertsCard> {
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.xl),
-              side: const BorderSide(color: AppColors.borderAccent),
+              side: BorderSide(color: AppColors.borderAccent),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -94,10 +94,10 @@ class _ConcertsCardState extends State<ConcertsCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      const Icon(Icons.confirmation_number_outlined,
+                      Icon(Icons.confirmation_number_outlined,
                           color: AppColors.amber, size: 20),
                       const SizedBox(width: AppSpace.sm),
-                      const Expanded(
+                      Expanded(
                         child: Text('PRÓXIMOS CONCIERTOS',
                             style: AppType.overline),
                       ),
@@ -107,14 +107,14 @@ class _ConcertsCardState extends State<ConcertsCard> {
                             height: 16,
                             child: CircularProgressIndicator(strokeWidth: 2))
                       else
-                        const Icon(Icons.chevron_right_rounded,
+                        Icon(Icons.chevron_right_rounded,
                             color: AppColors.textDim),
                     ]),
                     if (msg != null)
                       Padding(
                         padding: const EdgeInsets.only(top: AppSpace.md),
                         child: Text(msg,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: AppType.bodySm,
                                 height: 1.35,
                                 color: AppColors.textDim)),
@@ -126,7 +126,7 @@ class _ConcertsCardState extends State<ConcertsCard> {
                       items.isEmpty
                           ? 'Toca para ver todos y tus bares'
                           : 'Ver todos · ${concertsUpdatedLabel(s.updatedAt)}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: AppType.caption,
                           fontWeight: FontWeight.w600,
                           color: AppColors.textFaint),

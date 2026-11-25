@@ -88,7 +88,7 @@ class _TasteScreenState extends State<TasteScreen> {
           : ListView(
               padding: const EdgeInsets.only(bottom: 32),
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.fromLTRB(20, 4, 20, 0),
                   child: Text(
                     'Esto es lo que el asistente usa para personalizar tus listas. '
@@ -109,7 +109,7 @@ class _TasteScreenState extends State<TasteScreen> {
                 ),
                 const SectionTitle('Artistas de los últimos 60 días'),
                 if (top.isEmpty)
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20),
                     child: Text('Todavía no hay datos. Escucha música y vuelve.',
                         style: TextStyle(color: AppColors.textDim)),
@@ -131,7 +131,7 @@ class _TasteScreenState extends State<TasteScreen> {
                                         fontWeight: FontWeight.w600))),
                             Text('${a.count}',
                                 style:
-                                    const TextStyle(color: AppColors.textDim)),
+                                    TextStyle(color: AppColors.textDim)),
                           ]),
                           const SizedBox(height: 6),
                           ClipRRect(

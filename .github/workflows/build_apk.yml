@@ -19,6 +19,10 @@ jobs:
           channel: stable
           flutter-version: '3.47.9'
       - run: flutter create --platforms=android --project-name rockplay --org com.rockplayia .
+      - name: Fuente del modo Pulso (Space Grotesk)
+        run: |
+          curl -fsSL -o assets/fonts/SpaceGrotesk-Variable.ttf "https://github.com/google/fonts/raw/main/ofl/spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf"
+          ls -la assets/fonts
       - run: python3 tools/setup_android.py
       - run: python3 tools/add_deps.py
       - run: python3 tools/setup_android.py

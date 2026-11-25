@@ -128,7 +128,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                             width: 150,
                             height: 150,
                             child: a.picture.isEmpty
-                                ? const ColoredBox(color: AppColors.surfaceWarm)
+                                ? ColoredBox(color: AppColors.surfaceWarm)
                                 : Image.network(a.picture, fit: BoxFit.cover),
                           ),
                         ),
@@ -147,7 +147,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                           padding: const EdgeInsets.only(top: 4),
                           child: Text('${_fmt(a.fans)} seguidores en Deezer',
                               textAlign: TextAlign.center,
-                              style: const TextStyle(
+                              style: TextStyle(
                                   color: AppColors.textDim, fontSize: AppType.label)),
                         ),
                       Padding(
@@ -185,10 +185,10 @@ class _ArtistScreenState extends State<ArtistScreen> {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(_bioOpen ? 'Ver menos' : 'Leer más',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                         color: AppColors.amber, fontSize: AppType.label)),
                                 const SizedBox(height: 2),
-                                const Text('Fuente: Wikipedia',
+                                Text('Fuente: Wikipedia',
                                     style: TextStyle(
                                         color: AppColors.textFaint,
                                         fontSize: AppType.caption)),
@@ -227,7 +227,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                                               fontSize: AppType.label)),
                                       if (al.year != null)
                                         Text('${al.year}',
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                                 color: AppColors.textDim,
                                                 fontSize: AppType.caption)),
                                     ],

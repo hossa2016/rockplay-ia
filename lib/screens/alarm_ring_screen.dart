@@ -202,7 +202,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
       child: Scaffold(
         backgroundColor: AppColors.bg,
         body: DecoratedBox(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: RadialGradient(
               center: Alignment(0, -0.4),
               radius: 1.1,
@@ -223,7 +223,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
                   const SizedBox(height: 6),
                   Text(
                       '${_wd[_now.weekday]} ${_now.day} de ${_mo[_now.month - 1]}',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: AppType.body, color: AppColors.textDim)),
                   const Spacer(),
                   ValueListenableBuilder<Song?>(
@@ -274,7 +274,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.body, color: AppColors.textDim),
                       ),
                     ]),
@@ -287,7 +287,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.text,
                         backgroundColor: AppColors.surfaceHigh,
-                        side: const BorderSide(color: AppColors.outline),
+                        side: BorderSide(color: AppColors.outline),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(AppRadius.lg)),
                         textStyle: const TextStyle(

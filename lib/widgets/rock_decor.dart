@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 
 /// Púa de guitarra con rayo: logo de RockPlay.
@@ -9,8 +11,54 @@ class PickLogo extends StatelessWidget {
   const PickLogo({super.key, this.size = 46});
 
   @override
+  Widget build(BuildContext context) => CustomPaint(
+      size: Size.square(size),
+      painter: MusicModeService.general ? _PulsePainter() : _PickPainter());
+}
+
+/// Logo de Pulso (se dibuja igual en cualquier modo).
+class PulseLogo extends StatelessWidget {
+  final double size;
+  const PulseLogo({super.key, this.size = 36});
+  @override
   Widget build(BuildContext context) =>
-      CustomPaint(size: Size.square(size), painter: _PickPainter());
+      CustomPaint(size: Size.square(size), painter: _PulsePainter());
+}
+
+/// Logo de Pulso: cuadro redondeado violeta→cian con una línea de pulso.
+class _PulsePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size s) {
+    final w = s.width, h = s.height;
+    final r = RRect.fromRectAndRadius(
+        Offset.zero & s, Radius.circular(w * 0.30));
+    canvas.drawRRect(
+        r,
+        Paint()
+          ..shader = const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF6A4CF0), Color(0xFF2EC5D3)],
+          ).createShader(Offset.zero & s));
+    final line = Path()
+      ..moveTo(w * 0.14, h * 0.52)
+      ..lineTo(w * 0.30, h * 0.52)
+      ..lineTo(w * 0.40, h * 0.26)
+      ..lineTo(w * 0.56, h * 0.80)
+      ..lineTo(w * 0.66, h * 0.52)
+      ..lineTo(w * 0.86, h * 0.52);
+    canvas.drawPath(
+        line,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = w * 0.085
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..color = Colors.white);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PickPainter extends CustomPainter {
@@ -27,10 +75,10 @@ class _PickPainter extends CustomPainter {
       ..quadraticBezierTo(w * 0.04, h * 0.20, w * 0.16, h * 0.14)
       ..close();
     final paint = Paint()
-      ..shader = const LinearGradient(
+      ..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
-        colors: [Color(0xFFEC342C), Color(0xFFFFB02E)],
+        colors: [AppColors.red, AppColors.amber],
       ).createShader(Offset.zero & s);
     canvas.drawPath(path, paint);
     canvas.drawPath(

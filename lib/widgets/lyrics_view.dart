@@ -144,13 +144,13 @@ class _LyricsViewState extends State<LyricsView> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(
+      return Center(
           child: Text('Buscando la letra…',
               style: TextStyle(color: AppColors.textDim)));
     }
     final l = _l;
     if (l == null || l.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.all(32),
           child: Text('No encontré la letra de esta canción.',

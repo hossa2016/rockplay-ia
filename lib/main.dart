@@ -4,21 +4,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'app.dart';
+import 'theme/app_theme.dart';
 import 'services/alarm_service.dart';
 import 'services/data_saver.dart';
 import 'services/block_service.dart';
 import 'services/eq_service.dart';
+import 'services/music_mode.dart';
 import 'services/playback_service.dart';
 import 'widgets/playback_ui.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+  // Primero el modo de música: define colores, textos y géneros.
+  await MusicModeService.load();
+  SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Color(0xFF14141A),
+    systemNavigationBarColor: AppColors.surface,
     systemNavigationBarIconBrightness: Brightness.light,
   ));
+  MusicModeService.mode.addListener(() {
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppColors.surface,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
+  });
   try {
     await DataSaver.instance.load();
   } catch (_) {}

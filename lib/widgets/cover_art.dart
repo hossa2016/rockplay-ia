@@ -56,7 +56,7 @@ class CoverArt extends StatelessWidget {
               child: Icon(
                 Icons.music_note_rounded,
                 size: side * 0.42,
-                color: const Color.fromRGBO(255, 176, 46, 0.65),
+                color: AppColors.amber.withValues(alpha: 0.65),
               ),
             );
           }
@@ -65,12 +65,12 @@ class CoverArt extends StatelessWidget {
               s.substring(0, 1).toUpperCase(),
               textScaler: TextScaler.noScaling,
               style: TextStyle(
-                fontFamily: 'Oswald',
+                fontFamily: AppType.head,
                 fontWeight: FontWeight.w700,
                 fontVariations: const [FontVariation('wght', 700)],
                 fontSize: side * 0.5,
                 height: 1.0,
-                color: const Color.fromRGBO(255, 176, 46, 0.7),
+                color: AppColors.amber.withValues(alpha: 0.7),
               ),
             ),
           );

@@ -320,7 +320,7 @@ class _DjScreenState extends State<DjScreen> {
             gradient: AppColors.heroGradient,
             borderRadius: BorderRadius.circular(AppRadius.xl),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Icon(Icons.person_search_rounded, color: AppColors.amber, size: 34),
@@ -328,7 +328,7 @@ class _DjScreenState extends State<DjScreen> {
               Text(
                 'ELIGE UN ARTISTA',
                 style: TextStyle(
-                  fontFamily: 'Oswald',
+                  fontFamily: AppType.head,
                   fontSize: AppType.title,
                   fontWeight: FontWeight.w700,
                   fontVariations: [FontVariation('wght', 700)],
@@ -366,7 +366,7 @@ class _DjScreenState extends State<DjScreen> {
           children: [
             for (final s in _pinned)
               InputChip(
-                avatar: const Icon(Icons.push_pin_rounded,
+                avatar: Icon(Icons.push_pin_rounded,
                     size: 16, color: AppColors.amber),
                 label: Text(s),
                 onPressed: () => _useSuggestion(s),
@@ -386,7 +386,7 @@ class _DjScreenState extends State<DjScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        const Text(
+        Text(
           'Los fijados (con chincheta) los eliges tú. Los demás salen de lo que más escuchas.',
           style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
         ),
@@ -422,7 +422,7 @@ class _DjScreenState extends State<DjScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const Expanded(
+              Expanded(
                 child: Text('MIX DE ARTISTA', style: AppType.overline),
               ),
               IconButton(

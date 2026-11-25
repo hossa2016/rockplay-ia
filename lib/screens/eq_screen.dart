@@ -15,7 +15,7 @@ class EqScreen extends StatefulWidget {
 class _EqScreenState extends State<EqScreen> {
   final EqService eq = EqService.instance;
 
-  static const Color rockRed = AppColors.redBtn;
+  static Color get rockRed => AppColors.redBtn;
 
   @override
   void initState() {
@@ -91,7 +91,7 @@ class _EqScreenState extends State<EqScreen> {
         children: [
           _suggestionCard(),
           const SizedBox(height: 20),
-          const Text('PREAJUSTES',
+          Text('PREAJUSTES',
               style: TextStyle(fontSize: AppType.caption, letterSpacing: 1.5, fontWeight: FontWeight.w700, color: AppColors.textDim)),
           const SizedBox(height: 6),
           SizedBox(
@@ -124,14 +124,14 @@ class _EqScreenState extends State<EqScreen> {
             ),
           ),
           if (eq.preset == 'Personalizado')
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 8),
               child: Text('Personalizado', style: TextStyle(color: AppColors.amber, fontWeight: FontWeight.w600)),
             ),
           const SizedBox(height: 18),
           Opacity(opacity: on ? 1 : 0.4, child: _bands()),
           const SizedBox(height: 6),
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Graves', style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
@@ -145,21 +145,21 @@ class _EqScreenState extends State<EqScreen> {
               Icon(eq.embedStatus == 'activo' ? Icons.check_circle_rounded : Icons.info_outline_rounded,
                   size: 16, color: eq.embedStatus == 'activo' ? const Color(0xFF7FB38A) : AppColors.textFaint),
               const SizedBox(width: 8),
-              Expanded(child: Text(_statusText, style: const TextStyle(fontSize: AppType.caption, color: AppColors.textFaint))),
+              Expanded(child: Text(_statusText, style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint))),
             ],
           ),
           const SizedBox(height: 6),
           Row(children: [
-            const Icon(Icons.auto_awesome_outlined, size: 16, color: AppColors.textFaint),
+            Icon(Icons.auto_awesome_outlined, size: 16, color: AppColors.textFaint),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 'Consultas de IA del ecualizador hoy: ${eq.aiToday}. Los artistas conocidos y las canciones repetidas no gastan IA.',
-                style: const TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
+                style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
             ),
           ]),
           const SizedBox(height: 6),
-          const Text('Si en algún momento el sonido falla, apaga el ecualizador con el interruptor de abajo.',
+          Text('Si en algún momento el sonido falla, apaga el ecualizador con el interruptor de abajo.',
               style: TextStyle(fontSize: AppType.caption, color: AppColors.textFaint)),
         ],
       ),
@@ -180,21 +180,21 @@ class _EqScreenState extends State<EqScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const Icon(Icons.auto_awesome_rounded, size: 16, color: AppColors.amber),
+            Icon(Icons.auto_awesome_rounded, size: 16, color: AppColors.amber),
             const SizedBox(width: 6),
-            const Expanded(
+            Expanded(
               child: Text('SUGERENCIA DEL ASISTENTE',
                   style: TextStyle(fontSize: AppType.caption, letterSpacing: 1.2, color: AppColors.amber, fontWeight: FontWeight.w700)),
             ),
             if (s != null)
-              Text(s.source, style: const TextStyle(fontSize: AppType.micro, color: AppColors.textDim)),
+              Text(s.source, style: TextStyle(fontSize: AppType.micro, color: AppColors.textDim)),
           ]),
           const SizedBox(height: 8),
           if (song == null || song.isRadio)
             const Text('Pon una canción y te sugiero el mejor ajuste para ella.',
                 style: TextStyle(fontSize: AppType.bodySm, height: 1.4))
           else if (eq.suggesting)
-            const Row(children: [
+            Row(children: [
               SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.amber)),
               SizedBox(width: 10),
               Text('Escuchando la canción…', style: TextStyle(fontSize: AppType.bodySm)),
@@ -205,7 +205,7 @@ class _EqScreenState extends State<EqScreen> {
                 const TextSpan(text: 'Para '),
                 TextSpan(text: song.title, style: const TextStyle(fontWeight: FontWeight.w700)),
                 TextSpan(text: ' de ${song.artist} te recomiendo '),
-                TextSpan(text: s.preset, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.amber)),
+                TextSpan(text: s.preset, style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.amber)),
                 TextSpan(text: s.reason.isEmpty ? '.' : ': ${s.reason}'),
               ]),
             )
@@ -231,7 +231,7 @@ class _EqScreenState extends State<EqScreen> {
               child: Text(s != null ? 'Aplicar' : 'Sugerir'),
             ),
             const Spacer(),
-            const Text('Auto en cada canción', style: TextStyle(fontSize: AppType.caption, color: AppColors.textDim)),
+            Text('Auto en cada canción', style: TextStyle(fontSize: AppType.caption, color: AppColors.textDim)),
             Switch(
               value: eq.auto,
               activeColor: Colors.white,
@@ -269,7 +269,7 @@ class _EqScreenState extends State<EqScreen> {
                       children: [
                         Text(
                           '${eq.gains[i] > 0 ? '+' : ''}${eq.gains[i].round()}',
-                          style: const TextStyle(fontSize: AppType.micro, color: AppColors.textDim),
+                          style: TextStyle(fontSize: AppType.micro, color: AppColors.textDim),
                         ),
                         Expanded(
                           child: RotatedBox(
@@ -299,7 +299,7 @@ class _EqScreenState extends State<EqScreen> {
                           ),
                         ),
                         Text(EqService.labels[i],
-                            style: const TextStyle(fontSize: AppType.micro, color: AppColors.textDim)),
+                            style: TextStyle(fontSize: AppType.micro, color: AppColors.textDim)),
                       ],
                     ),
                   ),

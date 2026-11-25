@@ -28,3 +28,6 @@ flutter:
     - family: Oswald
       fonts:
         - asset: assets/fonts/Oswald-Variable.ttf
+    - family: SpaceGrotesk
+      fonts:
+        - asset: assets/fonts/SpaceGrotesk-Variable.ttf

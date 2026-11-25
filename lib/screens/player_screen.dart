@@ -128,7 +128,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               child: const Text('Cancelar')),
           TextButton(
               onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Bloquear',
+              child: Text('Bloquear',
                   style: TextStyle(color: AppColors.redText))),
         ],
       ),
@@ -276,7 +276,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               ),
             ),
           ),
-        const DecoratedBox(
+        DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
@@ -332,7 +332,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     return Column(
       children: [
         _topBar(context),
-        const Expanded(
+        Expanded(
           child: Center(
             child: Padding(
               padding: EdgeInsets.all(32),
@@ -376,7 +376,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 final radio = pb.song.value?.isRadio ?? false;
                 return Column(
                   children: [
-                    const Text(
+                    Text(
                       'SONANDO DESDE',
                       style: TextStyle(
                         fontSize: AppType.caption,
@@ -454,7 +454,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   title: Text('Compartir'),
                 ),
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'block',
                 child: ListTile(
                   dense: true,
@@ -477,7 +477,7 @@ class _PlayerScreenState extends State<PlayerScreen>
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Column(
         children: [
-          const Row(
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(Icons.circle, size: 10, color: AppColors.red),
@@ -536,9 +536,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                         info?.title ?? song.title,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                             fontSize: AppType.headline,
-                            fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700,
+                            fontFamily: AppType.head, fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700,
                             letterSpacing: 0.3,
                             height: 1.15),
                       ),
@@ -547,7 +547,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                         info?.artist ?? song.artist,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           color: AppColors.textDim,
                           fontWeight: FontWeight.w500,
@@ -564,7 +564,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   info.meta,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: AppType.label,
                     color: AppColors.textFaint,
                     fontWeight: FontWeight.w500,
@@ -641,18 +641,18 @@ class _PlayerScreenState extends State<PlayerScreen>
     return Container(
       padding: const EdgeInsets.all(22),
       alignment: Alignment.bottomLeft,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF7A1411), Color(0xFF2A0A0A), Color(0xFF14141A)],
+          colors: [AppColors.redDeep, AppColors.surfaceWarm, AppColors.surface],
         ),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('SIN PORTADA',
+          Text('SIN PORTADA',
               style: TextStyle(
                   fontSize: AppType.caption,
                   letterSpacing: 2,
@@ -662,8 +662,8 @@ class _PlayerScreenState extends State<PlayerScreen>
           Text(song.artist.toUpperCase(),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: AppType.display, fontFamily: 'Oswald', fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700, height: 1.0)),
+              style: TextStyle(
+                  fontSize: AppType.display, fontFamily: AppType.head, fontVariations: [FontVariation('wght', 700)], fontWeight: FontWeight.w700, height: 1.0)),
         ],
       ),
     );
@@ -755,9 +755,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: const Color(0xFF0B0B0E),
-                      boxShadow: const [
+                      boxShadow: [
                         BoxShadow(
-                          color: Color.fromRGBO(229, 51, 46, 0.35),
+                          color: AppColors.red.withValues(alpha: 0.35),
                           blurRadius: 40,
                         ),
                       ],
@@ -778,7 +778,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   Container(
                     width: disc * 0.05,
                     height: disc * 0.05,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: AppColors.bg,
                     ),
@@ -826,13 +826,13 @@ class _PlayerScreenState extends State<PlayerScreen>
               children: [
             Row(
               children: [
-                const Icon(Icons.error_outline_rounded,
+                Icon(Icons.error_outline_rounded,
                     color: AppColors.amber, size: 20),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     err,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: AppColors.amber,
                       fontSize: AppType.label,
                       height: 1.3,
@@ -887,7 +887,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(children: [
-              const Expanded(
+              Expanded(
                 child: Text('LA MÚSICA SE DETUVO',
                     style: TextStyle(
                         color: AppColors.amber,
@@ -924,7 +924,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                         style: const TextStyle(
                             fontSize: AppType.bodySm, fontWeight: FontWeight.w700)),
                   ),
-                  const Text('Bloqueada',
+                  Text('Bloqueada',
                       style: TextStyle(
                           color: AppColors.amber,
                           fontSize: AppType.caption,
@@ -1009,7 +1009,7 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
-  static const TextStyle _timeStyle = TextStyle(
+  static TextStyle get _timeStyle => TextStyle(
     fontSize: AppType.caption,
     color: AppColors.textDim,
     fontWeight: FontWeight.w500,
@@ -1207,7 +1207,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                         ],
                       ),
                     ),
-                    const Padding(
+                    Padding(
                       padding: EdgeInsets.fromLTRB(20, 0, 20, 6),
                       child: Align(
                         alignment: Alignment.centerLeft,
@@ -1220,7 +1220,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                     ),
                     Expanded(
                       child: q.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Text(
                                 'La cola está vacía',
                                 style: TextStyle(color: AppColors.textDim),
@@ -1252,7 +1252,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   onDismissed: (_) =>
                                       PlaybackService.instance.queueRemove(i),
                                   background: Container(
-                                    color: const Color(0x55E5332E),
+                                    color: AppColors.red.withValues(alpha: 0.33),
                                     alignment: Alignment.centerRight,
                                     padding:
                                         const EdgeInsets.only(right: 24),

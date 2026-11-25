@@ -23,7 +23,7 @@ class MixDef {
 
 /// Mixes armados con canciones de YouTube de varios artistas a la vez.
 class MixService {
-  static const List<MixDef> genre = [
+  static List<MixDef> get genre => [
     MixDef('Rock clásico', '70s', Icons.album_rounded,
         AppPalettes.amber, [
       'Led Zeppelin', 'Deep Purple', 'Pink Floyd', 'Queen',
@@ -77,7 +77,7 @@ class MixService {
     ]),
   ];
 
-  static const List<MixDef> mood = [
+  static List<MixDef> get mood => [
     MixDef('Energía', 'Sube el volumen', Icons.bolt_rounded,
         AppPalettes.fire, [
       'Rage Against the Machine', 'Metallica', 'Linkin Park',

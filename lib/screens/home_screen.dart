@@ -147,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             const MiniPlayer(),
             Container(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(
                   top: BorderSide(color: AppColors.navLine, width: 1),
                 ),
@@ -400,7 +400,7 @@ class _HomeTabState extends State<_HomeTab> {
             color: AppColors.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppRadius.lg),
-              side: const BorderSide(color: AppColors.outline),
+              side: BorderSide(color: AppColors.outline),
             ),
             clipBehavior: Clip.antiAlias,
             child: InkWell(
@@ -421,7 +421,7 @@ class _HomeTabState extends State<_HomeTab> {
                   Container(
                     width: 36,
                     height: 36,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                         shape: BoxShape.circle, gradient: AppColors.accent),
                     child: Icon(n.icon, color: Colors.white, size: 18),
                   ),
@@ -440,7 +440,7 @@ class _HomeTabState extends State<_HomeTab> {
                         Text(n.text,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
+                            style: TextStyle(
                                 fontSize: AppType.label,
                                 height: 1.3,
                                 color: AppColors.textDim)),
@@ -449,7 +449,7 @@ class _HomeTabState extends State<_HomeTab> {
                   ),
                   IconButton(
                     tooltip: 'Ocultar sugerencia',
-                    icon: const Icon(Icons.close_rounded,
+                    icon: Icon(Icons.close_rounded,
                         color: AppColors.textDim, size: 20),
                     onPressed: () => setState(() => _nudgeClosed = true),
                   ),
@@ -671,7 +671,7 @@ class _HomeTabState extends State<_HomeTab> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('La música se detuvo a las $hora',
-                        style: const TextStyle(
+                        style: TextStyle(
                             color: AppColors.amber,
                             fontWeight: FontWeight.w800,
                             fontSize: AppType.label)),
@@ -807,7 +807,7 @@ class _HomeTabState extends State<_HomeTab> {
                       Text(r.artist,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               color: AppColors.textDim, fontSize: AppType.caption)),
                     ],
                   ),
@@ -888,7 +888,7 @@ class _HomeTabState extends State<_HomeTab> {
                           width: 88,
                           height: 88,
                           child: a.picture.isEmpty
-                              ? const ColoredBox(color: AppColors.surfaceWarm)
+                              ? ColoredBox(color: AppColors.surfaceWarm)
                               : Image.network(a.picture, fit: BoxFit.cover),
                         ),
                       ),
@@ -945,7 +945,7 @@ class _HomeTabState extends State<_HomeTab> {
             ),
             child: Stack(
               children: [
-                const Positioned(
+                Positioned(
                   right: 0,
                   bottom: 0,
                   child: Opacity(
@@ -963,7 +963,7 @@ class _HomeTabState extends State<_HomeTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('TU MIX', style: AppType.overline),
+                      Text('TU MIX', style: AppType.overline),
                       const SizedBox(height: 6),
                       Text('SUENA COMO\nTÚ ERES',
                           style: AppType.oswald(AppType.display)),
@@ -985,7 +985,7 @@ class _HomeTabState extends State<_HomeTab> {
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(AppRadius.pill),
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(Icons.play_arrow_rounded,
@@ -1045,7 +1045,7 @@ class _HomeTabState extends State<_HomeTab> {
             borderRadius: BorderRadius.circular(AppRadius.lg),
             border: Border.all(color: AppColors.outline),
           ),
-          child: const Row(
+          child: Row(
             children: [
               Icon(Icons.headphones_rounded, color: AppColors.amber, size: 30),
               SizedBox(width: 14),
@@ -1124,13 +1124,13 @@ class _QuickTile extends StatelessWidget {
                       Text(subtitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: AppType.label,
                               color: AppColors.textDim)),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded,
+                Icon(Icons.chevron_right_rounded,
                     color: AppColors.textDim),
               ],
             ),
@@ -1179,7 +1179,7 @@ class _RecentCard extends StatelessWidget {
               song.artist,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
+              style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
             ),
           ],
         ),

@@ -236,7 +236,7 @@ class _RadioScreenState extends State<RadioScreen> {
                               color: const Color.fromRGBO(0, 0, 0, 0.55),
                               borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
-                            child: const Icon(Icons.graphic_eq_rounded,
+                            child: Icon(Icons.graphic_eq_rounded,
                                 color: AppColors.amber),
                           ),
                       ],
@@ -471,7 +471,7 @@ class _AddSheetState extends State<_AddSheet> {
                 hintText: 'https://…',
                 errorText: _urlErr),
           ),
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 8, bottom: 14),
             child: Text(
                 'Pega el enlace directo del audio (suele estar en la web de la emisora).',
