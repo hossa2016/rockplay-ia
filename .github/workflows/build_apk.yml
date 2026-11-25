@@ -29,6 +29,7 @@ jobs:
       - run: python3 tools/setup_widget.py
       - run: python3 tools/setup_splash.py
       - run: python3 tools/setup_alarm.py
+      - run: python3 tools/setup_launcher.py
       - run: |
           pip install pillow
           python3 tools/make_icon.py

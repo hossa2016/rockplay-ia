@@ -13,6 +13,9 @@ for name in ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]:
     os.makedirs(d, exist_ok=True)
     shutil.copyfile(os.path.join("tools", "icon", f"ic_launcher_{name}.png"),
                     os.path.join(d, "ic_launcher.png"))
+    # Ícono del modo «Todos los géneros» (Pulso).
+    shutil.copyfile(os.path.join("tools", "icon", f"ic_launcher_pulso_{name}.png"),
+                    os.path.join(d, "ic_launcher_pulso.png"))
 # Quita iconos adaptativos que pisarían el nuevo.
 for x in glob.glob(os.path.join(RES, "mipmap-anydpi*", "ic_launcher*.xml")):
     os.remove(x)

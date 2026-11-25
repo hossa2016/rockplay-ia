@@ -478,8 +478,8 @@ class MusicModeScreen extends StatelessWidget {
         title: Text(m == MusicMode.general
             ? '¿Cambiar a Todos los géneros?'
             : '¿Volver a Solo rock?'),
-        content: const Text(
-            'La app se recarga con los nuevos colores y géneros y vuelve a Inicio. La música que suena no se detiene.'),
+        content: Text(
+            'La app se recarga con los nuevos colores y géneros y vuelve a Inicio. La música que suena no se detiene. El ícono del celular cambia a «${m == MusicMode.general ? 'Pulso' : 'RockPlay IA'}»; puede desaparecer unos segundos del escritorio.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(c, false),
