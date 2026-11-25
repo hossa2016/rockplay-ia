@@ -6,6 +6,7 @@ import '../services/data_saver.dart';
 import '../models/song.dart';
 import '../services/music_api_service.dart';
 import '../services/deezer_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
 import '../widgets/player_route.dart';
@@ -20,7 +21,20 @@ class DjScreen extends StatefulWidget {
 }
 
 class _DjScreenState extends State<DjScreen> {
-  static const List<String> _defaults = [
+  static List<String> get _defaults => MusicModeService.general
+      ? const [
+          'Shakira',
+          'Karol G',
+          'Carlos Vives',
+          'Grupo Niche',
+          'Bad Bunny',
+          'Dua Lipa',
+          'Morat',
+          'Silvestre Dangond',
+        ]
+      : _rockDefaults;
+
+  static const List<String> _rockDefaults = [
     'Metallica',
     'Linkin Park',
     'Nirvana',
@@ -336,7 +350,7 @@ class _DjScreenState extends State<DjScreen> {
               ),
               SizedBox(height: 6),
               Text(
-                'Escribe un artista y armo un mix con sus canciones y las de bandas parecidas.',
+                byMode('Escribe un artista y armo un mix con sus canciones y las de bandas parecidas.', 'Escribe un artista y armo un mix con sus canciones y las de artistas parecidos.'),
                 style: TextStyle(
                   color: Color(0xE6FFFFFF),
                   height: 1.4,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 
 /// Título grande de pantalla.
@@ -78,7 +79,7 @@ class SectionTitle extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.scaleDown,
               alignment: Alignment.centerLeft,
-              child: Text(text.toUpperCase(),
+              child: Text(MusicModeService.general ? text : text.toUpperCase(),
                   maxLines: 1, style: Theme.of(context).textTheme.titleLarge),
             ),
           ),

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/song.dart';
 import '../services/music_api_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/music_card.dart';
 import '../widgets/player_route.dart';
@@ -27,7 +28,7 @@ class SearchScreen extends StatefulWidget {
     super.key,
     this.title = 'Buscar',
     this.hint = 'Artista o canción',
-    this.intro = 'Encuentra artistas, álbumes y canciones de rock',
+    this.intro = 'Encuentra artistas, álbumes y canciones',
     this.querySuffix = '',
   });
 
@@ -36,17 +37,6 @@ class SearchScreen extends StatefulWidget {
 }
 
 class _SearchScreenState extends State<SearchScreen> {
-  static const List<String> _suggestions = [
-    'Rock clásico',
-    'Hard rock',
-    'Heavy metal',
-    'Grunge',
-    'Punk rock',
-    'Rock alternativo',
-    'Indie rock',
-    'Rock en español',
-  ];
-
   final TextEditingController _controller = TextEditingController();
   final MusicApiService _api = MusicApiService();
   List<Song> _results = [];
@@ -246,7 +236,20 @@ class _SearchScreenState extends State<SearchScreen> {
     _search();
   }
 
-  static const List<String> _genres = [
+  static List<String> get _genres => MusicModeService.general
+      ? const [
+          'Pop',
+          'Salsa',
+          'Reguetón',
+          'Vallenato',
+          'Rock',
+          'Electrónica',
+          'Jazz',
+          'Clásica',
+        ]
+      : _rockGenres;
+
+  static const List<String> _rockGenres = [
     'Grunge',
     'Rock en español',
     'Heavy metal',

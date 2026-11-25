@@ -14,6 +14,7 @@ import '../services/block_service.dart';
 import '../services/library_service.dart';
 import '../services/mix_service.dart';
 import 'song_list_screen.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/mini_player.dart';
@@ -249,6 +250,12 @@ class _HomeTabState extends State<_HomeTab> {
     final now = DateTime.now();
     final h = now.hour;
     final weekend = now.weekday >= DateTime.saturday;
+    if (MusicModeService.general) {
+      if (h >= 5 && h < 12) return weekend ? 'Mañana\nsin afán' : 'Empieza con\nlo tuyo';
+      if (h >= 12 && h < 19) return weekend ? 'Tarde\npara salir' : 'Tu tarde\nsuena así';
+      if (h >= 19 && h < 23) return 'Tu noche\nsuena así';
+      return 'Madrugada\nen calma';
+    }
     if (h >= 5 && h < 12) return weekend ? 'MAÑANA DE\nCARRETERA' : 'ARRANCA\nCON RIFFS';
     if (h >= 12 && h < 19) return weekend ? 'TARDE DE\nCARRETERA' : 'TARDE\nDE GUITARRAS';
     if (h >= 19 && h < 23) return 'NOCHE\nDE RIFFS';
@@ -377,10 +384,10 @@ class _HomeTabState extends State<_HomeTab> {
       if (a.count < 5) return null;
       return _Nudge(
         'Una semana con ${a.name}',
-        '¿Algo parecido con bandas nuevas?',
+        byMode('¿Algo parecido con bandas nuevas?', '¿Algo parecido con artistas nuevos?'),
         Icons.auto_awesome_rounded,
         prompt:
-            'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con bandas que probablemente no conozco.',
+            'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con ${byMode('bandas', 'artistas')} que probablemente no conozco.',
       );
     } catch (_) {
       return null;
@@ -481,7 +488,7 @@ class _HomeTabState extends State<_HomeTab> {
       title: Row(children: [
         const PickLogo(size: 34),
         const SizedBox(width: 10),
-        Text('ROCKPLAY', style: AppType.oswald(AppType.title)),
+        Text(byMode('ROCKPLAY', 'Pulso'), style: AppType.oswald(AppType.title)),
       ]),
       actions: [
         IconButton(
@@ -597,7 +604,7 @@ class _HomeTabState extends State<_HomeTab> {
   int _disc = 0;
 
   Widget _discoverChips() {
-    const labels = ['Bandas', 'Lanzamientos', 'Mixes'];
+    final labels = [byMode('Bandas', 'Artistas'), 'Lanzamientos', 'Mixes'];
     return Dense(child: SizedBox(
       height: 48,
       child: ListView.separated(
@@ -830,12 +837,9 @@ class _HomeTabState extends State<_HomeTab> {
     if (seeds.length < 3) {
       seeds = [
         ...seeds,
-        'Nirvana',
-        'Foo Fighters',
-        'Soda Stereo',
-        'Pearl Jam',
-        'Green Day',
-        'Metallica',
+        ...(MusicModeService.general
+            ? const ['Karol G', 'Carlos Vives', 'Grupo Niche', 'Dua Lipa', 'Morat', 'Feid']
+            : const ['Nirvana', 'Foo Fighters', 'Soda Stereo', 'Pearl Jam', 'Green Day', 'Metallica']),
       ];
     }
     seeds = (seeds.toSet().toList()..shuffle()).take(6).toList();
@@ -860,7 +864,7 @@ class _HomeTabState extends State<_HomeTab> {
               child: StateMessage(
                 compact: true,
                 icon: Icons.cloud_off_rounded,
-                title: 'No pude cargar bandas',
+                title: byMode('No pude cargar bandas', 'No pude cargar artistas'),
                 message: 'Revisa tu conexión.',
                 actionLabel: 'Reintentar',
                 isError: true,

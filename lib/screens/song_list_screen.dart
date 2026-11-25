@@ -17,7 +17,8 @@ import '../services/share_service.dart';
 class SongListScreen extends StatefulWidget {
   final String title;
   final String subtitle;
-  final List<Color> colors;
+  final List<Color>? _colors;
+  List<Color> get colors => _colors ?? AppPalettes.wine;
   final Stream<List<Song>>? stream;
   final List<Song>? songs;
   final Future<void> Function(Song song)? onRemove;
@@ -30,14 +31,14 @@ class SongListScreen extends StatefulWidget {
     super.key,
     required this.title,
     this.subtitle = '',
-    this.colors = AppPalettes.wine,
+    List<Color>? colors,
     this.stream,
     this.songs,
     this.onRemove,
     this.onDeleteList,
     this.emptyMessage = 'No hay canciones todavía.',
     this.playlistId,
-  });
+  }) : _colors = colors;
 
   @override
   State<SongListScreen> createState() => _SongListScreenState();

@@ -10,6 +10,7 @@ import '../services/alarm_service.dart';
 import '../services/library_service.dart';
 import '../services/playlist_service.dart';
 import '../services/radio_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/undo.dart';
 
@@ -471,7 +472,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   leading: Icon(Icons.graphic_eq_rounded,
                       color: AppColors.amber),
                   title: Text(_a.backupPath.isEmpty
-                      ? 'Riff de rock (incluido)'
+                      ? byMode('Riff de rock (incluido)', 'Tono suave (incluido)')
                       : _a.backupLabel),
                   subtitle: Text(
                       _a.backupPath.isEmpty
@@ -481,7 +482,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
                   trailing: _a.backupPath.isEmpty
                       ? const Icon(Icons.chevron_right_rounded)
                       : IconButton(
-                          tooltip: 'Volver al riff de rock',
+                          tooltip: byMode('Volver al riff de rock', 'Volver al tono suave'),
                           icon: const Icon(Icons.close_rounded),
                           onPressed: () => setState(() {
                             _a.backupPath = '';
@@ -497,7 +498,7 @@ class _AlarmEditScreenState extends State<AlarmEditScreen> {
             Padding(
               padding: EdgeInsets.fromLTRB(4, 8, 4, 0),
               child: Text(
-                  'Si la app no alcanza a abrir, igual suena el riff de rock desde el aviso del sistema.',
+                  byMode('Si la app no alcanza a abrir, igual suena el riff de rock desde el aviso del sistema.', 'Si la app no alcanza a abrir, igual suena el tono suave desde el aviso del sistema.'),
                   style: TextStyle(
                       fontSize: AppType.caption, color: AppColors.textDim)),
             ),

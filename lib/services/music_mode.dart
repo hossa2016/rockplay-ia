@@ -44,3 +44,7 @@ class MusicModeService {
     } catch (_) {}
   }
 }
+
+/// Texto según el modo: `byMode('NOCHE DE RIFFS', 'Tu noche')`.
+String byMode(String rock, String general) =>
+    MusicModeService.general ? general : rock;

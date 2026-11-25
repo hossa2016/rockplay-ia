@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/song.dart';
 import '../services/playback_service.dart';
 import '../services/radio_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/mini_player.dart';
 import '../widgets/playback_ui.dart';
@@ -375,7 +376,7 @@ class _RadioScreenState extends State<RadioScreen> {
             for (final s in _saved) _tile(s),
           ],
           _label(_lastQuery.isEmpty
-              ? (_colombia ? 'POPULARES EN COLOMBIA' : 'ROCK EN EL MUNDO')
+              ? (_colombia ? 'Populares en Colombia' : byMode('Rock en el mundo', 'Populares en el mundo'))
               : 'RESULTADOS'),
           if (_loading)
             const SkeletonList(count: 5, shrinkWrap: true)

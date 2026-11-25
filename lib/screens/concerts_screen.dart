@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/concert_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 
 /// Cuadrito con mes y día.
@@ -81,6 +82,35 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
   ];
   static const List<String> _main = ['bogot', 'medell', 'cali'];
   String _city = 'Todas';
+
+  /// Filtro por género (solo en el modo «Todos los géneros»).
+  static const List<String> _genres = [
+    'Todos',
+    'Pop',
+    'Salsa',
+    'Urbano',
+    'Vallenato',
+    'Rock',
+    'Electrónica',
+    'Otros',
+  ];
+  static const Map<String, List<String>> _genreWords = {
+    'Pop': ['pop', 'balad'],
+    'Salsa': ['salsa', 'tropical', 'merengue', 'bachata'],
+    'Urbano': ['urban', 'regue', 'trap', 'hip', 'rap'],
+    'Vallenato': ['vallenat', 'regional', 'popular'],
+    'Rock': ['rock', 'metal', 'punk', 'grunge', 'indie', 'alternativ'],
+    'Electrónica': ['electr', 'house', 'techno', 'edm'],
+  };
+  String _genre = 'Todos';
+
+  bool _inGenre(Concert c, String g) {
+    final t = c.genre.toLowerCase();
+    if (g == 'Otros') {
+      return !_genreWords.values.any((w) => w.any(t.contains));
+    }
+    return (_genreWords[g] ?? const []).any(t.contains);
+  }
   final ConcertService _svc = ConcertService.instance;
 
   bool _isMain(String city) {
@@ -89,6 +119,9 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
   }
 
   List<Concert> _filter(List<Concert> all) {
+    if (MusicModeService.general && _genre != 'Todos') {
+      all = all.where((c) => _inGenre(c, _genre)).toList();
+    }
     if (_city == 'Todas') return all;
     if (_city == 'Bares') return all.where(_svc.isBar).toList();
     if (_city == 'Otras') return all.where((c) => !_isMain(c.city)).toList();
@@ -163,7 +196,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
                 onPressed: () => Navigator.of(context).pop(_bandQuery(c.band)),
-                child: const Text('Escuchar banda'),
+                child: Text(byMode('Escuchar banda', 'Escuchar artista')),
               ),
             ),
           ]),
@@ -198,7 +231,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Mis bares de rock'),
+        title: Text(byMode('Mis bares de rock', 'Mis bares con música en vivo')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,6 +274,28 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     final d = c.date;
     if (d == null) return 'FECHA POR CONFIRMAR';
     return '${kMonthsLong[d.month - 1]} ${d.year}'.toUpperCase();
+  }
+
+  Widget _genreChips() {
+    if (!MusicModeService.general) return const SizedBox.shrink();
+    return SizedBox(
+      height: 48,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        children: [
+          for (final g in _genres)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ChoiceChip(
+                label: Text(g),
+                selected: _genre == g,
+                onSelected: (_) => setState(() => _genre = g),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _chips() {
@@ -326,6 +381,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   ),
                 ]),
               ),
+              _genreChips(),
               _chips(),
               const SizedBox(height: 10),
               Expanded(

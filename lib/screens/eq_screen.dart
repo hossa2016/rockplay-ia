@@ -99,7 +99,7 @@ class _EqScreenState extends State<EqScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                for (final p in EqService.presets.keys)
+                for (final p in EqService.visible)
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(

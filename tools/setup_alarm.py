@@ -61,9 +61,11 @@ open(MANIFEST, "w", encoding="utf-8").write(m)
 raw = os.path.join(MAIN, "res", "raw")
 os.makedirs(raw, exist_ok=True)
 shutil.copyfile(os.path.join("assets", "sounds", "rock_riff.wav"), os.path.join(raw, "rock_riff.wav"))
+# Tono suave del modo «Todos los géneros».
+shutil.copyfile(os.path.join("assets", "sounds", "soft_chime.wav"), os.path.join(raw, "soft_chime.wav"))
 open(os.path.join(raw, "keep.xml"), "w", encoding="utf-8").write(
     '<?xml version="1.0" encoding="utf-8"?>\n'
-    '<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@raw/rock_riff" />\n')
+    '<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@raw/rock_riff,@raw/soft_chime" />\n')
 
 # Desugaring (lo pide flutter_local_notifications).
 kts = os.path.join("android", "app", "build.gradle.kts")

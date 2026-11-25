@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../screens/concerts_screen.dart';
 import '../services/concert_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 
 /// Tarjeta de Inicio con los próximos conciertos. Al tocarla abre la lista
@@ -66,7 +67,7 @@ class _ConcertsCardState extends State<ConcertsCard> {
         String? msg;
         if (items.isEmpty) {
           if (s.loading) {
-            msg = 'Buscando conciertos de rock en Colombia…';
+            msg = byMode('Buscando conciertos de rock en Colombia…', 'Buscando conciertos en Colombia…');
           } else if (s.noKey) {
             msg =
                 'Para ver conciertos, pon tu clave gratis en Ajustes → Activar la IA.';

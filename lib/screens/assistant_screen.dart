@@ -10,6 +10,7 @@ import '../services/assistant_service.dart';
 import '../services/deezer_service.dart';
 import '../widgets/cover_art.dart';
 import '../services/playlist_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/player_route.dart';
 import '../widgets/playback_ui.dart';
@@ -637,6 +638,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
     ['Para concentrarme', AppPalettes.steel],
     ['De carretera', AppPalettes.rust],
     ['Quiero algo nuevo', AppPalettes.amber],
+    if (MusicModeService.general) ['Para bailar', AppPalettes.burgundy],
   ];
 
   Widget _moodTile(List<Object> t) {
@@ -688,10 +690,10 @@ class _AssistantScreenState extends State<AssistantScreen> {
             children: [
               Text('¿QUÉ SUENA HOY?', style: AppType.overline),
               const SizedBox(height: 6),
-              Text('CUÉNTAME CÓMO ESTÁS\nY ARMO TU LISTA',
+              Text(byMode('CUÉNTAME CÓMO ESTÁS\nY ARMO TU LISTA', 'Cuéntame cómo estás\ny armo tu lista'),
                   style: AppType.oswald(AppType.title, height: 1.15)),
               const SizedBox(height: 14),
-              Text('Escribe abajo, por ejemplo: rock para estudiar de noche.',
+              Text(byMode('Escribe abajo, por ejemplo: rock para estudiar de noche.', 'Escribe abajo, por ejemplo: salsa para una tarde con amigos.'),
                   style: const TextStyle(
                       color: Color(0xE6FFFFFF),
                       fontSize: AppType.bodySm,
@@ -790,13 +792,13 @@ class _AssistantScreenState extends State<AssistantScreen> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: Text('ASISTENTE',
+                        child: Text(byMode('ASISTENTE', 'Asistente'),
                             style: Theme.of(context)
                                 .textTheme
                                 .titleLarge
                                 ?.copyWith(fontSize: AppType.title)),
                       ),
-                      Text('Tu guía de rock',
+                      Text(byMode('Tu guía de rock', 'Tu guía musical'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

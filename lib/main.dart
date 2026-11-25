@@ -8,6 +8,7 @@ import 'theme/app_theme.dart';
 import 'services/alarm_service.dart';
 import 'services/data_saver.dart';
 import 'services/block_service.dart';
+import 'services/concert_service.dart';
 import 'services/eq_service.dart';
 import 'services/music_mode.dart';
 import 'services/playback_service.dart';
@@ -24,6 +25,9 @@ Future<void> main() async {
     systemNavigationBarIconBrightness: Brightness.light,
   ));
   MusicModeService.mode.addListener(() {
+    EqService.instance.syncMode();
+    unawaited(AlarmService.instance.scheduleAll());
+    ConcertService.instance.resetForMode();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
@@ -47,6 +51,7 @@ Future<void> main() async {
   try {
     await AlarmService.instance.init();
     unawaited(AlarmService.instance.scheduleAll());
+    ConcertService.instance.resetForMode();
   } catch (_) {}
   runApp(const RockPlayApp());
 }

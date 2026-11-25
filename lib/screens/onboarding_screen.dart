@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/help_settings.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/rock_decor.dart';
 
@@ -23,15 +24,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pc = PageController();
   int _i = 0;
 
-  static const List<_Page> _pages = [
-    _Page(Icons.music_note_rounded, 'Bienvenido a RockPlay IA',
-        'Tu música rock en un solo lugar, con un asistente que te ayuda a elegir qué escuchar.'),
+  static List<_Page> get _pages => [
+    _Page(Icons.music_note_rounded, 'Bienvenido a ${MusicModeService.appName}',
+        byMode('Tu música rock en un solo lugar, con un asistente que te ayuda a elegir qué escuchar.',
+            'Toda tu música en un solo lugar, con un asistente que te ayuda a elegir qué escuchar.')),
     _Page(Icons.home_rounded, 'Inicio: tu mix',
         'Arriba está Tu mix, armado con los artistas que más escuchas. Un toque y suena. Debajo sigues donde lo dejaste, ves los próximos conciertos y descubres música nueva.'),
     _Page(Icons.search_rounded, 'Buscar',
         'Busca por artista o canción, explora por género, arma un mix de artista o sintoniza radio en vivo.'),
     _Page(Icons.auto_awesome_rounded, 'Asistente',
-        'Elige un ánimo o escribe lo que quieres, por ejemplo «rock para estudiar de noche», y el asistente arma la lista por ti.'),
+        'Elige un ánimo o escribe lo que quieres, por ejemplo «${byMode('rock para estudiar de noche', 'salsa para una tarde con amigos')}», y el asistente arma la lista por ti.'),
     _Page(Icons.library_music_rounded, 'Mi música',
         'Guarda tus favoritas con el corazón, crea tus listas, revisa tu historial y mira Tus números. En el reproductor puedes ver la letra y programar que se apague sola.'),
     _Page(Icons.info_outline_rounded, 'Si una canción no suena',

@@ -24,6 +24,7 @@ flutter:
   assets:
     - assets/icon/logo.png
     - assets/sounds/rock_riff.wav
+    - assets/sounds/soft_chime.wav
   fonts:
     - family: Oswald
       fonts:

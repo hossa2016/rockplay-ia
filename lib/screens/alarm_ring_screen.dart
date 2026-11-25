@@ -13,6 +13,7 @@ import '../services/mix_service.dart';
 import '../services/playback_service.dart';
 import '../services/playlist_service.dart';
 import '../services/radio_service.dart';
+import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cover_art.dart';
 import '../widgets/playback_ui.dart';
@@ -135,7 +136,9 @@ class _AlarmRingScreenState extends State<AlarmRingScreen>
       if (custom.isNotEmpty) {
         await p.setFilePath(custom);
       } else {
-        await p.setAsset('assets/sounds/rock_riff.wav');
+        await p.setAsset(MusicModeService.general
+            ? 'assets/sounds/soft_chime.wav'
+            : 'assets/sounds/rock_riff.wav');
       }
       await p.setLoopMode(LoopMode.all);
       await p.setVolume(1.0);
