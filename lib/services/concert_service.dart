@@ -135,6 +135,46 @@ class Concert {
 String _ymd(DateTime d) =>
     '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
+/// Escenarios conocidos y su ciudad real (la búsqueda a veces pone «Cota»
+/// o «Chía» para un concierto en Bogotá).
+const Map<String, String> _venueCity = {
+  'vive claro': 'Bogotá',
+  'movistar arena': 'Bogotá',
+  'coliseo medplus': 'Bogotá',
+  'coliseo live': 'Bogotá',
+  'estadio el campín': 'Bogotá',
+  'estadio el campin': 'Bogotá',
+  'parque simón bolívar': 'Bogotá',
+  'parque simon bolivar': 'Bogotá',
+  'royal center': 'Bogotá',
+  'teatro colsubsidio': 'Bogotá',
+  'teatro jorge eliécer gaitán': 'Bogotá',
+  'teatro jorge eliecer gaitan': 'Bogotá',
+  'ágora bogotá': 'Bogotá',
+  'agora bogota': 'Bogotá',
+  'estadio atanasio girardot': 'Medellín',
+  'la macarena': 'Medellín',
+  'teatro metropolitano': 'Medellín',
+  'arena cañaveralejo': 'Cali',
+  'arena canaveralejo': 'Cali',
+  'estadio pascual guerrero': 'Cali',
+};
+
+/// ¿Es un tributo y no la banda real? («Tributo a Soda Stereo», «… Tribute»).
+bool isTribute(Concert c) => RegExp(
+        r'\btribut[oe]s?\b|\btribute\b|\bhomenaje\b|\bcover band\b',
+        caseSensitive: false)
+    .hasMatch('${c.band} ${c.venue}');
+
+/// Ciudad del concierto, corregida por el escenario cuando se conoce.
+String concertCity(Concert c) {
+  final v = c.venue.toLowerCase();
+  for (final e in _venueCity.entries) {
+    if (v.contains(e.key)) return e.value;
+  }
+  return c.city.trim();
+}
+
 const List<String> kMonthsShort = [
   'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
   'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',

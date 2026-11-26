@@ -36,8 +36,8 @@ class _StatsScreenState extends State<StatsScreen> {
       if (h >= 20 || h < 6) night++;
     }
     final pct = (night * 100 / _plays.length).round();
-    if (pct >= 60) return 'Escuchas sobre todo de noche ($pct %).';
-    if (pct <= 30) return 'Escuchas sobre todo de día (${100 - pct} %).';
+    if (pct >= 60) return 'Escuchas sobre todo de noche ($pct\u00A0%).';
+    if (pct <= 30) return 'Escuchas sobre todo de día (${100 - pct}\u00A0%).';
     return 'Escuchas a lo largo de todo el día.';
   }
 
@@ -88,7 +88,7 @@ class _StatsScreenState extends State<StatsScreen> {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -101,8 +101,11 @@ class _StatsScreenState extends State<StatsScreen> {
                       style: const TextStyle(
                           fontWeight: FontWeight.w600, fontSize: AppType.bodySm)),
                 ),
+                const SizedBox(width: 12),
                 Text('$count',
-                    style: TextStyle(color: AppColors.textDim)),
+                    style: TextStyle(
+                        color: AppColors.textDim,
+                        fontFeatures: const [FontFeature.tabularFigures()])),
               ],
             ),
             const SizedBox(height: 6),

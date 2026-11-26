@@ -100,8 +100,46 @@ class DeezerService {
         final name = a is Map ? (a['name'] ?? '').toString() : '';
         if (name.isNotEmpty) return name;
       }
+      // Respaldo: búsqueda libre; vale si el título de Deezer empieza igual
+      // («Sonnet» ↔ «Sonnet (Remastered 2016)»).
+      final j2 = await _get('/search', {'q': t, 'limit': '5'},
+          ttl: const Duration(days: 30));
+      for (final e in (j2['data'] as List?) ?? <dynamic>[]) {
+        if (e is! Map) continue;
+        final dt = n((e['title'] ?? '').toString());
+        if (!(dt == t || dt.startsWith('$t ') || t.startsWith('$dt '))) continue;
+        final a = e['artist'];
+        final name = a is Map ? (a['name'] ?? '').toString() : '';
+        if (name.isNotEmpty) return name;
+      }
     } catch (_) {}
     return null;
+  }
+
+  /// Portada validada: la de la canción [title] de [artist] en Deezer, solo
+  /// si el artista coincide (no el primer resultado a ciegas).
+  Future<String> coverForTrack(String artist, String title) async {
+    String n(String s) => s
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')
+        .replaceAll(RegExp(r'^the\s+'), '')
+        .replaceAll(RegExp(r'[^a-z0-9áéíóúñü]'), '');
+    final na = n(artist), nt = n(title);
+    if (na.isEmpty || nt.isEmpty) return '';
+    final clean = title.replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ').trim();
+    final j = await _get('/search',
+        {'q': 'artist:"$artist" track:"$clean"', 'limit': '5'},
+        ttl: const Duration(days: 30));
+    for (final e in (j['data'] as List?) ?? <dynamic>[]) {
+      if (e is! Map || e['album'] is! Map) continue;
+      final ea = n('${(e['artist'] as Map?)?['name'] ?? ''}');
+      final et = n('${e['title'] ?? ''}');
+      if (ea != na && !ea.contains(na) && !na.contains(ea)) continue;
+      if (!et.startsWith(nt) && !nt.startsWith(et)) continue;
+      final c = '${e['album']['cover_big'] ?? e['album']['cover_medium'] ?? ''}';
+      if (c.isNotEmpty) return c;
+    }
+    return '';
   }
 
   /// ¿Existe en Deezer la canción [title] de [artist]?

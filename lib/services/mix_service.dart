@@ -223,11 +223,12 @@ class MixService {
     final display = <String, String>{};
     final titles = <String>{};
     void add(List<Song> list, int w) {
-      for (final s in list) titles.add(s.title.trim().toLowerCase());
+      for (final s in list) titles.add(SongMeta.artistKey(s.title));
       for (final s in list) {
         final a = _cleanArtist(s.artist);
         if (a.isEmpty || !SongMeta.isPlausibleArtist(a)) continue;
-        final k = a.toLowerCase();
+        final k = SongMeta.artistKey(a);
+        if (k.isEmpty) continue;
         display.putIfAbsent(k, () => a);
         score[k] = (score[k] ?? 0) + w;
       }
@@ -243,7 +244,8 @@ class MixService {
       for (final p in await StatsService.instance.plays(days: 30)) {
         final a = _cleanArtist(p.artist);
         if (a.isEmpty || !SongMeta.isPlausibleArtist(a)) continue;
-        final k = a.toLowerCase();
+        final k = SongMeta.artistKey(a);
+        if (k.isEmpty) continue;
         display.putIfAbsent(k, () => a);
         score[k] = (score[k] ?? 0) + 1;
       }

@@ -198,10 +198,15 @@ class SongArtwork {
   static Timer? _saveT;
   static int _running = 0;
   static final List<Completer<void>> _wait = [];
-  static const String _prefKey = 'art_cache_v1';
+  static const String _prefKey = 'art_cache_v2';
 
+  /// Miniatura de YouTube o de un canal de letras: no es la carátula real.
   static bool _weak(String url) =>
-      url.isEmpty || url.contains('ytimg.com') || url.contains('youtube.com');
+      url.isEmpty || url.contains('ytimg.com') || url.contains('youtube.com') ||
+      url.contains('ggpht.com') || url.contains('googleusercontent.com');
+
+  /// ¿[url] es una carátula real (no una miniatura de video)?
+  static bool isReal(String url) => !_weak(url);
 
   static String _key(Song s) => '${s.artist}|${s.title}'.toLowerCase();
 
@@ -294,8 +299,8 @@ class SongArtwork {
       var failed = false;
       // Deezer primero (límite más alto) y, si no lo tiene, iTunes.
       try {
-        u = (await DeezerService()
-                .coverFor('artist:"${s.artist}" track:"${s.title}"'))
+        // Solo si el artista y el título coinciden (no el primer resultado).
+        u = (await DeezerService().coverForTrack(s.artist, s.title))
             .replaceAll('250x250', '500x500');
       } catch (_) {
         failed = true;

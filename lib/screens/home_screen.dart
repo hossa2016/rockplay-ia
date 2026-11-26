@@ -412,9 +412,9 @@ class _HomeTabState extends State<_HomeTab> {
       builder: (context, snap) {
         final l = snap.data ?? const <MixDef>[];
         if (snap.connectionState != ConnectionState.done) {
-          return const Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-            SectionTitle('Tus mixes diarios'),
-            SizedBox(height: 176, child: SkeletonRow(itemWidth: 150, coverHeight: 150)),
+          return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            const SectionTitle('Tus mixes diarios'),
+            SizedBox(height: rowHeight(context, 176), child: const SkeletonRow(itemWidth: 150, coverHeight: 150)),
           ]);
         }
         // Sin tarjetas no se muestra ni el título.
@@ -422,7 +422,7 @@ class _HomeTabState extends State<_HomeTab> {
         return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           const SectionTitle('Tus mixes diarios'),
           SizedBox(
-          height: 176,
+          height: rowHeight(context, 176),
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -481,11 +481,13 @@ class _HomeTabState extends State<_HomeTab> {
         final k = a.name.toLowerCase();
         for (final c in concerts) {
           if (c.band.toLowerCase().contains(k)) {
+            final city = concertCity(c);
             return _Nudge(
-              '${a.name} toca en ${c.city.isEmpty ? 'Colombia' : c.city}',
-              '${c.date != null ? '${c.date!.day} de ${kMonthsLong[c.date!.month - 1]}' : (c.when.isEmpty ? 'Fecha por confirmar' : c.when)}${c.venue.isEmpty ? '' : ' · ${c.venue}'}. Toca para ver el concierto.',
+              '${a.name} en ${city.isEmpty ? 'Colombia' : city}',
+              '${c.date != null ? '${c.date!.day} ${kMonthsShort[c.date!.month - 1].toLowerCase()}' : (c.when.isEmpty ? 'Fecha por confirmar' : c.when)}${c.venue.isEmpty ? ' · lugar por confirmar' : ' · ${c.venue}'}',
               Icons.confirmation_number_outlined,
               concert: true,
+              band: a.name,
             );
           }
         }
@@ -495,10 +497,11 @@ class _HomeTabState extends State<_HomeTab> {
       return _Nudge(
         '${a.name}, ${a.count}\u00A0veces esta semana',
         byMode('Toca y te armo algo con bandas nuevas',
-            'Toca y te armo algo con artistas nuevos'),
+            'Toca y te armo algo de otros géneros para variar'),
         Icons.auto_awesome_rounded,
-        prompt:
-            'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con ${byMode('bandas', 'artistas')} que probablemente no conozco.',
+        prompt: byMode(
+            'Llevo una semana escuchando mucho ${a.name}. Arma una lista parecida pero con bandas que probablemente no conozco.',
+            'Llevo una semana escuchando mucho ${a.name}. Arma una lista de otros géneros que combinen con mi gusto, con artistas que probablemente no conozco.'),
       );
     } catch (_) {
       return null;
@@ -525,7 +528,7 @@ class _HomeTabState extends State<_HomeTab> {
               onTap: () {
                 if (n.concert) {
                   Navigator.of(context).push(MaterialPageRoute<String>(
-                      builder: (_) => const ConcertsScreen())).then((band) {
+                      builder: (_) => ConcertsScreen(focusBand: n.band))).then((band) {
                     if (band != null && band.isNotEmpty) _listenBand(band);
                   });
                 } else {
@@ -835,7 +838,7 @@ class _HomeTabState extends State<_HomeTab> {
       ),
       const SizedBox(height: 10),
       SizedBox(
-        height: 176,
+        height: rowHeight(context, 176),
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1021,7 +1024,7 @@ class _HomeTabState extends State<_HomeTab> {
           child: _QuickTile(
             icon: Icons.sensors_rounded,
             label: 'Seguir con ${st.shortName}',
-            subtitle: 'Radio en vivo · toca para escuchar',
+            subtitle: 'Radio en vivo',
             onTap: () => playStation(context, st),
           ),
         );
@@ -1076,7 +1079,7 @@ class _HomeTabState extends State<_HomeTab> {
   Widget _releasesRow() {
     _releasesFuture ??= _loadReleases();
     return SizedBox(
-      height: 214,
+      height: rowHeight(context, 214),
       child: FutureBuilder<List<ReleaseItem>>(
         future: _releasesFuture,
         builder: (context, snap) {
@@ -1171,27 +1174,55 @@ class _HomeTabState extends State<_HomeTab> {
 
   Future<List<ArtistInfo>>? _emergingFuture;
 
+  /// Artistas de referencia por género favorito (Pulso).
+  static const Map<String, List<String>> _genreSeeds = {
+    'Pop': ['Dua Lipa', 'Taylor Swift'],
+    'Pop latino': ['Morat', 'Sebastián Yatra'],
+    'Baladas': ['Ricardo Arjona', 'Laura Pausini'],
+    'Salsa': ['Grupo Niche', 'Marc Anthony'],
+    'Reguetón': ['Feid', 'Karol G'],
+    'Vallenato': ['Silvestre Dangond', 'Carlos Vives'],
+    'Rock': ['Soda Stereo', 'Foo Fighters'],
+    'Electrónica': ['Bomba Estéreo', 'Calvin Harris'],
+    'Jazz': ['Norah Jones', 'Michael Bublé'],
+    'Clásica': ['Ludovico Einaudi', 'Yo-Yo Ma'],
+  };
+
   Future<List<ArtistInfo>> _loadEmerging() async {
     var seeds = <String>[];
     try {
       seeds = await MixService.personalArtists();
     } catch (_) {}
-    if (seeds.length < 3) {
-      seeds = [
-        ...seeds,
-        ...(MusicModeService.general
-            ? const ['Karol G', 'Carlos Vives', 'Grupo Niche', 'Dua Lipa', 'Morat', 'Feid']
-            : const ['Nirvana', 'Foo Fighters', 'Soda Stereo', 'Pearl Jam', 'Green Day', 'Metallica']),
-      ];
+    if (MusicModeService.general) {
+      // Cuota de variedad: como máximo la mitad de las semillas son tuyas;
+      // el resto sale de tus géneros favoritos o de las semillas del modo.
+      final own = (seeds.toSet().toList()..shuffle()).take(3).toList();
+      final other = <String>[
+        for (final g in PulsoPrefs.favGenres.value) ...(_genreSeeds[g] ?? const <String>[]),
+        ...MixService.modeSeeds,
+      ]..shuffle();
+      final keys = own.map(SongMeta.artistKey).toSet();
+      seeds = [...own];
+      for (final o in other) {
+        if (seeds.length >= 6) break;
+        if (keys.add(SongMeta.artistKey(o))) seeds.add(o);
+      }
+    } else {
+      if (seeds.length < 3) {
+        seeds = [
+          ...seeds,
+          'Nirvana', 'Foo Fighters', 'Soda Stereo', 'Pearl Jam', 'Green Day', 'Metallica',
+        ];
+      }
+      seeds = (seeds.toSet().toList()..shuffle()).take(6).toList();
     }
-    seeds = (seeds.toSet().toList()..shuffle()).take(6).toList();
     return ArtistInfoService.instance.emerging(seeds);
   }
 
   Widget _emergingRow() {
     _emergingFuture ??= _loadEmerging();
     return SizedBox(
-      height: 150,
+      height: rowHeight(context, 150),
       child: FutureBuilder<List<ArtistInfo>>(
         future: _emergingFuture,
         builder: (context, snap) {
@@ -1344,7 +1375,7 @@ class _HomeTabState extends State<_HomeTab> {
 
   Widget _mixRow(List<MixDef> mixes) {
     return SizedBox(
-      height: 176,
+      height: rowHeight(context, 176),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1365,7 +1396,7 @@ class _HomeTabState extends State<_HomeTab> {
 
   Widget _recentSection() {
     if (_loading) {
-      return const SizedBox(height: 200, child: SkeletonRow());
+      return SizedBox(height: rowHeight(context, 200), child: const SkeletonRow());
     }
     if (_recent.isEmpty) {
       return Padding(
@@ -1393,7 +1424,7 @@ class _HomeTabState extends State<_HomeTab> {
       );
     }
     return SizedBox(
-      height: 200,
+      height: rowHeight(context, 200),
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1615,8 +1646,9 @@ class _Nudge {
   final IconData icon;
   final bool concert;
   final String prompt;
+  final String band;
   const _Nudge(this.title, this.text, this.icon,
-      {this.concert = false, this.prompt = ''});
+      {this.concert = false, this.prompt = '', this.band = ''});
 }
 
 

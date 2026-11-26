@@ -284,6 +284,8 @@ class AppTheme {
     );
 
     return ThemeData(
+      // Onda simple en vez del destello de Material 3 (se repetía mucho).
+      splashFactory: InkRipple.splashFactory,
       materialTapTargetSize: MaterialTapTargetSize.padded,
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -402,4 +404,11 @@ class Dense extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       MediaQuery.withClampedTextScaling(maxScaleFactor: max, child: child);
+}
+
+/// Alto de una fila horizontal (tarjetas con texto debajo) que crece con
+/// la letra grande del sistema, para que el texto no se corte.
+double rowHeight(BuildContext context, double base, {double text = 44}) {
+  final k = MediaQuery.textScalerOf(context).scale(100) / 100;
+  return base + (k - 1).clamp(0.0, 0.5) * text * 2;
 }

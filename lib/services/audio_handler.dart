@@ -20,6 +20,7 @@ import 'data_saver.dart';
 import 'block_service.dart';
 import 'music_mode.dart';
 import 'radio_now.dart';
+import 'song_fix.dart';
 
 
 /// Estado observable compartido entre el handler y PlaybackService.
@@ -195,6 +196,13 @@ class RockPlayAudioHandler extends BaseAudioHandler
         _s.position.add(pos);
         if (dur != null && _s.duration.valueOrNull != dur) {
           _s.duration.add(dur);
+          if (_index >= 0 &&
+              _index < _songs.length &&
+              dur.inSeconds > 0 &&
+              (_songs[_index].durationMs - dur.inMilliseconds).abs() > 1500) {
+            _songs[_index] = _songs[_index].withDuration(dur);
+            _scheduleSave();
+          }
           final item = mediaItem.value;
           if (item != null) mediaItem.add(item.copyWith(duration: dur));
         }
@@ -346,7 +354,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
     _s.currentIndex.add(i);
     _s.currentSong.add(song);
     _s.position.add(Duration.zero);
-    _s.duration.add(null);
+    _s.duration.add(
+        song.durationMs > 0 ? Duration(milliseconds: song.durationMs) : null);
     mediaItem.add(_item(song, i));
   }
 
@@ -570,6 +579,21 @@ class RockPlayAudioHandler extends BaseAudioHandler
   Future<void> _startRadio(int index) async {
     final gen = ++_gen;
     _setIndex(index);
+    // Título o artista dudoso (canal de letras, «♫Lyrics»): se corrige al
+    // empezar a sonar, no solo al guardar en el historial.
+    final cur = _songs[index];
+    if (SongFix.doubtful(cur)) {
+      SongFix.verify(cur).then((f) {
+        if (index >= _songs.length) return;
+        final now = _songs[index];
+        // Misma canción (aunque ya tenga su video): solo cambia el texto.
+        if (now.title == cur.title &&
+            now.artist == cur.artist &&
+            (f.title != cur.title || f.artist != cur.artist)) {
+          _replaceSong(index, now.withMeta(title: f.title, artist: f.artist));
+        }
+      });
+    }
     _s.error.add(null);
     _embedPlaying = false;
     unawaited(EmbedBridge.instance.pause());

@@ -225,7 +225,55 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
 
   String _size(int b) {
     if (b < 1024 * 1024) return '${(b / 1024).toStringAsFixed(0)} KB';
-    return '${(b / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(b / (1024 * 1024)).toStringAsFixed(1).replaceAll('.', ',')} MB';
+  }
+
+  /// Caja de ícono común (la misma de cada fila de Ajustes).
+  Widget _iconBox(IconData icon) => Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceHigh,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Icon(icon, size: 22),
+      );
+
+  /// Fila con interruptor, alineada con las demás filas.
+  Widget _switchRow(IconData icon, String title, String subtitle, bool value,
+      ValueChanged<bool> onChanged) {
+    return Semantics(
+      toggled: value,
+      label: title,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 64),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(children: [
+              _iconBox(icon),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style: TextStyle(
+                            fontSize: AppType.body, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: TextStyle(
+                            fontSize: AppType.label, color: AppColors.textDim)),
+                  ],
+                ),
+              ),
+              Switch(value: value, onChanged: onChanged),
+            ]),
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _group(String t) => Padding(
@@ -542,15 +590,12 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 tip: 'Ajusta graves y agudos con preajustes; el asistente sugiere el mejor para cada canción.'),
             ValueListenableBuilder<bool>(
               valueListenable: DjVoice.instance.on,
-              builder: (context, on, _) => SwitchListTile(
-                secondary: const Icon(Icons.record_voice_over_rounded),
-                title: const Text('Locutor IA',
-                    style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700)),
-                subtitle: Text('Cada 3 canciones baja la música y te cuenta qué suena',
-                    style: TextStyle(fontSize: AppType.label, color: AppColors.textDim)),
-                value: on,
-                onChanged: (v) => DjVoice.instance.set(v),
-              ),
+              builder: (context, on, _) => _switchRow(
+                  Icons.record_voice_over_rounded,
+                  'Locutor IA',
+                  'Cada 3 canciones baja la música y te cuenta qué suena',
+                  on,
+                  (v) => DjVoice.instance.set(v)),
             ),
             _row(Icons.alarm_rounded, 'Despertador',
                 'Despierta con Tu mix, una lista o la radio',
@@ -574,7 +619,8 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
               child: Theme(
                 data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                 child: ExpansionTile(
-                  leading: const Icon(Icons.settings_suggest_rounded),
+                  leading: _iconBox(Icons.settings_suggest_rounded),
+                  tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                   title: const Text('Avanzado',
                       style: TextStyle(fontWeight: FontWeight.w700)),
                   subtitle: Text('Tamaños de listas y mixes',
@@ -609,48 +655,9 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                   fullscreenDialog: true,
                   builder: (_) => const OnboardingScreen()));
             }),
-            InkWell(
-              onTap: () =>
-                  HelpSettings.setShowTips(!HelpSettings.showTips.value),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 64),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  child: Row(children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceHigh,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child:
-                          const Icon(Icons.lightbulb_outline_rounded, size: 22),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Mostrar explicaciones',
-                              style: TextStyle(
-                                  fontSize: AppType.body, fontWeight: FontWeight.w700)),
-                          SizedBox(height: 2),
-                          Text('Textos de ayuda bajo cada opción y consejos',
-                              style: TextStyle(
-                                  fontSize: AppType.label, color: AppColors.textDim)),
-                        ],
-                      ),
-                    ),
-                    Switch(
-                      value: HelpSettings.showTips.value,
-                      onChanged: HelpSettings.setShowTips,
-                    ),
-                  ]),
-                ),
-              ),
-            ),
+            _switchRow(Icons.lightbulb_outline_rounded, 'Mostrar explicaciones',
+                'Textos de ayuda bajo cada opción y consejos',
+                HelpSettings.showTips.value, HelpSettings.setShowTips),
           ]),
           const SizedBox(height: 18),
           FutureBuilder<PackageInfo>(

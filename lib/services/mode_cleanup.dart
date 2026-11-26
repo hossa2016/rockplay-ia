@@ -103,7 +103,7 @@ class ModeCleanup {
   static Future<void> fixTitles() async {
     try {
       final sp = await SharedPreferences.getInstance();
-      if (sp.getBool('fix_titles_v2') == true) return;
+      if (sp.getBool('fix_titles_v3') == true) return;
       var pending = 0;
       final fixes = <String, Song>{};
 
@@ -147,7 +147,16 @@ class ModeCleanup {
         final list = jsonDecode(raw) as List;
         for (final e in list) {
           final l = e as List;
-          final f = fixes['${l[1]}|${l[2]}'];
+          final k = '${l[1]}|${l[2]}';
+          // Escuchas sueltas (ya fuera del historial) también se corrigen.
+          if (!fixes.containsKey(k)) {
+            final s0 = Song(title: '${l[2]}', artist: '${l[1]}');
+            if (SongFix.doubtful(s0)) {
+              final f0 = await SongFix.verify(s0);
+              if (f0.title != s0.title || f0.artist != s0.artist) fixes[k] = f0;
+            }
+          }
+          final f = fixes[k];
           if (f != null) {
             l[1] = f.artist;
             l[2] = f.title;
@@ -157,9 +166,9 @@ class ModeCleanup {
       }
       // Quedaron dudosas sin respuesta (sin internet): se reintenta luego,
       // como mucho 5 veces.
-      final tries = (sp.getInt('fix_titles_tries') ?? 0) + 1;
-      await sp.setInt('fix_titles_tries', tries);
-      if (pending == 0 || tries >= 5) await sp.setBool('fix_titles_v2', true);
+      final tries = (sp.getInt('fix_titles_tries3') ?? 0) + 1;
+      await sp.setInt('fix_titles_tries3', tries);
+      if (pending == 0 || tries >= 5) await sp.setBool('fix_titles_v3', true);
     } catch (_) {}
   }
 }

@@ -129,6 +129,11 @@ class RadioStation {
     // Indicativo colombiano (HJJK) al final, sobre el nombre ya limpio:
     // nunca si es la primera palabra («HJCK» es la marca) y solo si quedan
     // al menos 2 palabras de verdad.
+    // «Tropicana - HJJK» / «Olímpica | HJJK»: tras un separador al final,
+    // se quita siempre (aunque quede una sola palabra).
+    final tail = RegExp(r'^(.*\S)\s*[-–|·/,]\s*H[JK][A-Z]{2}(\s*\d+(\.\d+)?)?\s*$')
+        .firstMatch(n);
+    if (tail != null && tail[1]!.trim().length >= 2) n = tail[1]!.trim();
     final cs = RegExp(r'(?<=\S.*)\bH[JK][A-Z]{2}\b').firstMatch(n);
     if (cs != null) {
       final rest = n.replaceFirst(cs[0]!, ' ').split(RegExp(r'[\s\-–|,]+'))

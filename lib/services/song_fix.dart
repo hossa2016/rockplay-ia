@@ -15,7 +15,9 @@ class SongFix {
   static final RegExp _num = RegExp(r'^\d{1,4}$');
 
   static bool doubtful(Song s) =>
-      _num.hasMatch(s.title.trim()) || !SongMeta.isPlausibleArtist(s.artist);
+      _num.hasMatch(s.title.trim()) ||
+      !SongMeta.isPlausibleArtist(s.artist) ||
+      RegExp(r'[♫♪]|\blyrics?\b|subtitulad', caseSensitive: false).hasMatch(s.title);
 
   static Future<Song> verify(Song s) async {
     if (s.isRadio || !doubtful(s)) return s;
@@ -23,6 +25,17 @@ class SongFix {
     final hit = _cache[key];
     if (hit != null) return hit;
     var out = s;
+    // Primero se vuelve a separar con las reglas actuales: «The Verve .
+    // Sonnet♫Lyrics» de «LyricsTime» → Sonnet · The Verve.
+    final re = SongMeta.split(s.title, s.artist);
+    if (re.title != s.title || re.artist != s.artist) {
+      out = s.withMeta(title: re.title, artist: re.artist);
+      if (!doubtful(out)) {
+        _cache[key] = out;
+        return out;
+      }
+      s = out;
+    }
     try {
       final d = DeezerService();
       if (_num.hasMatch(s.title.trim())) {

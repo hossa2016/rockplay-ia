@@ -294,6 +294,9 @@ class ArtistInfoService {
     await BlockService.instance.ensureLoaded();
     final known = <String>{for (final s in seeds) _norm(s)};
     final found = <String, ArtistInfo>{};
+    // Cuántos salen de cada semilla: máximo 2, para que una sola banda (o
+    // un solo género) no llene la fila.
+    final perSeed = <String, List<ArtistInfo>>{};
     await Future.wait([
       for (final seed in seeds.take(6))
         () async {
@@ -306,15 +309,23 @@ class ArtistInfoService {
               final fans = (e['nb_fan'] as num?)?.toInt() ?? 0;
               final name = (e['name'] ?? '') as String;
               if (name.isEmpty || fans < 500 || fans > 250000) continue;
-              if (known.contains(_norm(name))) continue;
+              final nn = _norm(name);
+              if (known.contains(nn)) continue;
+              // Fuera proyectos solistas o derivados de las semillas
+              // («Kurt Cobain & …», «Pearl Jam Tribute»).
+              if (known.any((k) => k.length >= 4 && (nn.contains(k) || k.contains(nn)))) {
+                continue;
+              }
               if (BlockService.instance.isBlockedAuthor(name)) continue;
-              found.putIfAbsent(
-                  _norm(name),
-                  () => ArtistInfo(
-                      e['id'].toString(),
-                      name,
-                      _pic((e['picture_big'] ?? e['picture_medium'] ?? '') as String),
-                      fans));
+              final mine = perSeed.putIfAbsent(seed, () => []);
+              if (mine.length >= 2 || found.containsKey(nn)) continue;
+              final info = ArtistInfo(
+                  e['id'].toString(),
+                  name,
+                  _pic((e['picture_big'] ?? e['picture_medium'] ?? '') as String),
+                  fans);
+              mine.add(info);
+              found[nn] = info;
             }
           } catch (_) {}
         }(),

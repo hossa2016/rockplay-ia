@@ -57,24 +57,28 @@ class _DjScreenState extends State<DjScreen> {
     try {
       mine = await MixService.personalArtists();
     } catch (_) {}
-    final pinnedLower = _pinned.map((e) => e.toLowerCase()).toSet();
+    final seen = _pinned.map(SongMeta.artistKey).toSet();
     // Los más escuchados primero (personalArtists ya viene ordenado);
-    // se baraja solo dentro de ese grupo para que varíe un poco.
-    final top = <String>[
-      for (final n in mine.toSet())
-        if (!pinnedLower.contains(n.toLowerCase()) &&
-            SongMeta.isPlausibleArtist(n))
-          n,
-    ].take(12).toList()
-      ..shuffle();
-    final auto = top.take(8).toList();
+    // se baraja solo dentro de ese grupo para que varíe un poco. Sin
+    // duplicados («The Strokes» = «Strokes») ni falsos artistas.
+    final top = <String>[];
+    for (final n in mine) {
+      final k = SongMeta.artistKey(n);
+      if (k.isEmpty || seen.contains(k) || !SongMeta.isPlausibleArtist(n)) continue;
+      seen.add(k);
+      top.add(n);
+      if (top.length >= 12) break;
+    }
+    top.shuffle();
+    // En «Todos los géneros», como máximo la mitad sale de lo tuyo: el
+    // resto abre otros géneros con las semillas del modo.
+    final mineMax = MusicModeService.general ? 4 : 8;
+    final auto = top.take(mineMax).toList();
     if (auto.length + _pinned.length < 8) {
       for (final d in (List<String>.of(_defaults)..shuffle())) {
         if (auto.length + _pinned.length >= 8) break;
-        if (!pinnedLower.contains(d.toLowerCase()) &&
-            !auto.any((a) => a.toLowerCase() == d.toLowerCase())) {
-          auto.add(d);
-        }
+        final k = SongMeta.artistKey(d);
+        if (seen.add(k)) auto.add(d);
       }
     }
     if (mounted) setState(() => _auto = auto);
@@ -374,7 +378,9 @@ class _DjScreenState extends State<DjScreen> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Los fijados (con chincheta) los eliges tú. Los demás salen de lo que más escuchas.',
+          _pinned.isNotEmpty
+              ? 'Los fijados (con chincheta) los eliges tú. Los demás salen de lo que más escuchas.'
+              : 'Salen de lo que más escuchas. Con «Agregar» fijas los tuyos.',
           style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption),
         ),
       ],

@@ -7,6 +7,10 @@ class Song {
   final String videoId;
   final String query;
 
+  /// Duración conocida (0 = aún no se sabe). Se guarda con la cola para
+  /// que al reabrir la app se vea «3:42» y no «--:--».
+  final int durationMs;
+
   Song({
     required this.title,
     required this.artist,
@@ -15,7 +19,19 @@ class Song {
     this.image = '',
     this.url = '',
     this.query = '',
+    this.durationMs = 0,
   });
+
+  Song withDuration(Duration d) => Song(
+        title: title,
+        artist: artist,
+        album: album,
+        image: image,
+        url: url,
+        videoId: videoId,
+        query: query,
+        durationMs: d.inMilliseconds,
+      );
 
   /// Emisora de radio en vivo (la dirección de la transmisión va en [url]).
   bool get isRadio => query.startsWith('radio:');
@@ -38,6 +54,7 @@ class Song {
         'url': url,
         'videoId': videoId,
         'query': query,
+        if (durationMs > 0) 'ms': durationMs,
       };
 
   factory Song.fromJson(Map<String, dynamic> j) {
@@ -49,6 +66,7 @@ class Song {
       url: (j['url'] ?? '') as String,
       videoId: (j['videoId'] ?? '') as String,
       query: (j['query'] ?? '') as String,
+      durationMs: (j['ms'] as num?)?.toInt() ?? 0,
     );
     // Lo guardado antes venía con el nombre del canal: se limpia al leer.
     return s.query.isEmpty && s.videoId.isNotEmpty ? s.cleaned() : s;
@@ -78,6 +96,7 @@ class Song {
         url: url,
         videoId: videoId,
         query: query,
+        durationMs: durationMs,
       );
 
   Song cleaned() {
@@ -91,6 +110,7 @@ class Song {
       url: url,
       videoId: videoId,
       query: query,
+      durationMs: durationMs,
     );
   }
 }
@@ -105,7 +125,15 @@ class SongMeta {
   static final RegExp _tailJunk = RegExp(
       r'\s*[-|–—]\s*(official\s+)?(music\s+)?(video|audio|lyrics?|lyric video|video oficial|audio oficial|hd|4k)\s*$',
       caseSensitive: false);
-  static final RegExp _sep = RegExp(r'\s+[-–—|]\s+');
+  /// «Artista - Canción», «Artista | Canción», «Artista . Canción»,
+  /// «Artista ♫ Canción», «Artista // Canción».
+  static final RegExp _sep = RegExp(r'\s+[-–—|.]\s+|\s*[♫♪🎵]\s*|\s+//\s+');
+
+  /// Colas de canales de letras sin guion: «Sonnet♫Lyrics», «… Letra»,
+  /// «… Subtitulado al Español», «… (Traducida)».
+  static final RegExp _lyricTail = RegExp(
+      r'\s*[♫♪🎵|/]*\s*(lyrics?( video)?|letra( y traducción| en español)?|sub(titulad[oa]|s)?( al| en)? español|traducid[oa]( al español)?|traducción)\s*$',
+      caseSensitive: false);
 
   /// «Rammstein Official», «PearlJamVEVO», «Korn - Topic» → nombre del artista.
   static final RegExp _uploader = RegExp(
@@ -117,7 +145,9 @@ class SongMeta {
 
   static const _noArtist = {
     'op', 'ed', 'hd', 'hq', 'amv', 'ost', 'lyrics', 'letra', 'audio', 'video',
-    'official', 'oficial', 'live', 'en vivo', 'cover',
+    'official', 'oficial', 'live', 'en vivo', 'cover', 'subtitulado',
+    'subtitulado en español', 'traducido', 'traducida', 'sub español',
+    'letras', 'karaoke', 'instrumental', 'remix',
   };
 
   /// ¿Sirve como nombre de artista? Descarta «OP», «[FREE] … Type Beat»,
@@ -127,7 +157,7 @@ class SongMeta {
     if (t.length < 2 || t.length > 40) return false;
     final l = t.toLowerCase();
     if (_noArtist.contains(l)) return false;
-    if (RegExp(r'["“”:\[\]]|type ?beat|\bprod\.? by\b|\[free\]|\(free\)|\s[x×]\s')
+    if (RegExp(r'["“”:\[\]♫♪]|type ?beat|\bprod\.? by\b|\[free\]|\(free\)|\s[x×]\s|subtitulad|traducid|en español|\blyrics?\b|\bletras?\b')
         .hasMatch(l)) return false;
     if (RegExp(r'^\d+$').hasMatch(l)) return false;
     return !looksLikeUploader(t);
@@ -150,11 +180,26 @@ class SongMeta {
       .replaceAll(RegExp(r'^official\s+', caseSensitive: false), '')
       .trim();
 
+  /// Clave para comparar artistas: «The Strokes», «Strokes» y «STROKES»
+  /// son el mismo; «Café Tacvba» = «Cafe Tacuba» no, pero sí sin tildes.
+  static String artistKey(String a) {
+    var s = a.toLowerCase().trim();
+    const from = 'áàäâéèëêíìïîóòöôúùüûñ';
+    const to = 'aaaaeeeeiiiioooouuuun';
+    for (var i = 0; i < from.length; i++) {
+      s = s.replaceAll(from[i], to[i]);
+    }
+    s = s.replaceAll(RegExp(r'^the\s+'), '').replaceAll('&', 'and');
+    return s.replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
   static String _norm(String s) =>
       s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9áéíóúñü]'), '');
 
   static ({String artist, String title}) split(String rawTitle, String rawArtist) {
     var t = rawTitle.replaceAll(_bracketJunk, '').replaceAll(_tailJunk, '');
+    // Dos pasadas: «Sonnet♫Lyrics - Subtitulado» pierde ambas colas.
+    t = t.replaceAll(_lyricTail, '').replaceAll(_lyricTail, '');
     t = t
         .replaceAll(RegExp(r'\s+(hd|hq|4k)$', caseSensitive: false), '')
         .replaceAll(RegExp(r'\s+'), ' ')

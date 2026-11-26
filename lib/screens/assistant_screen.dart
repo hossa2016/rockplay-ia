@@ -827,12 +827,15 @@ class _AssistantScreenState extends State<AssistantScreen> {
                 // Locutor IA: presenta las canciones cada 3.
                 ValueListenableBuilder<bool>(
                   valueListenable: DjVoice.instance.on,
-                  builder: (context, on, _) => IconButton(
-                    tooltip: on ? 'Apagar el locutor' : 'Encender el locutor',
-                    isSelected: on,
+                  builder: (context, on, _) => TextButton.icon(
+                    style: TextButton.styleFrom(
+                        foregroundColor: on ? AppColors.amber : AppColors.textDim,
+                        padding: const EdgeInsets.symmetric(horizontal: 8)),
                     icon: Icon(on ? Icons.record_voice_over_rounded
-                        : Icons.voice_over_off_rounded,
-                        color: on ? AppColors.amber : null),
+                        : Icons.voice_over_off_rounded, size: 20),
+                    label: Text('Locutor',
+                        style: TextStyle(
+                            fontSize: AppType.caption, fontWeight: FontWeight.w700)),
                     onPressed: () {
                       DjVoice.instance.set(!on);
                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(

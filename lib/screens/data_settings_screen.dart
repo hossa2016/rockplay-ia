@@ -37,7 +37,7 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
 
   String _size(int b) {
     if (b < 1024 * 1024) return '${(b / 1024).toStringAsFixed(0)} KB';
-    return '${(b / (1024 * 1024)).toStringAsFixed(1)} MB';
+    return '${(b / (1024 * 1024)).toStringAsFixed(1).replaceAll('.', ',')} MB';
   }
 
   @override

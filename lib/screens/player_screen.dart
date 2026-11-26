@@ -69,7 +69,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   void _ensureAccent(Song song) {
     // El color sale de la carátula que se ve (la de Deezer si ya llegó).
-    final art = _info?.artwork ?? '';
+    final art = _art;
     final url = !song.isRadio && art.isNotEmpty ? art : song.image;
     if (url == _accentUrl) return;
     _accentUrl = url;
@@ -102,16 +102,28 @@ class _PlayerScreenState extends State<PlayerScreen>
         : c2;
   }
 
+  /// Carátula validada (vacía = se muestra el recorte del video).
+  String _art = '';
+
   void _ensureInfo(Song song) {
     if (song.isRadio) {
       _infoKey = '';
       _info = null;
+      _art = '';
       return;
     }
     final key = '${song.artist}|${song.title}';
     if (_infoKey == key) return;
     _infoKey = key;
     _info = null;
+    // Una sola fuente de carátula, la misma del mini reproductor y las listas.
+    final p0 = SongArtwork.peek(song);
+    _art = SongArtwork.isReal(p0) ? p0 : '';
+    SongArtwork.of(song).then((u) {
+      if (mounted && _infoKey == key) {
+        setState(() => _art = SongArtwork.isReal(u) ? u : '');
+      }
+    });
     TrackInfoService.instance.fetch(song.artist, song.title).then((i) {
       if (mounted && _infoKey == key) setState(() => _info = i);
     });
@@ -741,23 +753,37 @@ class _PlayerScreenState extends State<PlayerScreen>
     Widget btn(IconData icon, String label, VoidCallback onTap,
         {bool on = false}) {
       final c = on ? AppColors.amber : AppColors.textDim;
-      return InkWell(
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        onTap: onTap,
-        child: SizedBox(
-          width: 76,
-          height: 56,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 24, color: c),
-              const SizedBox(height: 4),
-              Text(label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: AppType.caption, fontWeight: FontWeight.w600, color: c)),
-            ],
+      // Flexible: con letra grande o «Dormir 25 min» la etiqueta se encoge
+      // en vez de cortarse («A una li…»).
+      return Expanded(
+        child: Semantics(
+          button: true,
+          label: label,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            onTap: onTap,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 56),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(icon, size: 24, color: c),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(label,
+                          maxLines: 1,
+                          style: TextStyle(
+                              fontSize: AppType.caption,
+                              fontWeight: FontWeight.w600,
+                              color: c)),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       );
@@ -771,7 +797,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             if (!song.isRadio) ...[
-              btn(Icons.playlist_add_rounded, 'A una lista',
+              btn(Icons.playlist_add_rounded, 'Guardar',
                   () => showAddToPlaylist(context, song)),
               btn(_lyrics ? Icons.lyrics_rounded : Icons.lyrics_outlined,
                   'Letra', () => setState(() => _lyrics = !_lyrics),
@@ -822,7 +848,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   Widget _cover(Song song) {
     return LayoutBuilder(builder: (context, box) {
-      final art = song.isRadio ? song.image : (_info?.artwork ?? '');
+      final art = song.isRadio ? song.image : (_art);
       // Siempre cuadrada: sin portada real, se recorta el centro del video
       // (sin las bandas negras de las miniaturas de YouTube).
       final square = art.isNotEmpty;
@@ -930,8 +956,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                     painter: _GroovesPainter(),
                   ),
                   CoverArt(
-                    url: (_info?.artwork.isNotEmpty ?? false)
-                        ? _info!.artwork
+                    url: _art.isNotEmpty
+                        ? _art
                         : song.image,
                     size: disc * 0.46,
                     radius: disc * 0.23,
@@ -1159,7 +1185,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(_fmt(shown), style: _timeStyle),
-                    Text(total > 0 ? '-${_fmt(remaining)}' : '',
+                    Text(total > 0 ? '-${_fmt(remaining)}' : '--:--',
                         style: _timeStyle),
                   ],
                 ),

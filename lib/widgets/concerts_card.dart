@@ -88,6 +88,13 @@ class _ConcertsCardState extends State<ConcertsCard> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       fontSize: AppType.body, fontWeight: FontWeight.w800)),
+              if (isTribute(c))
+                Text('TRIBUTO',
+                    style: TextStyle(
+                        fontSize: AppType.caption,
+                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.amber)),
               if (concertPlace(c).isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(concertPlace(c),
@@ -114,7 +121,11 @@ class _ConcertsCardState extends State<ConcertsCard> {
       builder: (context, s, _) {
         // Primero los que dicen quién toca; los toques sin cartel del mismo
         // bar se juntan en una sola fila.
-        final named = s.items.where((c) => !c.lineupUnknown).toList();
+        // Las bandas reales antes que los tributos («Tributo a Queen»).
+        final named = [
+          ...s.items.where((c) => !c.lineupUnknown && !isTribute(c)),
+          ...s.items.where((c) => !c.lineupUnknown && isTribute(c)),
+        ];
         final unknown = s.items.where((c) => c.lineupUnknown).toList();
         final items = named.take(3).toList();
         _Venue? venueRow;

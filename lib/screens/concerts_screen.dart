@@ -68,8 +68,10 @@ String concertPlace(Concert c) {
       .replaceAll(RegExp('[íì]'), 'i')
       .replaceAll(RegExp('[óò]'), 'o')
       .replaceAll(RegExp('[úù]'), 'u');
-  final v = c.venue.trim(), city = c.city.trim();
+  final v = c.venue.trim(), city = concertCity(c);
   if (v.isEmpty && city.isEmpty) return concertTbd;
+  // Ciudad sin lugar: «Bogotá · lugar por confirmar».
+  if (v.isEmpty) return '$city · lugar por confirmar';
   // Toque sin cartel: el título ya es el lugar; solo la ciudad.
   if (v.isNotEmpty && f(v) == f(c.band.trim())) return city.isEmpty ? '' : city;
   // La ciudad no se repite si ya va en el nombre del lugar.
@@ -89,7 +91,11 @@ Future<void> openConcertLink(BuildContext context, String url) async {
 /// Lista completa. Al tocar "Escuchar banda" se cierra devolviendo el
 /// nombre de la banda para buscarla.
 class ConcertsScreen extends StatefulWidget {
-  const ConcertsScreen({super.key});
+  const ConcertsScreen({super.key, this.focusBand});
+
+  /// Abre la pantalla mostrando solo los conciertos de esa banda (el aviso
+  /// de Inicio «The Strokes en Bogotá» lleva directo a ese concierto).
+  final String? focusBand;
 
   @override
   State<ConcertsScreen> createState() => _ConcertsScreenState();
@@ -170,6 +176,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
   @override
   void initState() {
     super.initState();
+    _focus = widget.focusBand;
     RadarService.instance.bands().then((b) {
       if (mounted) setState(() => _myBands = b);
     });
@@ -192,7 +199,14 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     return _main.any(c.contains);
   }
 
+  String? _focus;
+
   List<Concert> _filter(List<Concert> all) {
+    final f = _focus?.toLowerCase();
+    if (f != null && f.isNotEmpty) {
+      final only = all.where((c) => c.band.toLowerCase().contains(f)).toList();
+      if (only.isNotEmpty) return only;
+    }
     if (MusicModeService.general && _genre != 'Todos') {
       all = all.where((c) => _inGenre(c, _genre)).toList();
     }
@@ -536,8 +550,19 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   ),
                 ]),
               ),
-              _genreChips(),
-              _chips(),
+              if (_focus != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: InputChip(
+                    label: Text('Solo $_focus'),
+                    onDeleted: () => setState(() => _focus = null),
+                    deleteButtonTooltipMessage: 'Ver todos',
+                  ),
+                )
+              else ...[
+                _genreChips(),
+                _chips(),
+              ],
               const SizedBox(height: 10),
               Expanded(
                 child: list.isEmpty
