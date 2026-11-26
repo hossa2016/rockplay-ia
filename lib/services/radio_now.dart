@@ -84,6 +84,24 @@ class RadioNow {
     } catch (_) {}
   }
 
+  /// Canción reconocida con AudD («¿Qué suena?»): se muestra y se anota.
+  static Future<void> recognized(String station, String artist, String title) async {
+    song.value = (artist, title);
+    final text = '$artist - $title';
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final m = (jsonDecode(sp.getString(_prefKey) ?? '{}') as Map)
+          .cast<String, dynamic>();
+      final l = ((m[station] as List?) ?? []).cast<dynamic>().toList();
+      if (l.isEmpty || (l.first as Map)['t'] != text) {
+        l.insert(0, {'t': text, 'at': DateTime.now().millisecondsSinceEpoch});
+        if (l.length > 20) l.removeRange(20, l.length);
+        m[station] = l;
+        await sp.setString(_prefKey, jsonEncode(m));
+      }
+    } catch (_) {}
+  }
+
   static void reset() {
     now.value = '';
     song.value = null;

@@ -35,6 +35,8 @@ import '../services/radio_now.dart';
 import '../widgets/nav_signals.dart';
 import 'search_hub.dart';
 import 'search_screen.dart';
+import '../services/song_id_service.dart';
+import 'ai_settings_screen.dart';
 
 /// Pantalla de reproducción inmersiva. Lee todo de [PlaybackUi].
 class PlayerScreen extends StatefulWidget {
@@ -519,6 +521,35 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
+  bool _identifying = false;
+
+  /// Graba ~10 s de la emisora y pregunta a AudD qué canción es.
+  Future<void> _identify() async {
+    final st = pb.song.value;
+    if (st == null || !st.isRadio) return;
+    final m = ScaffoldMessenger.of(context);
+    if (!await SongIdService.hasKey()) {
+      if (!mounted) return;
+      m.showSnackBar(SnackBar(
+        content: const Text('Para reconocer canciones pon una clave gratis de AudD.'),
+        action: SnackBarAction(
+            label: 'Poner clave',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => const AiSettingsScreen()))),
+      ));
+      return;
+    }
+    setState(() => _identifying = true);
+    final r = await SongIdService.identify(st.url);
+    if (!mounted) return;
+    setState(() => _identifying = false);
+    if (r.ok && pb.song.value?.url == st.url) {
+      await RadioNow.recognized(st.title, r.artist, r.title);
+    } else {
+      m.showSnackBar(SnackBar(content: Text(r.error.isEmpty ? 'No la reconocí.' : r.error)));
+    }
+  }
+
   Future<void> _showHeard(String station) async {
     final l = await RadioNow.history(station);
     if (!mounted) return;
@@ -626,6 +657,21 @@ class _PlayerScreenState extends State<PlayerScreen>
                       },
                     ),
                   ]),
+                ],
+                // La emisora no dice qué suena: reconocerla con AudD.
+                if (p == null) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.tonalIcon(
+                    style: FilledButton.styleFrom(minimumSize: const Size(0, 48)),
+                    icon: _identifying
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(Icons.graphic_eq_rounded, size: 18),
+                    label: Text(_identifying ? 'Escuchando…' : '¿Qué suena?'),
+                    onPressed: _identifying ? null : _identify,
+                  ),
                 ],
                 TextButton.icon(
                   style: TextButton.styleFrom(minimumSize: const Size(0, 48)),

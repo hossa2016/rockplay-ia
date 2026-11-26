@@ -21,6 +21,8 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   final TextEditingController _gemini = TextEditingController();
   final TextEditingController _tavily = TextEditingController();
   final TextEditingController _setlist = TextEditingController();
+  final TextEditingController _audd = TextEditingController();
+  bool _hideAudd = true;
   bool _hideSetlist = true;
   final TextEditingController _apify = TextEditingController();
   final TextEditingController _groqModel = TextEditingController();
@@ -43,6 +45,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _gemini.text = _s.geminiKey;
     _tavily.text = _s.tavilyKey;
     _setlist.text = _s.setlistKey;
+    _audd.text = _s.auddKey;
     _apify.text = _s.apifyKey;
     _groqModel.text = _s.groqModel;
     _geminiModel.text = _s.geminiModel;
@@ -55,6 +58,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _gemini.dispose();
     _tavily.dispose();
     _setlist.dispose();
+    _audd.dispose();
     _apify.dispose();
     _groqModel.dispose();
     _geminiModel.dispose();
@@ -66,6 +70,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _s.geminiKey = _gemini.text;
     _s.tavilyKey = _tavily.text;
     _s.setlistKey = _setlist.text;
+    _s.auddKey = _audd.text;
     _s.apifyKey = _apify.text;
     _s.groqModel = _groqModel.text;
     _s.geminiModel = _geminiModel.text;
@@ -305,6 +310,19 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   hide: _hideSetlist,
                   toggle: () => setState(() => _hideSetlist = !_hideSetlist),
                   hint: 'xxxxxxxx-xxxx-…',
+                ),
+                _keyCard(
+                  name: 'AudD (¿qué suena en la radio?)',
+                  subtitle: 'Opcional. Reconoce la canción cuando la emisora no dice el nombre. 300 gratis; luego unos 0,5 centavos de dólar cada una.',
+                  url: 'https://dashboard.audd.io',
+                  steps:
+                      '1. Toca «Abrir la página» y crea tu cuenta (sin tarjeta).\n'
+                      '2. Copia tu «API token».\n'
+                      '3. Vuelve aquí y toca «Pegar».',
+                  c: _audd,
+                  hide: _hideAudd,
+                  toggle: () => setState(() => _hideAudd = !_hideAudd),
+                  hint: 'token de AudD',
                 ),
                 _keyCard(
                   name: 'Apify (Instagram de tus bares)',

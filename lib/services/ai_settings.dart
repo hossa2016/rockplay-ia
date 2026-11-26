@@ -18,6 +18,8 @@ class AiSettings {
   String apifyKey = '';
   /// setlist.fm: setlists de los conciertos (gratis, uso no comercial).
   String setlistKey = '';
+  /// AudD: reconoce la canción que suena en la radio (300 gratis).
+  String auddKey = '';
   String groqModel = defaultGroqModel;
   String geminiModel = defaultGeminiModel;
   bool learn = true;
@@ -33,6 +35,7 @@ class AiSettings {
     'ai_tavily_key',
     'ai_apify_key',
     'ai_setlist_key',
+    'ai_audd_key',
   ];
 
   /// Claves que no se pudieron leer (fallo del almacenamiento cifrado):
@@ -77,6 +80,7 @@ class AiSettings {
         'ai_tavily_key': tavilyKey,
         'ai_apify_key': apifyKey,
         'ai_setlist_key': setlistKey,
+        'ai_audd_key': auddKey,
       };
 
   /// Restaura claves desde una copia.
@@ -88,6 +92,7 @@ class AiSettings {
     tavilyKey = g('ai_tavily_key', tavilyKey);
     apifyKey = g('ai_apify_key', apifyKey);
     setlistKey = g('ai_setlist_key', setlistKey);
+    auddKey = g('ai_audd_key', auddKey);
     await save();
   }
 
@@ -100,6 +105,7 @@ class AiSettings {
       tavilyKey = await _readKey(sp, 'ai_tavily_key');
       apifyKey = await _readKey(sp, 'ai_apify_key');
       setlistKey = await _readKey(sp, 'ai_setlist_key');
+      auddKey = await _readKey(sp, 'ai_audd_key');
       groqModel = sp.getString('ai_groq_model') ?? defaultGroqModel;
       // Modelos que Groq ya retiró: usa el actual.
       if (groqModel == 'llama-3.3-70b-versatile' ||
@@ -121,6 +127,7 @@ class AiSettings {
       await _writeKey(sp, 'ai_tavily_key', tavilyKey.trim());
       await _writeKey(sp, 'ai_apify_key', apifyKey.trim());
       await _writeKey(sp, 'ai_setlist_key', setlistKey.trim());
+      await _writeKey(sp, 'ai_audd_key', auddKey.trim());
       await sp.setString('ai_groq_model',
           groqModel.trim().isEmpty ? defaultGroqModel : groqModel.trim());
       await sp.setString('ai_gemini_model',
