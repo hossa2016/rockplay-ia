@@ -4,7 +4,7 @@ import 'dart:io' show HttpClient;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
-import 'package:youtube_player_iframe/youtube_player_iframe.dart' show PlayerState;
+import 'package:youtube_player_iframe/youtube_player_iframe.dart' as yt show PlayerState;
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -180,7 +180,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
       // no debe reanudarla.
       if (!p &&
           eb.slot.value != null &&
-          eb.state == PlayerState.paused &&
+          eb.state == yt.PlayerState.paused &&
           !_interrupted) {
         _wantPlay = false;
       }
