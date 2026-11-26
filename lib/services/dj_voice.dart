@@ -95,7 +95,8 @@ class DjVoice {
       await Future<void>.delayed(const Duration(seconds: 4));
       if (!PlaybackUi.instance.playing.value) return;
       await PlaybackService.instance.duck(true);
-      await _tts.speak(text);
+      // Tiempo límite: si el motor de voz no responde, la música vuelve.
+      await _tts.speak(text).timeout(const Duration(seconds: 25));
     } catch (_) {
     } finally {
       await PlaybackService.instance.duck(false);

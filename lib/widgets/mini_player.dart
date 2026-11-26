@@ -121,7 +121,7 @@ class _MiniBody extends StatelessWidget {
                             builder: (context, err, _) {
                               final hasErr = err != null && err.isNotEmpty;
                               // Radio: lo que suena ahora, si la emisora lo dice.
-                              final now = song.isRadio ? RadioNow.parse(RadioNow.now.value) : null;
+                              final now = song.isRadio ? RadioNow.parse(RadioNow.now.value, station: song.title) : null;
                               return Text(
                                 hasErr
                                     ? err

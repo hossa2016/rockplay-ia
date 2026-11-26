@@ -18,15 +18,20 @@ class RadioNow {
 
   /// Separa «Artista - Título». Null si no parece una canción (anuncios,
   /// nombre de la emisora, «En vivo»…).
-  static (String, String)? parse(String text) {
+  static (String, String)? parse(String text, {String station = ''}) {
     final t = text.trim();
+    // El nombre de la emisora no es una canción.
+    if (station.isNotEmpty &&
+        t.toLowerCase().contains(station.toLowerCase().split(' ').first)) {
+      return null;
+    }
     final m = RegExp(r'^(.+?)\s+[-–—]\s+(.+)$').firstMatch(t);
     if (m == null) return null;
     final a = m.group(1)!.trim(), s = m.group(2)!.trim();
     if (a.length < 2 || s.length < 2) return null;
     final bad = RegExp(r'(publicidad|comercial|anuncio|en vivo|radio|fm\b|www\.|http)',
         caseSensitive: false);
-    if (bad.hasMatch(a) && bad.hasMatch(s)) return null;
+    if (bad.hasMatch(a) || bad.hasMatch(s)) return null;
     return (a, s);
   }
 
