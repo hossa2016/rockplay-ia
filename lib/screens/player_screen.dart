@@ -53,7 +53,9 @@ class _PlayerScreenState extends State<PlayerScreen>
   late final AnimationController _eq;
   /// Fondo que «respira» muy despacio (1,0 → 1,08 cada 20 s).
   late final AnimationController _breath;
-  final bool _showVideo = false;
+  /// «Ver video»: muestra el reproductor de YouTube (visible, ≥ 200 dp)
+  /// en lugar de la portada.
+  static bool _showVideo = false;
   bool _disc = false;
   bool _lyrics = false;
   TrackInfo? _info;
@@ -444,6 +446,9 @@ class _PlayerScreenState extends State<PlayerScreen>
                 if (s != null) ShareService.song(s);
               } else if (v == 'view') {
                 setState(() => _disc = !_disc);
+              } else if (v == 'video') {
+                setState(() => _showVideo = !_showVideo);
+                WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
               } else if (v == 'block') {
                 _confirmBlock();
               }
@@ -455,6 +460,16 @@ class _PlayerScreenState extends State<PlayerScreen>
                   dense: true,
                   leading: Icon(_disc ? Icons.image_rounded : Icons.album_rounded),
                   title: Text(_disc ? 'Ver portada' : 'Ver disco'),
+                ),
+              ),
+              PopupMenuItem(
+                value: 'video',
+                child: ListTile(
+                  dense: true,
+                  leading: Icon(_showVideo
+                      ? Icons.image_rounded
+                      : Icons.smart_display_rounded),
+                  title: Text(_showVideo ? 'Ver portada' : 'Ver video'),
                 ),
               ),
               const PopupMenuItem(
@@ -805,6 +820,17 @@ class _PlayerScreenState extends State<PlayerScreen>
           : (song.videoId.isEmpty
               ? fallback
               : 'https://i.ytimg.com/vi/${song.videoId}/hqdefault.jpg');
+      if (_showVideo && !song.isRadio) {
+        final vh = math.max(200.0, w * 9 / 16);
+        return Center(
+          child: SizedBox(
+            key: _slotKey,
+            width: math.max(w, 200),
+            height: vh,
+            child: const ColoredBox(color: Colors.black),
+          ),
+        );
+      }
       return Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

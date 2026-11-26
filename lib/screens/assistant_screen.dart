@@ -17,6 +17,7 @@ import '../widgets/playback_ui.dart';
 import 'ai_settings_screen.dart';
 import 'song_list_screen.dart';
 import '../widgets/tip_card.dart';
+import '../services/dj_voice.dart';
 
 class _Msg {
   final bool fromUser;
@@ -821,6 +822,24 @@ class _AssistantScreenState extends State<AssistantScreen> {
                           style: TextStyle(
                               color: AppColors.textDim, fontSize: AppType.caption)),
                     ],
+                  ),
+                ),
+                // Locutor IA: presenta las canciones cada 3.
+                ValueListenableBuilder<bool>(
+                  valueListenable: DjVoice.instance.on,
+                  builder: (context, on, _) => IconButton(
+                    tooltip: on ? 'Apagar el locutor' : 'Encender el locutor',
+                    isSelected: on,
+                    icon: Icon(on ? Icons.record_voice_over_rounded
+                        : Icons.voice_over_off_rounded,
+                        color: on ? AppColors.amber : null),
+                    onPressed: () {
+                      DjVoice.instance.set(!on);
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          content: Text(!on
+                              ? 'Locutor encendido: cada 3 canciones te cuento qué suena.'
+                              : 'Locutor apagado.')));
+                    },
                   ),
                 ),
                 if (_msgs.isNotEmpty)

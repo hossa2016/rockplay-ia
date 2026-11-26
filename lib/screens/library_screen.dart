@@ -19,6 +19,8 @@ import '../services/music_mode.dart';
 import '../widgets/app_button.dart';
 import '../widgets/nav_signals.dart';
 import 'search_hub.dart';
+import '../services/import_service.dart';
+import '../services/energy_sort.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -324,6 +326,61 @@ class _LibraryScreenState extends State<LibraryScreen> {
     });
   }
 
+  Future<void> _importList() async {
+    final ctrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Importar lista'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+                'Pega el enlace de una lista pública de YouTube, o una canción por línea: «Artista - Canción». También sirve el CSV de TuneMyMusic (para traer listas de Spotify).',
+                style: TextStyle(color: AppColors.textDim, fontSize: AppType.label)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: ctrl,
+              minLines: 4,
+              maxLines: 10,
+              decoration: const InputDecoration(
+                  hintText: 'https://youtube.com/playlist?list=…\nSoda Stereo - De música ligera'),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancelar')),
+          FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Importar')),
+        ],
+      ),
+    );
+    final text = ctrl.text;
+    ctrl.dispose();
+    if (ok != true || text.trim().isEmpty || !mounted) return;
+    final m = ScaffoldMessenger.of(context);
+    m.showSnackBar(const SnackBar(content: Text('Importando…')));
+    try {
+      final (name, songs) = await ImportService.parse(text);
+      if (songs.isEmpty) {
+        m.showSnackBar(const SnackBar(
+            content: Text('No encontré canciones en eso. Revisa el formato.')));
+        return;
+      }
+      final p = await PlaylistService.instance.create(name);
+      final n = await PlaylistService.instance.addMany(p.id, songs);
+      PlaybackUi.instance.bumpLibrary();
+      m.showSnackBar(SnackBar(content: Text('Lista «$name» con $n canciones.')));
+    } catch (_) {
+      m.showSnackBar(const SnackBar(
+          content: Text('No se pudo importar (¿la lista es pública?).')));
+    }
+  }
+
   Future<void> _newList() async {
     final name = await askPlaylistName(context);
     if (name == null || name.trim().isEmpty) return;
@@ -351,6 +408,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
           title: const Text('Nueva lista',
               style: TextStyle(fontWeight: FontWeight.w700)),
           onTap: _newList,
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          minVerticalPadding: 8,
+          leading: Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceHigh,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              border: Border.all(color: AppColors.outline),
+            ),
+            child: Icon(Icons.download_rounded, color: AppColors.textDim),
+          ),
+          title: const Text('Importar lista',
+              style: TextStyle(fontWeight: FontWeight.w700)),
+          subtitle: Text('Enlace de YouTube o texto «Artista - Canción»',
+              style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
+          onTap: _importList,
         ),
         // Mismo estilo de estado vacío que Favoritos e Historial.
         if (_lists.isEmpty && _others.isEmpty)
@@ -402,6 +478,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   final n = await askPlaylistName(context);
                   if (n == null || n.trim().isEmpty) return;
                   await PlaylistService.instance.rename(p.id, n);
+                } else if (v == 'energy') {
+                  final m = ScaffoldMessenger.of(context);
+                  m.showSnackBar(const SnackBar(
+                      content: Text('Midiendo la energía de cada canción…')));
+                  final sorted = await EnergySort.sort(p.songs);
+                  await PlaylistService.instance.setOrder(p.id, sorted);
+                  m.showSnackBar(const SnackBar(
+                      content: Text('Lista ordenada: sube la energía y luego baja.')));
                 } else if (v == 'both') {
                   await PlaylistService.instance.setBoth(p.id, !p.inBoth);
                   if (context.mounted) {
@@ -418,6 +502,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               },
               itemBuilder: (_) => [
                 const PopupMenuItem(value: 'rename', child: Text('Renombrar')),
+                const PopupMenuItem(value: 'energy', child: Text('Ordenar por energía')),
                 PopupMenuItem(
                     value: 'both',
                     child: Text(p.inBoth
