@@ -287,6 +287,15 @@ class AlarmService {
   }
 
   /// Programa la próxima vez de todas las alarmas (al abrir la app).
+  /// Cancela todo lo programado (antes de restaurar una copia; al abrir
+  /// de nuevo, [scheduleAll] programa las alarmas restauradas).
+  Future<void> cancelAllScheduled() async {
+    await init();
+    try {
+      await _n.cancelAll();
+    } catch (_) {}
+  }
+
   Future<void> scheduleAll() async {
     for (final a in await all()) {
       if (_ringing == a.id) continue;

@@ -92,12 +92,13 @@ class _MonthCardScreenState extends State<MonthCardScreen> {
         children: [
           RepaintBoundary(
             key: _key,
-            child: AspectRatio(
+            // Imagen sin esquinas transparentes y con letra fija (no se
+            // desborda con la letra grande del teléfono).
+            child: MediaQuery.withNoTextScaling(child: AspectRatio(
               aspectRatio: 9 / 16,
               child: Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -160,7 +161,7 @@ class _MonthCardScreenState extends State<MonthCardScreen> {
                   ],
                 ),
               ),
-            ),
+            )),
           ),
           const SizedBox(height: 18),
           AppButton.primary(

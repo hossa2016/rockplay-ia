@@ -211,6 +211,9 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
         ),
         actions: [
           TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancelar')),
+          TextButton(
               onPressed: () => launchUrl(Uri.parse('https://www.last.fm/api/account/create'),
                   mode: LaunchMode.externalApplication),
               child: const Text('Abrir la página')),
@@ -228,9 +231,11 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
             content: Text(err == null ? 'Last.fm conectado.' : 'Last.fm: $err')));
       }
     }
-    for (final c in [key, sec, user, pass]) {
-      c.dispose();
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final c in [key, sec, user, pass]) {
+        c.dispose();
+      }
+    });
   }
 
   @override
@@ -324,9 +329,14 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                       leading: const Icon(Icons.graphic_eq_rounded),
                       title: const Text('Last.fm (opcional)',
                           style: TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text(on
-                          ? 'Conectado como ${LastFmService.instance.user}. Registra lo que escuchas.'
-                          : 'Registra lo que escuchas en tu perfil de Last.fm.'),
+                      subtitle: ValueListenableBuilder<String>(
+                        valueListenable: LastFmService.instance.lastError,
+                        builder: (context, err, _) => Text(err.isNotEmpty
+                            ? err
+                            : on
+                                ? 'Conectado como ${LastFmService.instance.user}. Registra lo que escuchas.'
+                                : 'Registra lo que escuchas en tu perfil de Last.fm.'),
+                      ),
                       trailing: TextButton(
                         onPressed: on
                             ? () => LastFmService.instance.disconnect()

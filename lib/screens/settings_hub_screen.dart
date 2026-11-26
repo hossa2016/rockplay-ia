@@ -21,6 +21,7 @@ import '../services/music_mode.dart';
 import '../services/stats_service.dart';
 import 'mode_pick_screen.dart';
 import '../widgets/section_header.dart';
+import '../services/dj_voice.dart';
 
 /// Un solo lugar para todos los ajustes (agrupados).
 class SettingsHubScreen extends StatefulWidget {
@@ -162,8 +163,13 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
       builder: (c) => AlertDialog(
         title: const Text('¿Cómo restaurar?'),
         content: const Text(
-            '«Combinar» suma la copia a lo que ya tienes. «Reemplazar» deja todo como estaba en la copia.'),
+            '«Combinar» suma la copia a lo que ya tienes, sin repetir canciones.\n'
+            '«Reemplazar» cambia tus datos por los de la copia.\n\n'
+            'Al terminar, la app se cierra; ábrela de nuevo para ver tus datos.'),
         actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c),
+              child: const Text('Cancelar')),
           TextButton(
               onPressed: () => Navigator.pop(c, false),
               child: const Text('Reemplazar')),
@@ -173,24 +179,22 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
         ],
       ),
     );
-    if (merge == null) return;
-    await BackupService.restore(j, merge: merge);
-    if (!mounted) return;
-    await showDialog<void>(
+    if (merge == null || !mounted) return;
+    // Aviso antes de restaurar: después se cierra al instante, sin que nada
+    // alcance a escribir datos viejos encima.
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (c) => AlertDialog(
-        title: const Text('Listo'),
-        content: const Text(
-            'Tus datos están restaurados. La app se cerrará; ábrela de nuevo para verlos.'),
-        actions: [
-          FilledButton(
-              // Cierra el proceso para que todo se recargue desde la copia.
-              onPressed: () => exit(0),
-              child: const Text('Cerrar la app')),
-        ],
+      builder: (c) => const AlertDialog(
+        content: Row(children: [
+          SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2)),
+          SizedBox(width: 16),
+          Expanded(child: Text('Restaurando… la app se cerrará al terminar.')),
+        ]),
       ),
     );
+    await BackupService.restore(j, merge: merge);
+    exit(0);
   }
 
   /// Porcentaje de lo que suena que la app cambió por otra versión.
@@ -526,6 +530,18 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 EqService.instance.enabled ? 'Activo · ${EqService.instance.preset}' : 'Apagado',
                 () => _go(const EqScreen()),
                 tip: 'Ajusta graves y agudos con preajustes; el asistente sugiere el mejor para cada canción.'),
+            ValueListenableBuilder<bool>(
+              valueListenable: DjVoice.instance.on,
+              builder: (context, on, _) => SwitchListTile(
+                secondary: const Icon(Icons.record_voice_over_rounded),
+                title: const Text('Locutor IA',
+                    style: TextStyle(fontSize: AppType.body, fontWeight: FontWeight.w700)),
+                subtitle: Text('Cada 3 canciones baja la música y te cuenta qué suena',
+                    style: TextStyle(fontSize: AppType.label, color: AppColors.textDim)),
+                value: on,
+                onChanged: (v) => DjVoice.instance.set(v),
+              ),
+            ),
             _row(Icons.alarm_rounded, 'Despertador',
                 'Despierta con Tu mix, una lista o la radio',
                 () => showSleepWakeSheet(context, showTimer: false),

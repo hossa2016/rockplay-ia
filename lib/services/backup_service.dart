@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,6 +9,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'ai_settings.dart';
 import 'stats_service.dart';
+import 'alarm_service.dart';
+import 'playback_service.dart';
 
 /// Copia de seguridad de todo lo tuyo (favoritas, listas, historial,
 /// escuchas, emisoras, alarmas, ajustes y, si quieres, las claves de IA) en
@@ -16,6 +19,9 @@ class BackupService {
   BackupService._();
 
   static const String _tag = 'rockplay-ia-backup';
+
+  /// Sube cada vez que se hace una copia (Inicio y Ajustes se refrescan).
+  static final ValueNotifier<int> done = ValueNotifier<int>(0);
   static const String _lastKey = 'backup_last_at';
 
   /// Claves que no vale la pena copiar (cachés y estados temporales).
@@ -105,10 +111,14 @@ class BackupService {
     final name = 'RockPlayIA_copia_${d.year}-${two(d.month)}-${two(d.day)}.json';
     final f = File('${dir.path}/$name');
     await f.writeAsString(jsonEncode(j));
-    await Share.shareXFiles([XFile(f.path, mimeType: 'application/json')],
+    final res = await Share.shareXFiles(
+        [XFile(f.path, mimeType: 'application/json')],
         subject: 'Copia de seguridad de RockPlay IA');
+    // Solo cuenta como hecha si se compartió/guardó (no si se canceló).
+    if (res.status == ShareResultStatus.dismissed) return -1;
     final sp = await SharedPreferences.getInstance();
     await sp.setInt(_lastKey, DateTime.now().millisecondsSinceEpoch);
+    done.value++;
     return (j['data'] as Map).length;
   }
 
@@ -127,9 +137,18 @@ class BackupService {
     return j;
   }
 
-  /// Restaura una copia. [merge]: combina con lo que ya hay (las listas de
-  /// favoritas, historial… se unen sin duplicar); si no, reemplaza todo.
+  /// Restaura una copia. [merge]: combina con lo que ya hay sin duplicar
+  /// (canciones por videoId o artista+título; listas, alarmas y emisoras por
+  /// id; escuchas ordenadas y recortadas a 3.000); si no, reemplaza todo.
+  /// Antes deja todo quieto: pausa, guarda/descarta lo pendiente y cancela
+  /// las alarmas programadas. Después hay que cerrar la app (exit).
   static Future<int> restore(Map<String, dynamic> j, {bool merge = true}) async {
+    try {
+      await PlaybackService.instance.pause();
+    } catch (_) {}
+    await StatsService.instance.flush();
+    StatsService.instance.discardPending();
+    await AlarmService.instance.cancelAllScheduled();
     final sp = await SharedPreferences.getInstance();
     final data = (j['data'] as Map).cast<String, dynamic>();
     if (!merge) {
@@ -144,19 +163,12 @@ class BackupService {
       switch (m['t']) {
         case 'l':
           final incoming = (v as List).map((x) => '$x').toList();
-          if (merge) {
-            final cur = sp.getStringList(e.key) ?? const <String>[];
-            final seen = cur.toSet();
-            await sp.setStringList(
-                e.key, [...cur, ...incoming.where(seen.add)]);
-          } else {
-            await sp.setStringList(e.key, incoming);
-          }
+          final cur = merge ? (sp.getStringList(e.key) ?? const <String>[]) : const <String>[];
+          await sp.setStringList(e.key, _mergeItems(cur, incoming));
         case 's':
-          // Con «combinar», los JSON de listas y escuchas se unen.
           final cur = sp.getString(e.key);
           if (merge && cur != null && cur != v) {
-            await sp.setString(e.key, _mergeJson(cur, v as String));
+            await sp.setString(e.key, _mergeJson(e.key, cur, v as String));
           } else {
             await sp.setString(e.key, v as String);
           }
@@ -181,14 +193,66 @@ class BackupService {
     return n;
   }
 
-  /// Une dos JSON guardados: listas → unión sin duplicados; otro → el de la
-  /// copia solo si el actual está vacío.
-  static String _mergeJson(String cur, String inc) {
+  /// Clave de un elemento: canción → videoId o artista|título; con id → id.
+  static String _itemKey(dynamic x) {
+    if (x is Map) {
+      if (x['id'] != null && x['id'].toString().isNotEmpty) return 'id:${x['id']}';
+      final vid = '${x['videoId'] ?? ''}';
+      if (vid.isNotEmpty) return 'v:$vid';
+      if (x['artist'] != null || x['title'] != null) {
+        return 's:${'${x['artist'] ?? ''}'.toLowerCase()}|${'${x['title'] ?? ''}'.toLowerCase()}';
+      }
+    }
+    return 'j:${jsonEncode(x)}';
+  }
+
+  /// Une listas de JSON (favoritas, historial…) sin duplicar por clave.
+  static List<String> _mergeItems(List<String> cur, List<String> inc) {
+    final seen = <String>{};
+    final out = <String>[];
+    for (final raw in [...cur, ...inc]) {
+      String k;
+      try {
+        k = _itemKey(jsonDecode(raw));
+      } catch (_) {
+        k = 'r:$raw';
+      }
+      if (seen.add(k)) out.add(raw);
+    }
+    return out;
+  }
+
+  /// Une dos JSON guardados según su tipo.
+  static String _mergeJson(String key, String cur, String inc) {
     try {
       final a = jsonDecode(cur), b = jsonDecode(inc);
       if (a is List && b is List) {
-        final seen = a.map(jsonEncode).toSet();
-        return jsonEncode([...a, ...b.where((x) => seen.add(jsonEncode(x)))]);
+        // Escuchas: [ts, artista, título, …] → unir, ordenar, recortar.
+        if (key.endsWith('plays_v1')) {
+          final seen = <String>{};
+          final all = [
+            for (final x in [...a, ...b])
+              if (x is List && x.length >= 3 && seen.add('${x[0]}|${x[1]}|${x[2]}')) x
+          ]..sort((p, q) => (p[0] as num).compareTo(q[0] as num));
+          return jsonEncode(all.length > 3000 ? all.sublist(all.length - 3000) : all);
+        }
+        // Listas, alarmas, emisoras: por id; las listas unen sus canciones.
+        final byKey = <String, dynamic>{};
+        for (final x in a) {
+          byKey[_itemKey(x)] = x;
+        }
+        for (final x in b) {
+          final k = _itemKey(x);
+          final have = byKey[k];
+          if (have == null) {
+            byKey[k] = x;
+          } else if (have is Map && x is Map && have['songs'] is List && x['songs'] is List) {
+            final seen = <String>{for (final s in have['songs'] as List) _itemKey(s)};
+            (have['songs'] as List).addAll(
+                (x['songs'] as List).where((s) => seen.add(_itemKey(s))));
+          }
+        }
+        return jsonEncode(byKey.values.toList());
       }
       return cur;
     } catch (_) {

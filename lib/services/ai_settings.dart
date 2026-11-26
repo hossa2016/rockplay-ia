@@ -35,6 +35,10 @@ class AiSettings {
     'ai_setlist_key',
   ];
 
+  /// Claves que no se pudieron leer (fallo del almacenamiento cifrado):
+  /// no se sobrescriben con vacío al guardar.
+  static final Set<String> _unreadable = {};
+
   /// Lee una clave cifrada; si aún estaba en texto plano, la mueve.
   static Future<String> _readKey(SharedPreferences sp, String k) async {
     try {
@@ -47,12 +51,17 @@ class AiSettings {
         return old;
       }
     } catch (_) {
-      return sp.getString(k) ?? '';
+      final plain = sp.getString(k);
+      if (plain == null) _unreadable.add(k);
+      return plain ?? '';
     }
     return '';
   }
 
   static Future<void> _writeKey(SharedPreferences sp, String k, String v) async {
+    // Si no se pudo leer y sigue vacía, se deja la que hay guardada.
+    if (v.isEmpty && _unreadable.contains(k)) return;
+    _unreadable.remove(k);
     try {
       await _sec.write(key: k, value: v);
       await sp.remove(k);

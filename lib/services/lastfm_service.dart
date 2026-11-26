@@ -8,6 +8,8 @@ import 'package:http/http.dart' as http;
 
 import '../models/song.dart';
 import '../widgets/playback_ui.dart';
+import 'song_fix.dart';
+import 'stats_service.dart';
 
 /// Registro (scrobbling) en Last.fm, opcional. Necesita una API key y su
 /// secreto (gratis en last.fm/api) y tu usuario y contraseña de Last.fm
@@ -93,22 +95,57 @@ class LastFmService {
     await _sec.delete(key: 'lfm_session');
   }
 
+  String _artist = '', _title = '';
+
+  /// Artista y título reales (sin canales de YouTube), con SongFix/Deezer.
+  Future<void> _resolveArtist(Song s) async {
+    try {
+      final f = await SongFix.verify(s);
+      if (_cur == s) {
+        _artist = StatsService.cleanArtist(f.artist);
+        _title = f.title;
+      }
+    } catch (_) {}
+  }
+
+  /// Envía y revisa errores: sesión vencida (9) → desconecta y avisa.
+  final ValueNotifier<String> lastError = ValueNotifier<String>('');
+
+  Future<void> _send(Map<String, String> p) async {
+    try {
+      final j = await _post(p);
+      final err = j['error'];
+      if (err == 9) {
+        await disconnect();
+        lastError.value = 'La sesión de Last.fm venció: conéctate de nuevo.';
+      } else if (err != null) {
+        lastError.value = 'Last.fm: ${j['message'] ?? err}';
+      }
+    } catch (_) {}
+  }
+
   void _onSong() {
     final s = PlaybackUi.instance.song.value;
     if (s == null || s.isRadio || session.isEmpty) {
       _cur = null;
       return;
     }
-    if (_cur != null && _cur!.artist == s.artist && _cur!.title == s.title) return;
+    // Misma canción repetida: se vuelve a registrar si empieza desde cero.
+    if (_cur != null && _cur!.artist == s.artist && _cur!.title == s.title &&
+        !_sent) {
+      return;
+    }
     _cur = s;
+    _artist = '';
+    unawaited(_resolveArtist(s));
     _sent = false;
     _startTs = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    unawaited(_post({
+    unawaited(_send({
       'method': 'track.updateNowPlaying',
-      'artist': s.artist,
+      'artist': StatsService.cleanArtist(s.artist),
       'track': s.title,
       'sk': session,
-    }).catchError((_) => <String, dynamic>{}));
+    }));
   }
 
   /// Se registra al pasar la mitad de la canción o los 4 minutos.
@@ -120,12 +157,12 @@ class LastFmService {
     if (dur < 30) return;
     if (pos < dur / 2 && pos < 240) return;
     _sent = true;
-    unawaited(_post({
+    unawaited(_send({
       'method': 'track.scrobble',
-      'artist[0]': s.artist,
-      'track[0]': s.title,
+      'artist[0]': _artist.isNotEmpty ? _artist : StatsService.cleanArtist(s.artist),
+      'track[0]': _title.isNotEmpty ? _title : s.title,
       'timestamp[0]': '$_startTs',
       'sk': session,
-    }).catchError((_) => <String, dynamic>{}));
+    }));
   }
 }

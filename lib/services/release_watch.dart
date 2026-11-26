@@ -14,6 +14,7 @@ class ReleaseWatch {
   static final ValueNotifier<int> fresh = ValueNotifier<int>(0);
   static Set<String> _seen = {};
   static bool _loaded = false;
+  static String _loadedKey = '';
 
   static String get _seenKey => modeKey('rel_seen_v1');
   static String get _checkKey => modeKey('rel_check_at');
@@ -22,13 +23,20 @@ class ReleaseWatch {
   static Future<void> _load() async {
     final sp = await SharedPreferences.getInstance();
     _seen = Set<String>.of(sp.getStringList(_seenKey) ?? const []);
+    _loadedKey = _seenKey;
     _loaded = true;
   }
 
-  static bool isNew(String albumId) => _loaded && !_seen.contains(albumId);
+  /// Carga los «vistos» del modo actual (se recargan al cambiar de modo).
+  static Future<void> ensureLoaded() async {
+    if (!_loaded || _loadedKey != _seenKey) await _load();
+  }
+
+  static bool isNew(String albumId) =>
+      _loaded && _loadedKey == _seenKey && !_seen.contains(albumId);
 
   static Future<void> markSeen(Iterable<String> ids) async {
-    if (!_loaded) await _load();
+    await ensureLoaded();
     _seen.addAll(ids);
     fresh.value = 0;
     final sp = await SharedPreferences.getInstance();
@@ -38,7 +46,7 @@ class ReleaseWatch {
 
   static Future<void> check() async {
     try {
-      await _load();
+      await ensureLoaded();
       final sp = await SharedPreferences.getInstance();
       final now = DateTime.now().millisecondsSinceEpoch;
       final last = sp.getInt(_checkKey) ?? 0;

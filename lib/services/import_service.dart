@@ -15,6 +15,41 @@ class ImportService {
 
   static bool isYoutube(String text) => _playlistId(text) != null;
 
+  /// Separador de un CSV (;, coma o tab) o null si no es CSV.
+  static String? _sepOf(String line) {
+    for (final c in const ['\t', ';', ',']) {
+      if (line.contains(c) && !RegExp(r'\s[-–—]\s').hasMatch(line.split(c).first)) {
+        return c;
+      }
+    }
+    return null;
+  }
+
+  /// Lee una línea CSV respetando comillas («"Hello, Goodbye",The Beatles»).
+  static List<String> _csv(String line, String sep) {
+    final out = <String>[];
+    final b = StringBuffer();
+    var q = false;
+    for (var i = 0; i < line.length; i++) {
+      final ch = line[i];
+      if (ch == '"') {
+        if (q && i + 1 < line.length && line[i + 1] == '"') {
+          b.write('"');
+          i++;
+        } else {
+          q = !q;
+        }
+      } else if (ch == sep && !q) {
+        out.add(b.toString().trim());
+        b.clear();
+      } else {
+        b.write(ch);
+      }
+    }
+    out.add(b.toString().trim());
+    return out;
+  }
+
   /// (nombre sugerido, canciones)
   static Future<(String, List<Song>)> parse(String text) async {
     final id = _playlistId(text);
@@ -38,34 +73,44 @@ class ImportService {
       }
     }
     final out = <Song>[];
-    for (var line in text.split(RegExp(r'\r?\n'))) {
-      line = line.trim();
-      if (line.isEmpty) continue;
+    final lines = text.split(RegExp(r'\r?\n')).where((l) => l.trim().isNotEmpty).toList();
+    if (lines.isEmpty) return ('Lista importada', out);
+    final sep = _sepOf(lines.first);
+    // CSV con encabezado (Exportify, TuneMyMusic…): columnas por nombre.
+    int ti = -1, ai = -1;
+    if (sep != null) {
+      final head = [for (final h in _csv(lines.first, sep)) h.toLowerCase()];
+      ti = head.indexWhere((h) => h == 'track name' || h == 'title' || h == 'name' || h == 'nombre' || h == 'canción' || h == 'cancion' || h == 'song');
+      ai = head.indexWhere((h) => h.startsWith('artist name') || h == 'artist' || h == 'artists' || h == 'artista');
+    }
+    final hasHeader = ti >= 0 && ai >= 0;
+    for (var k = hasHeader ? 1 : 0; k < lines.length; k++) {
+      final line = lines[k].trim();
       String a = '', t = '';
-      final dash = RegExp(r'^(.+?)\s+[-–—]\s+(.+)$').firstMatch(line);
-      if (dash != null) {
-        a = dash.group(1)!;
-        t = dash.group(2)!;
-      } else if (line.contains(',') || line.contains(';')) {
-        // CSV: «Canción,Artista,…» (TuneMyMusic) o «Artista;Canción».
-        final cols = line
-            .split(RegExp(r'[;,]'))
-            .map((e) => e.replaceAll('"', '').trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
-        if (cols.length < 2) continue;
-        final h = cols[0].toLowerCase();
-        if (h == 'track name' || h == 'title' || h == 'artist' || h == 'nombre') {
-          continue; // encabezado
-        }
-        t = cols[0];
-        a = cols[1];
+      if (hasHeader) {
+        final cols = _csv(line, sep!);
+        if (cols.length <= ti || cols.length <= ai) continue;
+        t = cols[ti];
+        // Exportify: «Artista 1, Artista 2» → el primero.
+        a = cols[ai].split(RegExp(r'[,;]')).first;
       } else {
-        continue;
+        final dash = RegExp(r'^(.+?)\s+[-–—]\s+(.+)$').firstMatch(line);
+        if (dash != null) {
+          a = dash.group(1)!;
+          t = dash.group(2)!;
+        } else if (sep != null) {
+          // Sin encabezado: «Artista;Canción» o «Artista,Canción».
+          final cols = _csv(line, sep);
+          if (cols.length < 2) continue;
+          a = cols[0];
+          t = cols[1];
+        } else {
+          continue;
+        }
       }
       a = a.replaceAll('"', '').trim();
       t = t.replaceAll('"', '').trim();
-      if (a.isEmpty || t.isEmpty) continue;
+      if (a.isEmpty || t.isEmpty || t.startsWith('spotify:')) continue;
       out.add(Song(title: t, artist: a, query: '$a $t'));
     }
     return ('Lista importada', out);

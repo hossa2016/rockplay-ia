@@ -118,14 +118,16 @@ class _MiniBody extends StatelessWidget {
                           const SizedBox(height: 2),
                           ValueListenableBuilder<String?>(
                             valueListenable: pb.error,
-                            builder: (context, err, _) {
+                            builder: (context, err, _) => ValueListenableBuilder<(String, String)?>(
+                              valueListenable: RadioNow.song,
+                              builder: (context, rn, _) {
                               final hasErr = err != null && err.isNotEmpty;
-                              // Radio: lo que suena ahora, si la emisora lo dice.
-                              final now = song.isRadio ? RadioNow.parse(RadioNow.now.value, station: song.title) : null;
+                              // Radio: lo que suena ahora (confirmado con Deezer).
+                              final now = song.isRadio ? rn : null;
                               return Text(
                                 hasErr
                                     ? err
-                                    : (now != null ? 'Ahora: ${now.$1} — ${now.$2}' : song.artist),
+                                    : (now != null ? 'Ahora: ${now.$1} — ${now.$2}' : (song.isRadio ? 'Radio en vivo' : song.artist)),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -135,7 +137,7 @@ class _MiniBody extends StatelessWidget {
                                       : AppColors.textDim,
                                 ),
                               );
-                            },
+                            }),
                           ),
                         ],
                       ),

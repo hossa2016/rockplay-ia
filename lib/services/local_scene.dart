@@ -20,13 +20,13 @@ class LocalScene {
       'Kraken', 'Masacre', 'Ekhymosis', 'Pornomotora', 'Parabellum',
       'Tenebrarum', 'Nepentes', 'Witchtrap',
     ],
-    'Cali': ['Superlitio'],
   };
 
   /// Filtros de ciudad (rock) o de género (Pulso).
   static List<String> get filters => MusicModeService.general
       ? const ['Todo', 'Salsa', 'Vallenato', 'Urbano', 'Pop', 'Tropical']
-      : const ['Todo', 'Bogotá', 'Medellín', 'Cali'];
+      // Cali vuelve cuando haya al menos 4 bandas confirmadas.
+      : const ['Todo', 'Bogotá', 'Medellín'];
 
   static List<MixDef> mixes(String filter) {
     final c = AppPalettes.cards;

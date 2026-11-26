@@ -29,6 +29,7 @@ PINNED = [
     "flutter_secure_storage:^9.2.4",
     "flutter_tts:^4.2.3",
     "crypto:^3.0.6",
+    "android_intent_plus:^5.3.0",
 ]
 # Sin versión: pub elige la compatible con las anteriores.
 FREE = [
