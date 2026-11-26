@@ -18,6 +18,7 @@ import 'stream_resolver.dart';
 import 'data_saver.dart';
 import 'block_service.dart';
 import 'music_mode.dart';
+import 'radio_now.dart';
 
 
 /// Estado observable compartido entre el handler y PlaybackService.
@@ -530,12 +531,14 @@ class RockPlayAudioHandler extends BaseAudioHandler
       if (gen != _gen) return;
       _resolving = false;
       await _icySub?.cancel();
+      RadioNow.reset();
       _icySub = _player.icyMetadataStream.listen((m) {
         final t = (m?.info?.title ?? '').trim();
         if (t.isEmpty || !_radio || _index != index || index >= _songs.length) {
           return;
         }
         final cur = _songs[index];
+        unawaited(RadioNow.heard(cur.title, t));
         if (cur.artist == t) return;
         _songs[index] = Song(
             title: cur.title,
@@ -563,6 +566,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     }
     if (_radio) {
       _radio = false;
+      RadioNow.reset();
       await _icySub?.cancel();
       _icySub = null;
       try {

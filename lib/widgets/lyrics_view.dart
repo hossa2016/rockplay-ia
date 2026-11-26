@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import '../services/playback_service.dart';
 
 import '../models/song.dart';
+import '../services/ai_json.dart';
 import '../services/lyrics_service.dart';
+import '../services/lyrics_translate.dart';
 import '../theme/app_theme.dart';
 import 'playback_ui.dart';
 
@@ -26,6 +28,11 @@ class _LyricsViewState extends State<LyricsView> {
   bool _loading = true;
   int _cur = -1;
   List<GlobalKey> _keys = [];
+  // Traducción: 0 Original, 1 Español, 2 Ambas.
+  int _view = 0;
+  bool _canTranslate = false;
+  bool _translating = false;
+  LyricsTranslation? _tr;
   final ScrollController _sc = ScrollController();
 
   @override
@@ -56,6 +63,9 @@ class _LyricsViewState extends State<LyricsView> {
       _loading = true;
       _l = null;
       _cur = -1;
+      _tr = null;
+      _view = 0;
+      _canTranslate = false;
     });
     final s = widget.song;
     final l = await LyricsService.instance.fetch(s.artist, s.title,
@@ -63,11 +73,118 @@ class _LyricsViewState extends State<LyricsView> {
     if (!mounted ||
         s.title != widget.song.title ||
         s.artist != widget.song.artist) return;
+    final ai = await AiJson.available();
+    if (!mounted) return;
     setState(() {
       _l = l;
       _loading = false;
       _keys = List.generate(l?.synced.length ?? 0, (_) => GlobalKey());
+      // Solo si hay IA y la letra no está ya en español.
+      _canTranslate = ai && l != null && !l.isEmpty &&
+          !LyricsTranslate.isSpanish(_lines(l));
     });
+  }
+
+  static List<String> _lines(Lyrics l) => l.synced.isNotEmpty
+      ? [for (final x in l.synced) x.text]
+      : l.plain.split('\n');
+
+  Future<LyricsTranslation?> _ensureTr() async {
+    if (_tr != null) return _tr;
+    final l = _l;
+    if (l == null) return null;
+    setState(() => _translating = true);
+    final s = widget.song;
+    final t = await LyricsTranslate.get(s.artist, s.title, _lines(l));
+    if (!mounted) return null;
+    setState(() {
+      _tr = t;
+      _translating = false;
+    });
+    if (t == null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('No se pudo traducir ahora. Inténtalo en un momento.')));
+    }
+    return t;
+  }
+
+  Future<void> _setView(int v) async {
+    if (v != 0 && await _ensureTr() == null) return;
+    if (mounted) setState(() => _view = v);
+  }
+
+  Future<void> _about() async {
+    final t = await _ensureTr();
+    if (t == null || !mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('¿De qué habla?',
+                  style: TextStyle(
+                      fontSize: AppType.title, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 10),
+              Text(t.about.isEmpty ? 'Sin explicación disponible.' : t.about,
+                  style: const TextStyle(fontSize: AppType.body, height: 1.5)),
+              const SizedBox(height: 10),
+              Text('Explicación hecha con IA; puede tener errores.',
+                  style: TextStyle(
+                      color: AppColors.textFaint, fontSize: AppType.caption)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Barra: Original · Español · Ambas y «¿De qué habla?».
+  Widget _bar() {
+    if (!_canTranslate) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Row(children: [
+        Expanded(
+          child: SegmentedButton<int>(
+            showSelectedIcon: false,
+            style: const ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                tapTargetSize: MaterialTapTargetSize.padded),
+            segments: const [
+              ButtonSegment(value: 0, label: Text('Original')),
+              ButtonSegment(value: 1, label: Text('Español')),
+              ButtonSegment(value: 2, label: Text('Ambas')),
+            ],
+            selected: {_view},
+            onSelectionChanged: _translating ? null : (v) => _setView(v.first),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _translating
+            ? const SizedBox(
+                width: 40,
+                height: 40,
+                child: Padding(
+                    padding: EdgeInsets.all(10),
+                    child: CircularProgressIndicator(strokeWidth: 2)))
+            : IconButton(
+                tooltip: '¿De qué habla?',
+                icon: const Icon(Icons.lightbulb_outline_rounded),
+                onPressed: _about,
+              ),
+      ]),
+    );
+  }
+
+  String _trLine(int i) {
+    final t = _tr;
+    if (t == null || i >= t.lines.length) return '';
+    return t.lines[i];
   }
 
   void _tick() {
@@ -103,11 +220,21 @@ class _LyricsViewState extends State<LyricsView> {
     final active = i == _cur;
     final blur = reduced || active ? 0.0 : (d.clamp(0, 4) * 0.6).toDouble();
     final opacity = active ? 1.0 : (d == 1 ? 0.55 : 0.32);
-    final text = Text(
-      l.synced[i].text.isEmpty ? '♪' : l.synced[i].text,
-      textAlign: TextAlign.left,
-      style: AppType.oswald(27, height: 1.2),
-    );
+    final orig = l.synced[i].text.isEmpty ? '♪' : l.synced[i].text;
+    final es = _trLine(i);
+    final Widget text = _view == 1 && es.isNotEmpty
+        ? Text(es, textAlign: TextAlign.left, style: AppType.oswald(27, height: 1.2))
+        : (_view == 2 && es.isNotEmpty && l.synced[i].text.isNotEmpty)
+            ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(orig, style: AppType.oswald(27, height: 1.2)),
+                const SizedBox(height: 2),
+                Text(es,
+                    style: TextStyle(
+                        fontSize: AppType.body,
+                        height: 1.3,
+                        color: AppColors.textDim)),
+              ])
+            : Text(orig, textAlign: TextAlign.left, style: AppType.oswald(27, height: 1.2));
     return Padding(
       key: _keys[i],
       padding: const EdgeInsets.symmetric(vertical: 6),
@@ -161,7 +288,9 @@ class _LyricsViewState extends State<LyricsView> {
     }
     if (l.synced.isNotEmpty) {
       final reduced = AppMotion.reduced(context);
-      return ShaderMask(
+      return Column(children: [
+        _bar(),
+        Expanded(child: ShaderMask(
         // Desvanece arriba y abajo para que la letra «flote».
         shaderCallback: (r) => const LinearGradient(
           begin: Alignment.topCenter,
@@ -181,16 +310,33 @@ class _LyricsViewState extends State<LyricsView> {
             ],
           ),
         ),
-      );
+      )),
+      ]);
     }
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-      child: Text(
-        l.plain,
-        textAlign: TextAlign.center,
-        style: const TextStyle(
-            fontSize: AppType.titleSm, height: 1.6, color: Colors.white70),
+    final plainLines = l.plain.split('\n');
+    final shown = _view == 0 || _tr == null
+        ? l.plain
+        : [
+            for (var i = 0; i < plainLines.length; i++)
+              _view == 1
+                  ? (_trLine(i).isEmpty ? plainLines[i] : _trLine(i))
+                  : (plainLines[i].trim().isEmpty || _trLine(i).isEmpty
+                      ? plainLines[i]
+                      : '${plainLines[i]}\n${_trLine(i)}'),
+          ].join('\n');
+    return Column(children: [
+      _bar(),
+      Expanded(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          child: Text(
+            shown,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+                fontSize: AppType.titleSm, height: 1.6, color: Colors.white70),
+          ),
+        ),
       ),
-    );
+    ]);
   }
 }

@@ -9,6 +9,8 @@ import '../widgets/cover_art.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
 import 'song_list_screen.dart';
+import '../services/radar_service.dart';
+import '../services/concert_service.dart';
 
 /// Ficha de artista: foto, biografía, lo más escuchado y discos.
 class ArtistScreen extends StatefulWidget {
@@ -27,10 +29,14 @@ class _ArtistScreenState extends State<ArtistScreen> {
   bool _loading = true;
   bool _notFound = false;
   bool _bioOpen = false;
+  bool _following = false;
 
   @override
   void initState() {
     super.initState();
+    RadarService.instance.isFollowed(widget.name).then((v) {
+      if (mounted) setState(() => _following = v);
+    });
     _load();
   }
 
@@ -157,6 +163,54 @@ class _ArtistScreenState extends State<ArtistScreen> {
                           onPressed: _playTop,
                           icon: const Icon(Icons.shuffle_rounded),
                           label: const Text('Escuchar lo más popular'),
+                        ),
+                      ),
+                      // «Toca pronto en…» si está en Conciertos.
+                      Builder(builder: (context) {
+                        final cs = ConcertService.instance.state.value.items
+                            .where((c) =>
+                                RadarService.matchBand(c, [a.name]) != null &&
+                                (c.date == null || !c.date!.isBefore(DateTime.now())))
+                            .toList();
+                        if (cs.isEmpty) return const SizedBox.shrink();
+                        final c = cs.first;
+                        final d = c.date;
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.confirmation_number_rounded,
+                                  size: 18, color: AppColors.amber),
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                    'Toca pronto en ${c.city.isEmpty ? 'Colombia' : c.city}${d == null ? '' : ' · ${d.day}/${d.month}/${d.year}'}',
+                                    style: TextStyle(
+                                        color: AppColors.amber,
+                                        fontWeight: FontWeight.w800)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                      // Seguir: el Radar avisa si viene a Colombia.
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final v = await RadarService.instance.toggleFollow(a.name);
+                            if (!mounted) return;
+                            setState(() => _following = v);
+                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(v
+                                    ? 'Te aviso si ${a.name} anuncia concierto en Colombia.'
+                                    : 'Ya no sigues a ${a.name}.')));
+                          },
+                          icon: Icon(_following
+                              ? Icons.notifications_active_rounded
+                              : Icons.notifications_none_rounded),
+                          label: Text(_following ? 'Siguiendo' : 'Seguir (avísame de conciertos)'),
                         ),
                       ),
                       Padding(

@@ -9,6 +9,7 @@ import 'cover_art.dart';
 import 'player_route.dart';
 import 'playback_ui.dart';
 import '../services/music_mode.dart';
+import '../services/radio_now.dart';
 
 /// Etiqueta Hero de la carátula: vuela del mini player al reproductor.
 const String kNowPlayingHero = 'now-playing-cover';
@@ -119,8 +120,12 @@ class _MiniBody extends StatelessWidget {
                             valueListenable: pb.error,
                             builder: (context, err, _) {
                               final hasErr = err != null && err.isNotEmpty;
+                              // Radio: lo que suena ahora, si la emisora lo dice.
+                              final now = song.isRadio ? RadioNow.parse(RadioNow.now.value) : null;
                               return Text(
-                                hasErr ? err : song.artist,
+                                hasErr
+                                    ? err
+                                    : (now != null ? 'Ahora: ${now.$1} — ${now.$2}' : song.artist),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(

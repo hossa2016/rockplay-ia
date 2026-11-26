@@ -30,6 +30,10 @@ import 'artist_screen.dart';
 import 'eq_screen.dart';
 import 'radio_screen.dart';
 import '../widgets/playback_ui.dart';
+import '../services/radio_now.dart';
+import '../widgets/nav_signals.dart';
+import 'search_hub.dart';
+import 'search_screen.dart';
 
 /// Pantalla de reproducción inmersiva. Lee todo de [PlaybackUi].
 class PlayerScreen extends StatefulWidget {
@@ -487,6 +491,51 @@ class _PlayerScreenState extends State<PlayerScreen>
     );
   }
 
+  Future<void> _showHeard(String station) async {
+    final l = await RadioNow.history(station);
+    if (!mounted) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (c) => SafeArea(
+        child: l.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                    'Esta emisora todavía no ha dicho qué canciones suenan (no todas lo envían).',
+                    style: TextStyle(color: AppColors.textDim)),
+              )
+            : ListView(shrinkWrap: true, children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Text('Sonó en $station',
+                      style: const TextStyle(
+                          fontSize: AppType.title, fontWeight: FontWeight.w800)),
+                ),
+                for (final e in l)
+                  ListTile(
+                    title: Text(e.$1, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    subtitle: Text(
+                        '${e.$2.hour.toString().padLeft(2, '0')}:${e.$2.minute.toString().padLeft(2, '0')}',
+                        style: TextStyle(color: AppColors.textDim)),
+                    trailing: IconButton(
+                      tooltip: 'Guardar en favoritas',
+                      icon: const Icon(Icons.favorite_border_rounded),
+                      onPressed: () async {
+                        final m = ScaffoldMessenger.of(context);
+                        final sv = await RadioNow.save(e.$1);
+                        m.showSnackBar(SnackBar(
+                            content: Text(sv == null
+                                ? 'No la encontré para guardarla.'
+                                : 'Guardada: ${sv.title}')));
+                      },
+                    ),
+                  ),
+              ]),
+      ),
+    );
+  }
+
   Widget _liveBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
@@ -503,6 +552,61 @@ class _PlayerScreenState extends State<PlayerScreen>
                       letterSpacing: 2,
                       fontWeight: FontWeight.w800)),
             ],
+          ),
+          // «¿Qué está sonando?»: lo que envía la emisora.
+          ValueListenableBuilder<String>(
+            valueListenable: RadioNow.now,
+            builder: (context, now, _) {
+              final p = RadioNow.parse(now);
+              final station = pb.song.value?.title ?? '';
+              return Column(children: [
+                if (p != null) ...[
+                  const SizedBox(height: 10),
+                  Text('AHORA SUENA',
+                      style: AppType.overline.copyWith(color: AppColors.amber)),
+                  const SizedBox(height: 4),
+                  Text('${p.$1} — ${p.$2}',
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: AppType.body, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Wrap(spacing: 8, alignment: WrapAlignment.center, children: [
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                      icon: const Icon(Icons.favorite_border_rounded, size: 18),
+                      label: const Text('Guardar'),
+                      onPressed: () async {
+                        final m = ScaffoldMessenger.of(context);
+                        final sv = await RadioNow.save(now);
+                        m.showSnackBar(SnackBar(
+                            content: Text(sv == null
+                                ? 'No la encontré para guardarla.'
+                                : 'Guardada en favoritas: ${sv.title}')));
+                      },
+                    ),
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                      icon: const Icon(Icons.play_circle_outline_rounded, size: 18),
+                      label: const Text('Escuchar completa'),
+                      onPressed: () {
+                        Navigator.of(context).popUntil((r) => r.isFirst);
+                        mainTabWant.value = 1;
+                        searchHubWantMode.value = 0;
+                        searchWantQuery.value = '${p.$1} ${p.$2}';
+                      },
+                    ),
+                  ]),
+                ],
+                TextButton.icon(
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 44)),
+                  icon: const Icon(Icons.history_rounded, size: 18),
+                  label: const Text('Lo que sonó'),
+                  onPressed: () => _showHeard(station),
+                ),
+              ]);
+            },
           ),
           ValueListenableBuilder<List<Song>?>(
             valueListenable: SongQueueMemory.queue,

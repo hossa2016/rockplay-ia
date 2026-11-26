@@ -16,6 +16,8 @@ class AiSettings {
   String tavilyKey = '';
   /// Apify: lee el Instagram de tus bares (crédito gratis mensual).
   String apifyKey = '';
+  /// setlist.fm: setlists de los conciertos (gratis, uso no comercial).
+  String setlistKey = '';
   String groqModel = defaultGroqModel;
   String geminiModel = defaultGeminiModel;
   bool learn = true;
@@ -30,6 +32,7 @@ class AiSettings {
     'ai_gemini_key',
     'ai_tavily_key',
     'ai_apify_key',
+    'ai_setlist_key',
   ];
 
   /// Lee una clave cifrada; si aún estaba en texto plano, la mueve.
@@ -64,6 +67,7 @@ class AiSettings {
         'ai_gemini_key': geminiKey,
         'ai_tavily_key': tavilyKey,
         'ai_apify_key': apifyKey,
+        'ai_setlist_key': setlistKey,
       };
 
   /// Restaura claves desde una copia.
@@ -74,6 +78,7 @@ class AiSettings {
     geminiKey = g('ai_gemini_key', geminiKey);
     tavilyKey = g('ai_tavily_key', tavilyKey);
     apifyKey = g('ai_apify_key', apifyKey);
+    setlistKey = g('ai_setlist_key', setlistKey);
     await save();
   }
 
@@ -85,6 +90,7 @@ class AiSettings {
       geminiKey = await _readKey(sp, 'ai_gemini_key');
       tavilyKey = await _readKey(sp, 'ai_tavily_key');
       apifyKey = await _readKey(sp, 'ai_apify_key');
+      setlistKey = await _readKey(sp, 'ai_setlist_key');
       groqModel = sp.getString('ai_groq_model') ?? defaultGroqModel;
       // Modelos que Groq ya retiró: usa el actual.
       if (groqModel == 'llama-3.3-70b-versatile' ||
@@ -105,6 +111,7 @@ class AiSettings {
       await _writeKey(sp, 'ai_gemini_key', geminiKey.trim());
       await _writeKey(sp, 'ai_tavily_key', tavilyKey.trim());
       await _writeKey(sp, 'ai_apify_key', apifyKey.trim());
+      await _writeKey(sp, 'ai_setlist_key', setlistKey.trim());
       await sp.setString('ai_groq_model',
           groqModel.trim().isEmpty ? defaultGroqModel : groqModel.trim());
       await sp.setString('ai_gemini_model',
