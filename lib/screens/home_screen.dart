@@ -44,6 +44,8 @@ import 'radio_screen.dart';
 import '../widgets/nav_signals.dart';
 import '../services/backup_service.dart';
 import '../services/local_scene.dart';
+import '../services/release_watch.dart';
+import 'month_card_screen.dart';
 
 /// Contenedor principal: pestañas + mini-reproductor sobre la navegación.
 class HomeScreen extends StatefulWidget {
@@ -687,6 +689,7 @@ class _HomeTabState extends State<_HomeTab> {
                   _personalMix(),
                   const SizedBox(height: 12),
                   _nudgeCard(),
+                  _monthCard(),
                   _dailyRow(),
                   _quickAccess(),
                   const SizedBox(height: 4),
@@ -745,16 +748,70 @@ class _HomeTabState extends State<_HomeTab> {
                 borderRadius: BorderRadius.circular(AppRadius.pill),
                 border: on ? null : Border.all(color: AppColors.outline),
               ),
-              child: Text(labels[i],
-                  style: TextStyle(
-                      fontSize: AppType.label,
-                      fontWeight: FontWeight.w700,
-                      color: on ? Colors.white : AppColors.textDim)),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(labels[i],
+                    style: TextStyle(
+                        fontSize: AppType.label,
+                        fontWeight: FontWeight.w700,
+                        color: on ? Colors.white : AppColors.textDim)),
+                // Punto: hay lanzamientos nuevos de tus artistas.
+                if (i == 1)
+                  ValueListenableBuilder<int>(
+                    valueListenable: ReleaseWatch.fresh,
+                    builder: (_, n, __) => n == 0
+                        ? const SizedBox.shrink()
+                        : Container(
+                            margin: const EdgeInsets.only(left: 6),
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                                color: AppColors.amber, shape: BoxShape.circle),
+                          ),
+                  ),
+              ]),
             ),
           ));
         },
       ),
     ));
+  }
+
+  Future<MonthSummary?>? _month;
+
+  /// Días 1–10 del mes: «Tu octubre en rock» para ver y compartir.
+  Widget _monthCard() {
+    if (DateTime.now().day > 10) return const SizedBox.shrink();
+    _month ??= MonthSummary.previous();
+    return FutureBuilder<MonthSummary?>(
+      future: _month,
+      builder: (context, snap) {
+        final m = snap.data;
+        if (m == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Material(
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              side: BorderSide(color: AppColors.outline),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              minVerticalPadding: 12,
+              leading: Icon(Icons.insights_rounded, color: AppColors.amber),
+              title: Text(byMode('Tu ${m.month} en rock', 'Tu ${m.month} en Pulso'),
+                  style: const TextStyle(fontWeight: FontWeight.w800)),
+              subtitle: Text(
+                  '${m.plays} escuchas · ${m.artists.isEmpty ? '' : '${m.artists.first.name} n.º 1'}',
+                  style: TextStyle(color: AppColors.textDim)),
+              trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                  builder: (_) => MonthCardScreen(summary: m))),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   String _sceneFilter = 'Todo';
@@ -980,8 +1037,14 @@ class _HomeTabState extends State<_HomeTab> {
     try {
       names = await MixService.personalArtists();
     } catch (_) {}
-    names = (names.toSet().toList()..shuffle()).take(12).toList();
-    return ArtistInfoService.instance.recentReleases(names);
+    names = names.toSet().take(12).toList();
+    final l = await ArtistInfoService.instance.recentReleases(names);
+    // Lo nuevo primero; al verlo se marca como visto.
+    l.sort((a, b) => (ReleaseWatch.isNew(b.album.id) ? 1 : 0) -
+        (ReleaseWatch.isNew(a.album.id) ? 1 : 0));
+    Future<void>.delayed(const Duration(seconds: 4),
+        () => ReleaseWatch.markSeen([for (final r in l) r.album.id]));
+    return l;
   }
 
   Widget _releasesRow() {
@@ -1033,11 +1096,31 @@ class _HomeTabState extends State<_HomeTab> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      CoverArt(
-                          url: r.album.cover,
-                          size: 140,
-                          radius: 12,
-                          seed: r.artist),
+                      Stack(children: [
+                        CoverArt(
+                            url: r.album.cover,
+                            size: 140,
+                            radius: 12,
+                            seed: r.artist),
+                        if (ReleaseWatch.isNew(r.album.id))
+                          Positioned(
+                            left: 8,
+                            top: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.redBtn,
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: const Text('NUEVO',
+                                  style: TextStyle(
+                                      fontSize: AppType.caption,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white)),
+                            ),
+                          ),
+                      ]),
                       const SizedBox(height: 8),
                       Text(r.album.title,
                           maxLines: 1,

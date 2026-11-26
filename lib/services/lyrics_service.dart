@@ -103,6 +103,56 @@ class LyricsService {
     }
   }
 
+  /// Buscar una canción por un pedazo de su letra (LRCLIB busca en todos
+  /// los campos). Devuelve (artista, canción, línea que coincide).
+  Future<List<(String, String, String)>> byLyric(String text) async {
+    final c = HttpClient()..connectionTimeout = const Duration(seconds: 8);
+    final out = <(String, String, String)>[];
+    try {
+      final req = await c
+          .getUrl(Uri.parse(
+              'https://lrclib.net/api/search?q=${Uri.encodeQueryComponent(text)}'))
+          .timeout(const Duration(seconds: 8));
+      req.headers.set('User-Agent', 'RockPlay personal app');
+      final resp = await req.close().timeout(const Duration(seconds: 12));
+      if (resp.statusCode != 200) {
+        await resp.drain<void>();
+        return out;
+      }
+      final list = jsonDecode(await resp.transform(utf8.decoder).join());
+      if (list is! List) return out;
+      final words = text
+          .toLowerCase()
+          .split(RegExp(r'\s+'))
+          .where((w) => w.length > 2)
+          .toList();
+      final seen = <String>{};
+      for (final e in list) {
+        if (e is! Map) continue;
+        final a = '${e['artistName'] ?? ''}', t = '${e['trackName'] ?? ''}';
+        if (a.isEmpty || t.isEmpty || !seen.add('${a.toLowerCase()}|${t.toLowerCase()}')) {
+          continue;
+        }
+        // La línea que más palabras comparte con lo que escribiste.
+        var best = '', bs = 0;
+        for (final l in '${e['plainLyrics'] ?? ''}'.split('\n')) {
+          final ll = l.toLowerCase();
+          final sc = words.where(ll.contains).length;
+          if (sc > bs) {
+            bs = sc;
+            best = l.trim();
+          }
+        }
+        out.add((a, t, best));
+        if (out.length >= 5) break;
+      }
+    } catch (_) {
+    } finally {
+      c.close(force: true);
+    }
+    return out;
+  }
+
   static List<LyricLine> _parse(String lrc) {
     final out = <LyricLine>[];
     final re = RegExp(r'\[(\d+):(\d+(?:\.\d+)?)\]');

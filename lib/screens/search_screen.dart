@@ -14,6 +14,7 @@ import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
 import '../widgets/undo.dart';
 import '../widgets/state_views.dart';
+import '../services/lyrics_service.dart';
 
 /// Pide buscar algo en la pestaña Buscar desde fuera (ej. «Escuchar banda»).
 final ValueNotifier<String?> searchWantQuery = ValueNotifier<String?>(null);
@@ -389,6 +390,57 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
+  /// Buscar por letra: «la que dice algo de una luz que no se apaga…».
+  Future<void> _byLyric() async {
+    final q = _controller.text.trim();
+    if (q.isEmpty) return;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (c) => SafeArea(
+        child: FutureBuilder<List<(String, String, String)>>(
+          future: LyricsService.instance.byLyric(q),
+          builder: (c, snap) {
+            if (snap.connectionState != ConnectionState.done) {
+              return const Padding(
+                padding: EdgeInsets.all(32),
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            final l = snap.data ?? const [];
+            return ListView(shrinkWrap: true, children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                child: Text(
+                    l.isEmpty ? 'No encontré esa letra.' : 'Canciones con esa letra',
+                    style: const TextStyle(
+                        fontSize: AppType.title, fontWeight: FontWeight.w800)),
+              ),
+              for (final (a, t, line) in l)
+                ListTile(
+                  title: Text('$t · $a',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: line.isEmpty
+                      ? null
+                      : Text('«$line»',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              color: AppColors.amber, fontStyle: FontStyle.italic)),
+                  onTap: () {
+                    Navigator.of(c).pop();
+                    _controller.text = '$a $t';
+                    _search();
+                  },
+                ),
+            ]);
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _body() {
     if (_loading) return const SkeletonList();
     if (_error != null) {
@@ -403,10 +455,12 @@ class _SearchScreenState extends State<SearchScreen> {
     }
     if (!_searched) return _intro();
     if (_results.isEmpty) {
-      return const StateMessage(
+      return StateMessage(
         icon: Icons.search_off_rounded,
         title: 'Sin resultados',
-        message: 'Prueba con otro nombre o revisa la ortografía.',
+        message: 'Prueba con otro nombre, o si recuerdas un pedazo de la letra, búscala por letra.',
+        actionLabel: '¿Buscar por letra?',
+        onAction: _byLyric,
       );
     }
     return ListView.builder(
@@ -426,6 +480,15 @@ class _SearchScreenState extends State<SearchScreen> {
                   style: const TextStyle(
                       fontWeight: FontWeight.w800, fontSize: 16),
                 ),
+                // Frase larga: quizá es un pedazo de la letra.
+                if (_controller.text.trim().split(RegExp(r'\s+')).length >= 4)
+                  TextButton.icon(
+                    style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero, minimumSize: const Size(0, 40)),
+                    onPressed: _byLyric,
+                    icon: const Icon(Icons.lyrics_outlined, size: 18),
+                    label: const Text('¿Es parte de una letra? Buscar por letra'),
+                  ),
                 const SizedBox(height: 10),
                 Row(children: [
                   Expanded(

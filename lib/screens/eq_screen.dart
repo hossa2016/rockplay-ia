@@ -96,7 +96,19 @@ class _EqScreenState extends State<EqScreen> {
         padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
         children: [
           _suggestionCard(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 8),
+          // Un preajuste por audífono o salida.
+          SwitchListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+            secondary: const Icon(Icons.headphones_rounded),
+            title: const Text('Recordar por audífono',
+                style: TextStyle(fontWeight: FontWeight.w700)),
+            subtitle: Text('Ahora: ${eq.device}',
+                style: TextStyle(color: AppColors.textDim)),
+            value: eq.perDevice,
+            onChanged: (v) => eq.setPerDevice(v),
+          ),
+          const SizedBox(height: 12),
           Text('PREAJUSTES',
               style: TextStyle(fontSize: AppType.caption, letterSpacing: 1.5, fontWeight: FontWeight.w700, color: AppColors.textDim)),
           const SizedBox(height: 6),

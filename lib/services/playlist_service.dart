@@ -110,6 +110,19 @@ class PlaylistService {
     return p;
   }
 
+  /// Cambia el orden de las canciones (mismas canciones).
+  Future<void> setOrder(String id, List<Song> songs) async {
+    final lists = await _raw();
+    for (final p in lists) {
+      if (p.id == id) {
+        p.songs
+          ..clear()
+          ..addAll(songs);
+      }
+    }
+    await _save(lists);
+  }
+
   Future<void> rename(String id, String name) async {
     final lists = await _raw();
     for (final p in lists) {

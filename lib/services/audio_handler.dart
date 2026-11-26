@@ -90,8 +90,15 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   // ---- Volumen suave: fundido entre canciones y al apagar con el temporizador.
   double _sleepVol = 1, _edgeVol = 1, _rampVol = 1, _appliedVol = 1;
+  double _duckVol = 1; // el locutor habla: la música baja
   bool _fadeIn = false;
   Timer? _rampTimer;
+
+  /// Locutor: baja la música mientras habla.
+  void duck(bool on) {
+    _duckVol = on ? 0.22 : 1;
+    _applyVol();
+  }
 
   /// Despertador: el volumen empieza bajo y sube hasta el máximo en [d].
   void rampUp(Duration d) {
@@ -111,6 +118,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
   void _applyVol() {
     var v = _sleepVol < _edgeVol ? _sleepVol : _edgeVol;
     if (_rampVol < v) v = _rampVol;
+    if (_duckVol < v) v = _duckVol;
     if (v < 0) v = 0;
     if (v > 1) v = 1;
     if ((v - _appliedVol).abs() < 0.04 && v != 1 && v != 0) return;

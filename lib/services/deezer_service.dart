@@ -116,6 +116,22 @@ class DeezerService {
     }
   }
 
+  /// BPM de una canción (0 si Deezer no lo sabe).
+  Future<double> bpm(String artist, String title) async {
+    try {
+      final j = await _get('/search',
+          {'q': 'artist:"$artist" track:"$title"', 'limit': '1'},
+          ttl: const Duration(days: 60));
+      final l = (j['data'] as List?) ?? const [];
+      if (l.isEmpty) return 0;
+      final t = await _get('/track/${(l.first as Map)['id']}', const {},
+          ttl: const Duration(days: 60));
+      return ((t['bpm'] as num?) ?? 0).toDouble();
+    } catch (_) {
+      return 0;
+    }
+  }
+
   Future<String> coverFor(String query) async {
     final q = query
         .replaceAll(RegExp(r'[\[\(][^\]\)]*[\]\)]'), ' ')

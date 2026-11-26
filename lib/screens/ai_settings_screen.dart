@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/ai_settings.dart';
 import '../theme/app_theme.dart';
 import '../widgets/section_header.dart';
+import '../services/lastfm_service.dart';
 
 /// Claves gratuitas de Groq y Gemini. Se guardan solo en este teléfono.
 class AiSettingsScreen extends StatefulWidget {
@@ -187,6 +188,51 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     );
   }
 
+  Future<void> _connectLastFm() async {
+    final key = TextEditingController(), sec = TextEditingController(),
+        user = TextEditingController(), pass = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Conectar Last.fm'),
+        content: SingleChildScrollView(
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Text(
+                '1. En last.fm/api/account/create crea una «API account» (gratis).\n2. Copia la API key y el Shared secret.\n3. Escribe tu usuario y contraseña de Last.fm (la contraseña no se guarda).',
+                style: TextStyle(color: AppColors.textDim, fontSize: AppType.label)),
+            TextField(controller: key, decoration: const InputDecoration(labelText: 'API key')),
+            TextField(controller: sec, decoration: const InputDecoration(labelText: 'Shared secret')),
+            TextField(controller: user, decoration: const InputDecoration(labelText: 'Usuario')),
+            TextField(
+                controller: pass,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: 'Contraseña')),
+          ]),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => launchUrl(Uri.parse('https://www.last.fm/api/account/create'),
+                  mode: LaunchMode.externalApplication),
+              child: const Text('Abrir la página')),
+          FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Conectar')),
+        ],
+      ),
+    );
+    if (ok == true) {
+      final err = await LastFmService.instance
+          .connect(key.text, sec.text, user.text, pass.text);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(err == null ? 'Last.fm conectado.' : 'Last.fm: $err')));
+      }
+    }
+    for (final c in [key, sec, user, pass]) {
+      c.dispose();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -268,6 +314,27 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   hide: _hideApify,
                   toggle: () => setState(() => _hideApify = !_hideApify),
                   hint: 'apify_api_…',
+                ),
+                const SizedBox(height: 12),
+                // Last.fm: registro opcional de lo que escuchas.
+                ValueListenableBuilder<bool>(
+                  valueListenable: LastFmService.instance.connected,
+                  builder: (context, on, _) => Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.graphic_eq_rounded),
+                      title: const Text('Last.fm (opcional)',
+                          style: TextStyle(fontWeight: FontWeight.w700)),
+                      subtitle: Text(on
+                          ? 'Conectado como ${LastFmService.instance.user}. Registra lo que escuchas.'
+                          : 'Registra lo que escuchas en tu perfil de Last.fm.'),
+                      trailing: TextButton(
+                        onPressed: on
+                            ? () => LastFmService.instance.disconnect()
+                            : _connectLastFm,
+                        child: Text(on ? 'Desconectar' : 'Conectar'),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 ExpansionTile(

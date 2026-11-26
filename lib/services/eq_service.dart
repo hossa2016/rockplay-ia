@@ -1,3 +1,4 @@
+import 'package:audio_session/audio_session.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -88,6 +89,10 @@ class EqService extends ChangeNotifier {
 
   bool enabled = true;
   bool auto = false;
+  /// Recordar un preajuste por audífono o salida (parlante, Bluetooth…).
+  bool perDevice = false;
+  String device = 'Parlante del teléfono';
+  Map<String, String> _devPreset = {};
   String preset = defaultPreset;
   List<double> gains = List<double>.from(presets[defaultPreset]!);
 
@@ -136,6 +141,11 @@ class EqService extends ChangeNotifier {
       final p = await SharedPreferences.getInstance();
       enabled = p.getBool('eq_on') ?? true;
       auto = p.getBool('eq_auto') ?? false;
+      perDevice = p.getBool('eq_per_device') ?? false;
+      final dp = p.getString('eq_dev_presets');
+      if (dp != null) {
+        _devPreset = (jsonDecode(dp) as Map).map((k, v) => MapEntry('$k', '$v'));
+      }
       preset = p.getString('eq_preset') ?? defaultPreset;
       preset = _renamed[preset] ?? preset;
       final c = p.getString('eq_cache');
@@ -163,6 +173,48 @@ class EqService extends ChangeNotifier {
       PlaybackService.instance.currentSong.listen(_onSong);
     } catch (_) {}
     unawaited(applyAll());
+    unawaited(_watchDevices());
+  }
+
+  /// Salida actual: audífonos Bluetooth/cable si hay, si no el parlante.
+  Future<void> _watchDevices() async {
+    try {
+      final session = await AudioSession.instance;
+      Future<void> check() async {
+        final ds = await session.getDevices(includeInputs: false);
+        AudioDevice? best;
+        for (final d in ds) {
+          if (d.type == AudioDeviceType.bluetoothA2dp ||
+              d.type == AudioDeviceType.wiredHeadphones ||
+              d.type == AudioDeviceType.wiredHeadset ||
+              d.type == AudioDeviceType.usbAudio) {
+            best = d;
+            break;
+          }
+        }
+        final name = best == null
+            ? 'Parlante del teléfono'
+            : (best.name.trim().isEmpty ? 'Audífonos' : best.name.trim());
+        if (name == device) return;
+        device = name;
+        final pr = _devPreset[name];
+        if (perDevice && pr != null && presets.containsKey(pr)) {
+          applyPreset(pr);
+        } else {
+          notifyListeners();
+        }
+      }
+
+      await check();
+      session.devicesChangedEventStream.listen((_) => check());
+    } catch (_) {}
+  }
+
+  Future<void> setPerDevice(bool v) async {
+    perDevice = v;
+    if (v && preset != 'Personalizado') _devPreset[device] = preset;
+    await _save();
+    notifyListeners();
   }
 
   Future<void> _save() async {
@@ -170,6 +222,8 @@ class EqService extends ChangeNotifier {
       final p = await SharedPreferences.getInstance();
       await p.setBool('eq_on', enabled);
       await p.setBool('eq_auto', auto);
+      await p.setBool('eq_per_device', perDevice);
+      await p.setString('eq_dev_presets', jsonEncode(_devPreset));
       await p.setString('eq_preset', preset);
       await p.setString('eq_gains', jsonEncode(gains));
     } catch (_) {}
@@ -196,6 +250,7 @@ class EqService extends ChangeNotifier {
     final p = presets[name];
     if (p == null) return;
     preset = name;
+    if (perDevice) _devPreset[device] = name;
     gains = List<double>.from(p);
     _changed();
   }

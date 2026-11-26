@@ -15,12 +15,16 @@ import 'services/music_mode.dart';
 import 'services/playback_service.dart';
 import 'widgets/playback_ui.dart';
 import 'widgets/cover_art.dart';
+import 'services/release_watch.dart';
+import 'services/dj_voice.dart';
+import 'services/lastfm_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Primero el modo de música: define colores, textos y géneros.
   await MusicModeService.load();
   unawaited(SongArtwork.warm());
+  unawaited(Future<void>.delayed(const Duration(seconds: 20), ReleaseWatch.check));
   await ModeCleanup.run();
   unawaited(ModeCleanup.fixTitles());
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
@@ -49,6 +53,8 @@ Future<void> main() async {
   try {
     await PlaybackService.instance.init();
     PlaybackUi.instance.start();
+    unawaited(DjVoice.instance.init());
+    unawaited(LastFmService.instance.init());
     unawaited(EqService.instance.init());
   } catch (_) {
     // La interfaz debe abrir aunque el audio falle al iniciar.
