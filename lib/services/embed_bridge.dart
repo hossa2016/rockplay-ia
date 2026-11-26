@@ -14,6 +14,7 @@ class EmbedBridge {
   StreamSubscription<YoutubePlayerValue>? _sub;
   String _videoId = '';
   PlayerState _last = PlayerState.unknown;
+  PlayerState get state => _last;
 
   /// Rectángulo (coordenadas globales) donde se muestra el video; null = oculto.
   final ValueNotifier<Rect?> slot = ValueNotifier<Rect?>(null);
@@ -85,7 +86,8 @@ class EmbedBridge {
     var tries = 0;
     _nudge = Timer.periodic(const Duration(milliseconds: 1500), (t) {
       tries++;
-      if (_last == PlayerState.playing || tries > 8) {
+      // Hasta ~30 s (con la pantalla apagada YouTube tarda en dejar sonar).
+      if (_last == PlayerState.playing || tries > 20) {
         t.cancel();
         return;
       }

@@ -4,6 +4,7 @@ import 'dart:io' show HttpClient;
 
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:youtube_player_iframe/youtube_player_iframe.dart' show PlayerState;
 import 'package:just_audio/just_audio.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -86,6 +87,16 @@ class RockPlayAudioHandler extends BaseAudioHandler
   Timer? _sleepTimer;
   DateTime? _sleepAt;
   bool _sleepEndOfSong = false;
+
+  // ---- Vigilante: la música debe sonar (fuera de la app / pantalla apagada).
+  /// El usuario quiere que suene (se apaga al pausar, detener, dormir o
+  /// terminar la cola).
+  bool _wantPlay = false;
+  /// Llamada u otra app con audio: no pelear por el sonido.
+  bool _interrupted = false;
+  Duration _wdLastPos = Duration.zero;
+  int _wdStuck = 0;
+  Timer? _watchdog;
   bool _radio = false; // sonando una emisora en vivo con just_audio
 
   // ---- Volumen suave: fundido entre canciones y al apagar con el temporizador.
@@ -165,6 +176,14 @@ class RockPlayAudioHandler extends BaseAudioHandler
     final eb = EmbedBridge.instance;
     eb.onPlaying = (p) {
       if (p) _chainSkips = 0;
+      // Con «Ver video», una pausa en el propio video es tuya: el vigilante
+      // no debe reanudarla.
+      if (!p &&
+          eb.slot.value != null &&
+          eb.state == PlayerState.paused &&
+          !_interrupted) {
+        _wantPlay = false;
+      }
       _embedPlaying = p;
       _s.playing.add(p);
       _broadcast();
@@ -187,6 +206,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     eb.onEnded = () {
       if (_sleepEndOfSong) {
         _clearSleep();
+        _wantPlay = false;
         unawaited(StopLog.record(
             'El temporizador de dormir apagó la música (al terminar la canción).'));
         EmbedBridge.instance.pause();
@@ -202,15 +222,37 @@ class RockPlayAudioHandler extends BaseAudioHandler
       } else if (rep == 1 && _songs.isNotEmpty) {
         _startAt(0);
       } else {
+        _wantPlay = false; // terminó la cola
         _embedPlaying = false;
         _s.playing.add(false);
         _broadcast();
       }
     };
     eb.onError = (m) => _onEmbedError(m);
+    _watchdog = Timer.periodic(const Duration(seconds: 4), (_) => _checkStall());
     try {
       final session = await AudioSession.instance;
       await session.configure(AudioSessionConfiguration.music());
+      // Llamadas y otras apps: el video de YouTube no pausa solo; se hace
+      // aquí y se reanuda al terminar la interrupción.
+      session.interruptionEventStream.listen((e) {
+        if (!_useEmbed || _radio) return;
+        if (e.begin) {
+          if (e.type != AudioInterruptionType.duck && _wantPlay) {
+            _interrupted = true;
+            unawaited(EmbedBridge.instance.pause());
+          }
+        } else if (_interrupted) {
+          _interrupted = false;
+          if (_wantPlay && e.type != AudioInterruptionType.unknown) {
+            unawaited(EmbedBridge.instance.play());
+          }
+        }
+      });
+      // Audífonos desconectados: pausar (no seguir por el parlante).
+      session.becomingNoisyEventStream.listen((_) {
+        if (_useEmbed && !_radio) unawaited(pause());
+      });
       // just_audio (handleInterruptions: true) ya pausa/reanuda con las
       // interrupciones de audio_session (llamadas, otras apps, auriculares).
     } catch (_) {}
@@ -326,6 +368,8 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   Future<void> _startAt(int index,
       {Duration? resumeAt, bool fresh = false}) async {
+    _wantPlay = true;
+    _wdStuck = 0;
     final live = index >= 0 && index < _songs.length && _songs[index].isRadio;
     _fadeIn = !live && resumeAt == null;
     _edgeVol = _fadeIn ? 0.3 : 1;
@@ -499,6 +543,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
       // Varias seguidas sin sonar: no seguir saltando en silencio.
       _chainSkips = 0;
       _resolving = false;
+      _wantPlay = false;
       _broadcast();
       unawaited(StopLog.record(
           'Se detuvo: varias canciones seguidas están bloqueadas por YouTube.'));
@@ -916,9 +961,52 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   // --------------------------------------------------------------- Estado
 
+  /// Cada 4 s: si debería sonar y el video está quieto (YouTube no arrancó
+  /// la siguiente con la pantalla apagada, se quedó cargando o el WebView
+  /// se pausó), lo reanima: play → recargar en el mismo punto → siguiente.
+  void _checkStall() {
+    if (!_wantPlay || _interrupted || !_useEmbed || _radio || _resolving) {
+      _wdStuck = 0;
+      return;
+    }
+    if (_index < 0 || _index >= _songs.length) return;
+    final pos = _embedPos;
+    final moving = (pos - _wdLastPos).inMilliseconds.abs() > 500;
+    _wdLastPos = pos;
+    if (_embedPlaying && moving) {
+      _wdStuck = 0;
+      return;
+    }
+    _wdStuck++;
+    final eb = EmbedBridge.instance;
+    final vid = _songs[_index].videoId;
+    if (_wdStuck == 2) {
+      unawaited(eb.play()); // ~8 s quieta
+    } else if (_wdStuck == 4 && vid.isNotEmpty) {
+      // ~16 s: recargar el video donde iba.
+      eb.load(vid, start: pos.inMilliseconds / 1000.0);
+    } else if (_wdStuck == 6 && vid.isNotEmpty) {
+      eb.load(vid, start: pos.inMilliseconds / 1000.0);
+    } else if (_wdStuck >= 8) {
+      // ~32 s sin sonar: pasar a la siguiente (y anotarlo).
+      _wdStuck = 0;
+      SkipLog.add('«${_songs[_index].title}»: se quedó sin sonar fuera de la app; pasé a la siguiente.');
+      if (hasNextTrack) {
+        _startAt(_index + 1);
+      } else if (_s.repeat.value == 1 && _songs.isNotEmpty) {
+        _startAt(0);
+      }
+    }
+  }
+
   void _broadcast() {
     final playing =
         _useEmbed && !_radio ? _embedPlaying : _player.playing;
+    // Para Android, mientras quieras música (cambio de canción, búsqueda o
+    // carga), la app sigue «sonando»: así el servicio en primer plano no se
+    // cae y HyperOS no congela la app entre canciones.
+    final keep = playing ||
+        (_useEmbed && !_radio && _wantPlay && !_interrupted);
     final ps = _useEmbed && !_radio
         ? ProcessingState.ready
         : _player.processingState;
@@ -943,7 +1031,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
     playbackState.add(PlaybackState(
       controls: [
         MediaControl.skipToPrevious,
-        if (playing) MediaControl.pause else MediaControl.play,
+        if (keep) MediaControl.pause else MediaControl.play,
         MediaControl.skipToNext,
       ],
       systemActions: _radio
@@ -955,7 +1043,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
             },
       androidCompactActionIndices: const [0, 1, 2],
       processingState: aps,
-      playing: playing,
+      playing: keep,
       updatePosition: _radio
           ? Duration.zero
           : (_useEmbed ? _embedPos : _player.position),
@@ -969,6 +1057,9 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> play() async {
+    _wantPlay = true;
+    _interrupted = false;
+    _wdStuck = 0;
     if (_radio) {
       // En vivo: reconecta en vez de reanudar lo que quedó en el búfer.
       if (_index >= 0 && !_resolving) return _startRadio(_index);
@@ -998,6 +1089,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> pause() async {
+    _wantPlay = false;
     if (_radio) return _player.pause();
     if (_useEmbed) return EmbedBridge.instance.pause();
     await _player.pause();
@@ -1005,6 +1097,7 @@ class RockPlayAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> stop() async {
+    _wantPlay = false;
     _gen++;
     _resolving = false;
     if (_useEmbed) unawaited(EmbedBridge.instance.pause());
