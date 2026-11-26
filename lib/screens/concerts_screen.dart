@@ -201,11 +201,20 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
 
   String? _focus;
 
+  /// Separa el nombre de la gira entre paréntesis al final.
+  static (String, String) _tourSplit(String t) {
+    final m = RegExp(r'^(.+?)\s*\(([^()]{6,})\)\s*$').firstMatch(t);
+    if (m == null) return (t, '');
+    return (m.group(1)!.trim(), m.group(2)!.trim());
+  }
+
   List<Concert> _filter(List<Concert> all) {
     final f = _focus?.toLowerCase();
     if (f != null && f.isNotEmpty) {
+      // Palabra completa: «Ghost» no es «Ghostemane».
+      final re = RegExp('(^|[^a-záéíóúñü0-9])${RegExp.escape(f)}(\$|[^a-záéíóúñü0-9])');
       final only = all
-          .where((c) => !isTribute(c) && c.band.toLowerCase().contains(f))
+          .where((c) => !isTribute(c) && re.hasMatch(c.band.toLowerCase()))
           .toList();
       if (only.isNotEmpty) return only;
     }
@@ -240,9 +249,17 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(c.title,
+                  // «The Strokes (Reality Awaits South America 2026)»: la
+                  // gira va en una línea aparte, más pequeña.
+                  Text(_tourSplit(c.title).$1,
                       style: const TextStyle(
                           fontSize: 16, fontWeight: FontWeight.w800)),
+                  if (_tourSplit(c.title).$2.isNotEmpty)
+                    Text(_tourSplit(c.title).$2,
+                        style: TextStyle(
+                            fontSize: AppType.label,
+                            fontStyle: FontStyle.italic,
+                            color: AppColors.textDim)),
                   if (c.lineupUnknown)
                     Text('Cartel por anunciar',
                         style: TextStyle(
@@ -262,7 +279,12 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                               fontSize: AppType.bodySm,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textDim))),
-                  if (c.date == null)
+                  // «Por confirmar» ya lo dicen la sección y la caja de la
+                  // fecha; solo se muestra si hay algo más («Marzo 2027»).
+                  if (c.date == null &&
+                      c.when.trim().isNotEmpty &&
+                      !RegExp(r'confirmar|tbd|tba', caseSensitive: false)
+                          .hasMatch(c.when))
                     Text('Fecha: ${c.when}',
                         style: TextStyle(
                             fontSize: AppType.label,

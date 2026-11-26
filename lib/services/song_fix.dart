@@ -17,7 +17,10 @@ class SongFix {
   static bool doubtful(Song s) =>
       _num.hasMatch(s.title.trim()) ||
       !SongMeta.isPlausibleArtist(s.artist) ||
-      s.artist.trim().length <= 3 ||
+      // «Shakira · No»: artista corto y título de una o dos palabras.
+      (s.artist.trim().length <= 3 &&
+          s.title.trim().split(RegExp(r'\s+')).length <= 2 &&
+          SongMeta.isPlausibleArtist(s.title)) ||
       RegExp(r'[♫♪]|\blyrics?\b|subtitulad', caseSensitive: false).hasMatch(s.title);
 
   static Future<Song> verify(Song s) async {

@@ -1198,7 +1198,9 @@ class _HomeTabState extends State<_HomeTab> {
       // el resto sale de tus géneros favoritos o de las semillas del modo.
       final own = (seeds.toSet().toList()..shuffle()).take(3).toList();
       final other = <String>[
-        for (final g in PulsoPrefs.favGenres.value) ...(_genreSeeds[g] ?? const <String>[]),
+        // El rock no cuenta como «otro género» en Pulso: ya lo tienes.
+        for (final g in PulsoPrefs.favGenres.value)
+          if (g != 'Rock') ...(_genreSeeds[g] ?? const <String>[]),
         ...MixService.modeSeeds,
       ]..shuffle();
       final keys = own.map(SongMeta.artistKey).toSet();

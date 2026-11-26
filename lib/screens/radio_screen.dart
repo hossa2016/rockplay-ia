@@ -272,7 +272,7 @@ class _RadioScreenState extends State<RadioScreen> {
                               failed
                                   ? 'No se pudo reproducir · toca para reintentar'
                                   : (current ? 'EN VIVO' : s.subtitle),
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                   fontSize: AppType.caption,

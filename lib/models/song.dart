@@ -137,7 +137,7 @@ class SongMeta {
 
   /// «Rammstein Official», «PearlJamVEVO», «Korn - Topic» → nombre del artista.
   static final RegExp _uploader = RegExp(
-      r'(\bshow$|podcast|productions?\b|\bstudios?$|\bent(ertainment)?$|\bradio$|\bfm$|uploader|vault|records\b|recordings|music\s*(channel|tv)?$|heartbeats|lyrics|letras|hits|classics|mix(es)?$|channel$|^\w+chef$|\btv$|archive|collection)',
+      r'(^the\s+\S+(\s+\S+)+\s+show$|\b(tonight|late|daily) show$|podcast|productions?\b|\bstudios?$|\bentertainment$|uploader|vault|records\b|recordings|music\s*(channel|tv)?$|heartbeats|lyrics|letras|hits|classics|mix(es)?$|channel$|^\w+chef$|\btv$|archive|collection)',
       caseSensitive: false);
 
   /// ¿El «artista» parece un canal que sube música de otros?
@@ -218,13 +218,26 @@ class SongMeta {
     }
     // «Counting Crows "Round Here"» (subido por un programa de TV o radio).
     final q = RegExp(r'^([^"“”]{2,40}?)\s*[:\-–]?\s*["“]([^"”]+)["”]\s*(.*)$').firstMatch(t);
-    if (q != null && _sep.firstMatch(q.group(1)!) == null) {
+    // Solo si el canal no es el artista: «Smells Like Teen Spirit "Live"»
+    // subido por Nirvana no es «Live» de «Smells Like Teen Spirit».
+    final channelIsArtist = channel.isNotEmpty &&
+        !looksLikeUploader(channel) &&
+        isPlausibleArtist(channel);
+    if (q != null && !channelIsArtist && _sep.firstMatch(q.group(1)!) == null) {
       final a = q.group(1)!.trim(), ti = q.group(2)!.trim();
-      if (isPlausibleArtist(a) && ti.isNotEmpty) {
+      if (isPlausibleArtist(a) && ti.isNotEmpty && !_notTitle.hasMatch(ti)) {
         return (artist: a, title: ti);
       }
     }
-    final m = _sep.firstMatch(t);
+    // «Self- Destruction» (una palabra antes del guion sin espacio) no es
+    // «Artista - Canción»; «Bring Me The Horizon- Dig It» sí.
+    RegExpMatch? m;
+    for (final x in _sep.allMatches(t)) {
+      final glued = x.start > 0 && '-–—'.contains(t[x.start]);
+      if (glued && !t.substring(0, x.start).trim().contains(' ')) continue;
+      m = x;
+      break;
+    }
     if (m != null) {
       final left = t.substring(0, m.start).trim().replaceAll(RegExp(r'^["“]|["”]$'), '');
       final right = t.substring(m.end).trim().replaceAll(RegExp(r'^["“]|["”]$'), '');
