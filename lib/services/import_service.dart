@@ -75,7 +75,15 @@ class ImportService {
     final out = <Song>[];
     final lines = text.split(RegExp(r'\r?\n')).where((l) => l.trim().isNotEmpty).toList();
     if (lines.isEmpty) return ('Lista importada', out);
-    final sep = _sepOf(lines.first);
+    // Separador por mayoría en las primeras líneas (no solo la primera).
+    final votes = <String, int>{};
+    for (final l in lines.take(6)) {
+      final c = _sepOf(l);
+      if (c != null) votes[c] = (votes[c] ?? 0) + 1;
+    }
+    final sep = votes.isEmpty
+        ? null
+        : (votes.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
     // CSV con encabezado (Exportify, TuneMyMusic…): columnas por nombre.
     int ti = -1, ai = -1;
     if (sep != null) {

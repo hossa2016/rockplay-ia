@@ -120,10 +120,10 @@ class LyricsService {
       final resp = await req.close().timeout(const Duration(seconds: 12));
       if (resp.statusCode != 200) {
         await resp.drain<void>();
-        return out;
+        throw Exception('lrclib ${resp.statusCode}'); // → respaldo con IA
       }
       final list = jsonDecode(await resp.transform(utf8.decoder).join());
-      if (list is! List) return out;
+      if (list is! List) throw Exception('lrclib');
       final words = text
           .toLowerCase()
           .split(RegExp(r'\s+'))
@@ -168,7 +168,8 @@ class LyricsService {
           final a = '${e['artista'] ?? ''}'.trim(), t = '${e['cancion'] ?? ''}'.trim();
           if (a.isEmpty || t.isEmpty) continue;
           if (!await d.trackExists(a, t)) continue;
-          out.add((a, t, '${e['linea'] ?? ''}'.trim()));
+          // La línea que da la IA no se puede comprobar: no se muestra.
+          out.add((a, t, ''));
           if (out.length >= 5) break;
         }
       }

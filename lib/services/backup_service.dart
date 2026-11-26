@@ -151,6 +151,15 @@ class BackupService {
     await AlarmService.instance.cancelAllScheduled();
     final sp = await SharedPreferences.getInstance();
     final data = (j['data'] as Map).cast<String, dynamic>();
+    // Valida toda la copia ANTES de borrar nada.
+    for (final e in data.values) {
+      final m = e as Map;
+      final t = m['t'];
+      final v = m['v'];
+      final ok = (t == 'l' && v is List) || (t == 's' && v is String) ||
+          (t == 'b' && v is bool) || ((t == 'i' || t == 'd') && v is num);
+      if (!ok) throw const FormatException('copia dañada');
+    }
     if (!merge) {
       for (final k in sp.getKeys().toList()) {
         if (!_skip(k)) await sp.remove(k);
@@ -206,18 +215,25 @@ class BackupService {
     return 'j:${jsonEncode(x)}';
   }
 
-  /// Une listas de JSON (favoritas, historial…) sin duplicar por clave.
+  /// Une listas de JSON (favoritas, historial…) sin duplicar: una canción
+  /// se repite si coincide por videoId O por artista+título.
   static List<String> _mergeItems(List<String> cur, List<String> inc) {
     final seen = <String>{};
     final out = <String>[];
     for (final raw in [...cur, ...inc]) {
-      String k;
+      final keys = <String>[];
       try {
-        k = _itemKey(jsonDecode(raw));
+        final x = jsonDecode(raw);
+        keys.add(_itemKey(x));
+        if (x is Map && (x['artist'] != null || x['title'] != null)) {
+          keys.add('s:${'${x['artist'] ?? ''}'.toLowerCase()}|${'${x['title'] ?? ''}'.toLowerCase()}');
+        }
       } catch (_) {
-        k = 'r:$raw';
+        keys.add('r:$raw');
       }
-      if (seen.add(k)) out.add(raw);
+      if (keys.any(seen.contains)) continue;
+      seen.addAll(keys);
+      out.add(raw);
     }
     return out;
   }

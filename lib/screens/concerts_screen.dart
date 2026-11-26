@@ -306,7 +306,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
           const SizedBox(height: 8),
           if (!c.lineupUnknown && _mineOf(c) != null)
             Row(children: [
-              Expanded(
+              if (c.date != null) Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.event_rounded, size: 18),
@@ -322,7 +322,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                         },
                 ),
               ),
-              const SizedBox(width: 8),
+              if (c.date != null) const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
