@@ -17,6 +17,8 @@ import '../widgets/section_header.dart';
 import '../widgets/state_views.dart';
 import '../services/music_mode.dart';
 import '../widgets/app_button.dart';
+import '../widgets/nav_signals.dart';
+import 'search_hub.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -182,8 +184,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
               message: other > 0
                   ? 'Toca el corazón en el reproductor para guardar tus temas. Tienes $other en $otherName.'
                   : 'Toca el corazón en el reproductor para guardar tus temas.',
-              actionLabel: 'Buscar canciones',
-              onAction: () => mainTabWant.value = 1,
+              // Si hay favoritas en el otro modo, se ofrece ir allá.
+              actionLabel: other > 0 ? 'Ver en $otherName' : 'Buscar canciones',
+              onAction: other > 0
+                  ? () => MusicModeService.set(MusicModeService.general
+                      ? MusicMode.rock
+                      : MusicMode.general)
+                  : () {
+                      searchHubWantMode.value = 0; // segmento Canciones
+                      mainTabWant.value = 1;
+                    },
             )
           : const StateMessage(
               icon: Icons.history_rounded,
@@ -513,9 +523,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
 /// Pide abrir una pestaña de Mi música desde fuera (0 favoritos, 1 listas,
 /// 2 historial).
 final ValueNotifier<int> libraryWantTab = ValueNotifier<int>(-1);
-
-/// Pide cambiar de pestaña principal (0 Inicio, 1 Buscar, 2 Mi música…).
-final ValueNotifier<int> mainTabWant = ValueNotifier<int>(-1);
 
 class _TabJump extends StatefulWidget {
   final Widget child;

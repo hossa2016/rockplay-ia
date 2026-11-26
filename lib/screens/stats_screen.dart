@@ -6,7 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/player_route.dart';
 import '../widgets/section_header.dart';
 import 'artist_screen.dart';
-import 'taste_screen.dart';
+import '../services/ai_settings.dart';
 import '../widgets/state_views.dart';
 
 /// Lo que más escuchas: artistas y canciones por semana, mes o siempre.
@@ -28,7 +28,43 @@ class _StatsScreenState extends State<StatsScreen> {
     _load();
   }
 
+  String _pattern() {
+    if (_plays.length < 10) return '';
+    var night = 0;
+    for (final p in _plays) {
+      final h = DateTime.fromMillisecondsSinceEpoch(p.ts * 1000).hour;
+      if (h >= 20 || h < 6) night++;
+    }
+    final pct = (night * 100 / _plays.length).round();
+    if (pct >= 60) return 'Escuchas sobre todo de noche ($pct %).';
+    if (pct <= 30) return 'Escuchas sobre todo de día (${100 - pct} %).';
+    return 'Escuchas a lo largo de todo el día.';
+  }
+
+  Future<void> _clear() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Borrar lo aprendido'),
+        content: const Text(
+            'Se borra el registro de lo que has escuchado (Tus números). Tus favoritos y listas no se tocan.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Cancelar')),
+          TextButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Borrar')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await StatsService.instance.clear();
+    await _load();
+  }
+
   Future<void> _load() async {
+    await AiSettings.instance.load();
     setState(() => _loading = true);
     final days = _range == 0 ? 7 : (_range == 1 ? 30 : null);
     final p = await StatsService.instance.plays(days: days);
@@ -174,28 +210,39 @@ class _StatsScreenState extends State<StatsScreen> {
                             songs.indexOf(s))),
             ],
             const SizedBox(height: 16),
+            // Antes «Tu gusto» era otra pantalla con lo mismo: ahora vive aquí.
+            const SectionTitle('Lo que aprende el asistente'),
+            SwitchListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              title: const Text('Aprender de lo que escucho'),
+              subtitle: Text(
+                  'Usa tus escuchas para personalizar listas y mixes. No sale de tu teléfono, salvo nombres de artistas al pedir una lista a la IA.',
+                  style: TextStyle(color: AppColors.textDim)),
+              value: AiSettings.instance.learn,
+              onChanged: (v) async {
+                setState(() => AiSettings.instance.learn = v);
+                await AiSettings.instance.save();
+              },
+            ),
+            if (_pattern().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                child: Row(children: [
+                  Icon(Icons.schedule_rounded, size: 18, color: AppColors.textDim),
+                  const SizedBox(width: 8),
+                  Expanded(
+                      child: Text(_pattern(),
+                          style: TextStyle(color: AppColors.textBody))),
+                ]),
+              ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              child: Material(
-                color: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.lg),
-                  side: BorderSide(color: AppColors.outline),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: ListTile(
-                  minVerticalPadding: 12,
-                  leading: Icon(Icons.auto_awesome_rounded,
-                      color: AppColors.amber),
-                  title: const Text('Tu gusto',
-                      style: TextStyle(fontWeight: FontWeight.w700)),
-                  subtitle: Text('Lo que aprendí de lo que escuchas',
-                      style: TextStyle(color: AppColors.textDim)),
-                  trailing: Icon(Icons.chevron_right_rounded,
-                      color: AppColors.textDim),
-                  onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                          builder: (_) => const TasteScreen())),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: _clear,
+                  child: Text('Borrar lo aprendido',
+                      style: TextStyle(color: AppColors.redText)),
                 ),
               ),
             ),

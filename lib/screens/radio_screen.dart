@@ -95,6 +95,7 @@ class SongQueueMemory {
 
 void playStation(BuildContext context, RadioStation s) {
   SongQueueMemory.saveIfSongs();
+  RadioService.instance.setLast(s);
   playSongs(context, [s.toSong()], 0);
 }
 
@@ -207,7 +208,8 @@ class _RadioScreenState extends State<RadioScreen> {
         final failed = current &&
             (PlaybackUi.instance.error.value ?? '').contains('emisora');
         return Semantics(
-          label: '${s.name}, ${s.subtitle}. Toca para reproducir',
+          label: '${s.shortName}, ${s.subtitle}. Toca para reproducir',
+          excludeSemantics: true,
           child: Container(
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
             decoration: BoxDecoration(

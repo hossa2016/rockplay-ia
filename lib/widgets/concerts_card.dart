@@ -88,14 +88,18 @@ class _ConcertsCardState extends State<ConcertsCard> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                       fontSize: AppType.body, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 2),
-              Text(concertPlace(c),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                      fontSize: AppType.label,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textDim)),
+              if (concertPlace(c).isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(concertPlace(c),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: concertPlaceStyle(
+                        concertPlace(c),
+                        TextStyle(
+                            fontSize: AppType.label,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textDim))),
+              ],
             ],
           ),
         ),

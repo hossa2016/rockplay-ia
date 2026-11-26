@@ -26,6 +26,7 @@ PINNED = [
     "share_plus:^10.1.4",
     "flutter_local_notifications:^19.4.2",
     "file_picker:^10.3.3",
+    "flutter_secure_storage:^9.2.4",
 ]
 # Sin versión: pub elige la compatible con las anteriores.
 FREE = [

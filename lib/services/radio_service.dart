@@ -119,11 +119,19 @@ class RadioStation {
     }
     n = n
         .replaceAll(RegExp(r'\b\d{2,3}[.,]\d\s*(fm|am)?\b', caseSensitive: false), '')
-        .replaceAll(RegExp(r'\b[HX][A-Z]{2,3}\b'), '') // indicativo
+        // Indicativo colombiano (HJJK), nunca si es la primera palabra
+        // («HJCK» es la marca) y solo si quedan al menos 2 palabras.
+        .replaceAllMapped(RegExp(r'(?<=\S.*)\bH[JK][A-Z]{2}\b'), (m) {
+          final rest = n.replaceFirst(m[0]!, '').trim().split(RegExp(r'\s+'))
+            ..removeWhere((w) => w.isEmpty || RegExp(r'^[-–|,]+$').hasMatch(w));
+          return rest.length >= 2 ? '' : m[0]!;
+        })
         .replaceAll(RegExp(r'\b(prisa|caracol|rcn|todelar|olímpica|olimpica)\s*radio\b', caseSensitive: false), '')
         .replaceAll(RegExp(r'\s*[-–|]\s*([-–|]\s*)*'), ' - ')
         .replaceAll(RegExp(r'\s+'), ' ')
         .replaceAll(RegExp(r'^[\s\-–|,]+|[\s\-–|,]+$'), '')
+        // «HJCK El Mundo en» (tras quitar Bogotá): sin conector colgando.
+        .replaceAll(RegExp(r'\s+(en|de|desde|para|y)$', caseSensitive: false), '')
         .trim();
     return n.length < 2 ? name : n;
   }
@@ -153,9 +161,14 @@ class RadioStation {
   String get subtitle {
     final city = this.city;
     final fc = _fold(city);
-    final freq = RegExp(r'\b(\d{2,3}[.,]\d)\s*(fm)?\b', caseSensitive: false)
-        .firstMatch('$name $tags')
-        ?.group(1);
+    // AM/FM real: «1340 AM» o «99.1 FM» (sin banda, FM).
+    final fm = RegExp(r'\b(\d{2,3}[.,]\d)\s*(fm|am)?\b', caseSensitive: false)
+        .firstMatch('$name $tags');
+    final am = RegExp(r'\b(\d{3,4})\s*(am|khz)\b', caseSensitive: false)
+        .firstMatch('$name $tags');
+    final String? freq = fm != null
+        ? '${fm.group(1)!.replaceAll(',', '.')} ${(fm.group(2) ?? 'fm').toUpperCase()}'
+        : (am != null ? '${am.group(1)} AM' : null);
     String tag = '';
     for (final t in tags.split(',')) {
       final k = t.trim().toLowerCase();
@@ -171,7 +184,7 @@ class RadioStation {
       if (city.isNotEmpty) city,
       if (country.isNotEmpty && country.toLowerCase() != 'colombia' && city.isEmpty)
         country,
-      if (freq != null) '${freq.replaceAll(',', '.')} FM',
+      if (freq != null) freq,
       if (tag.isNotEmpty) tag,
     ];
     return parts.isEmpty ? 'Radio en vivo' : parts.join(' · ');
@@ -232,6 +245,25 @@ class RadioService {
       await sp.setString(
           _key, jsonEncode([for (final s in _saved!) s.toJson()]));
     } catch (_) {}
+  }
+
+  /// Última emisora escuchada en este modo («Seguir con…» en Inicio).
+  Future<void> setLast(RadioStation s) async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      await sp.setString(modeKey('radio_last'), jsonEncode(s.toJson()));
+    } catch (_) {}
+  }
+
+  Future<RadioStation?> last() async {
+    try {
+      final sp = await SharedPreferences.getInstance();
+      final raw = sp.getString(modeKey('radio_last'));
+      if (raw == null) return null;
+      return RadioStation.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<bool> isSaved(String id) async =>

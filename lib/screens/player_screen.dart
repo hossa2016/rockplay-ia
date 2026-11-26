@@ -435,9 +435,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                       builder: (_) => ArtistScreen(
                           name: _info?.artist ?? s.artist)));
                 }
-              } else if (v == 'playlist') {
-                final s = pb.song.value;
-                if (s != null) showAddToPlaylist(context, s);
               } else if (v == 'share') {
                 final s = pb.song.value;
                 if (s != null) ShareService.song(s);
@@ -462,14 +459,6 @@ class _PlayerScreenState extends State<PlayerScreen>
                   dense: true,
                   leading: Icon(Icons.person_outline_rounded),
                   title: Text('Ver artista y discos'),
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'playlist',
-                child: ListTile(
-                  dense: true,
-                  leading: Icon(Icons.playlist_add_rounded),
-                  title: Text('Agregar a lista'),
                 ),
               ),
               const PopupMenuItem(
@@ -649,7 +638,7 @@ class _PlayerScreenState extends State<PlayerScreen>
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             if (!song.isRadio) ...[
-              btn(Icons.playlist_add_rounded, 'Guardar',
+              btn(Icons.playlist_add_rounded, 'A una lista',
                   () => showAddToPlaylist(context, song)),
               btn(_lyrics ? Icons.lyrics_rounded : Icons.lyrics_outlined,
                   'Letra', () => setState(() => _lyrics = !_lyrics),

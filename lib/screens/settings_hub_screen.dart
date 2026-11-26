@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+
+import '../services/backup_service.dart';
+import '../widgets/app_button.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../services/eq_service.dart';
 import 'eq_screen.dart';
@@ -56,8 +60,12 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
     try {
       plays = (await StatsService.instance.plays()).length;
     } catch (_) {}
+    final lb = await BackupService.lastBackup();
+    final due = await BackupService.due();
     if (mounted) {
       setState(() {
+        _lastBackup = lb;
+        _backupDue = due;
         _bytes = b;
         _plays = plays;
       });
@@ -65,6 +73,125 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
   }
 
   int _plays = 0;
+  DateTime? _lastBackup;
+  bool _backupDue = false;
+
+  String _backupLabel() {
+    final l = _lastBackup;
+    if (l == null) return 'Nunca la has hecho';
+    final d = DateTime.now().difference(l).inDays;
+    return d == 0 ? 'Última: hoy' : 'Última: hace $d ${d == 1 ? 'día' : 'días'}';
+  }
+
+  Future<void> _showBackup() async {
+    var keys = false;
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, set) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Text('Copia de seguridad',
+                    style: TextStyle(fontSize: AppType.title, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 6),
+                Text(
+                    'Crea un archivo con tus favoritas, listas, historial, escuchas, emisoras, alarmas y ajustes de los dos modos. Guárdalo en Drive o envíatelo por WhatsApp.',
+                    style: TextStyle(color: AppColors.textDim, height: 1.4)),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Incluir las claves de IA'),
+                  subtitle: Text('Quien tenga el archivo podrá verlas.',
+                      style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
+                  value: keys,
+                  onChanged: (v) => set(() => keys = v),
+                ),
+                const SizedBox(height: 8),
+                AppButton.primary(
+                  label: 'Exportar copia',
+                  icon: Icons.upload_file_rounded,
+                  onPressed: () async {
+                    Navigator.of(ctx).pop();
+                    try {
+                      await BackupService.export(keys: keys);
+                    } catch (_) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                            content: Text('No se pudo crear la copia.')));
+                      }
+                    }
+                    _load();
+                  },
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    _importBackup();
+                  },
+                  icon: const Icon(Icons.download_rounded),
+                  label: const Text('Restaurar desde un archivo'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _importBackup() async {
+    Map<String, dynamic>? j;
+    try {
+      j = await BackupService.pick();
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Ese archivo no es una copia de RockPlay IA.')));
+      }
+      return;
+    }
+    if (j == null || !mounted) return;
+    final merge = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('¿Cómo restaurar?'),
+        content: const Text(
+            '«Combinar» suma la copia a lo que ya tienes. «Reemplazar» deja todo como estaba en la copia.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(c, false),
+              child: const Text('Reemplazar')),
+          FilledButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: const Text('Combinar')),
+        ],
+      ),
+    );
+    if (merge == null) return;
+    await BackupService.restore(j, merge: merge);
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (c) => AlertDialog(
+        title: const Text('Listo'),
+        content: const Text(
+            'Tus datos están restaurados. La app se cerrará; ábrela de nuevo para verlos.'),
+        actions: [
+          FilledButton(
+              // Cierra el proceso para que todo se recargue desde la copia.
+              onPressed: () => exit(0),
+              child: const Text('Cerrar la app')),
+        ],
+      ),
+    );
+  }
 
   /// Porcentaje de lo que suena que la app cambió por otra versión.
   String _badPct(int bad) {
@@ -381,16 +508,13 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 () => _go(const AiSettingsScreen()),
                 badge: aiOn ? null : '!',
                 tip: 'Pega aquí tus claves gratis de Gemini o Groq para que el asistente piense con IA.'),
-            _row(Icons.format_list_numbered_rounded, 'Listas del asistente',
-                '${ai.maxSongs} canciones como máximo', _pickListSize,
-                tip: 'Cuántas canciones como máximo trae el asistente. Menos es más rápido.'),
-            _row(Icons.tune_rounded, 'Mixes',
-                'Hasta ${ds.mixSongs} canciones y ${ds.mixArtists} artistas',
-                _pickMixSize,
-                tip: 'Cuántas canciones y artistas usan Tu mix, los géneros y la emisora.'),
           ]),
           _group('DATOS'),
           _box([
+            _row(Icons.backup_rounded, 'Copia de seguridad',
+                _backupLabel(), _showBackup,
+                badge: _backupDue ? '!' : null,
+                tip: 'Guarda tus favoritas, listas, historial y ajustes en un archivo para no perderlos si reinstalas.'),
             _row(Icons.storage_rounded, 'Almacenamiento',
                 '${_size(_bytes)} en uso',
                 () => _go(const DataSettingsScreen()),
@@ -407,10 +531,48 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
                 () => showSleepWakeSheet(context, showTimer: false),
                 tip: 'Alarmas que suenan con tu música a la hora que elijas.'),
             _row(Icons.filter_alt_outlined, 'Filtros',
-                '${blocked == 0 ? 'Ningún artista bloqueado' : '$blocked ${blocked == 1 ? 'artista bloqueado' : 'artistas bloqueados'}'} · ${_badPct(bad)}',
+                blocked == 0 ? 'Ningún artista bloqueado' : '$blocked ${blocked == 1 ? 'artista bloqueado' : 'artistas bloqueados'}',
                 _showFilters,
                 tip: 'Artistas que bloqueaste. Si YouTube no deja sonar una versión en apps, la app busca otra sola; no tienes que hacer nada.'),
           ]),
+          // Perillas técnicas, plegadas.
+          Padding(
+            padding: const EdgeInsets.only(top: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.lg),
+                border: Border.all(color: AppColors.outline),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Theme(
+                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  leading: const Icon(Icons.settings_suggest_rounded),
+                  title: const Text('Avanzado',
+                      style: TextStyle(fontWeight: FontWeight.w700)),
+                  subtitle: Text('Tamaños de listas y mixes',
+                      style: TextStyle(
+                          color: AppColors.textDim, fontSize: AppType.label)),
+                  children: [
+                    Divider(height: 1, color: AppColors.outline),
+                    _row(Icons.format_list_numbered_rounded, 'Listas del asistente',
+                        '${ai.maxSongs} canciones como máximo', _pickListSize,
+                        tip: 'Cuántas canciones como máximo trae el asistente. Menos es más rápido.'),
+                    Divider(height: 1, color: AppColors.outline),
+                    _row(Icons.tune_rounded, 'Mixes',
+                        'Hasta ${ds.mixSongs} canciones y ${ds.mixArtists} artistas',
+                        _pickMixSize,
+                        tip: 'Cuántas canciones y artistas usan Tu mix, los géneros y la emisora.'),
+                    Divider(height: 1, color: AppColors.outline),
+                    _row(Icons.swap_horiz_rounded, 'Versiones reemplazadas',
+                        _badPct(bad), _showFilters,
+                        tip: 'Si YouTube no deja sonar una versión en apps, la app busca otra sola.'),
+                  ],
+                ),
+              ),
+            ),
+          ),
           _group('AYUDA'),
           _box([
             _row(Icons.slideshow_rounded, 'Ver la guía de bienvenida',

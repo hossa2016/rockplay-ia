@@ -1,3 +1,7 @@
+import '../services/deezer_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../models/song.dart';
@@ -101,7 +105,7 @@ class CoverArt extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget image = url.isEmpty
         ? _placeholder()
-        : _CoverImage(url: url, placeholder: _placeholder());
+        : _CoverImage(url: url, placeholder: _placeholder(), size: size);
 
     return Container(
       width: size,
@@ -123,7 +127,8 @@ class CoverArt extends StatelessWidget {
 class _CoverImage extends StatefulWidget {
   final String url;
   final Widget placeholder;
-  const _CoverImage({required this.url, required this.placeholder});
+  final double? size;
+  const _CoverImage({required this.url, required this.placeholder, this.size});
 
   @override
   State<_CoverImage> createState() => _CoverImageState();
@@ -131,6 +136,9 @@ class _CoverImage extends StatefulWidget {
 
 class _CoverImageState extends State<_CoverImage> {
   late Future<ImageProvider?> _f;
+  /// Última imagen mostrada: se mantiene mientras carga la nueva (sin
+  /// parpadeo al llegar una carátula mejor).
+  ImageProvider? _last;
 
   @override
   void initState() {
@@ -146,13 +154,22 @@ class _CoverImageState extends State<_CoverImage> {
     }
   }
 
+  /// Decodifica al tamaño en que se muestra (no 600×600 para 44 dp).
+  ImageProvider _sized(ImageProvider p) {
+    final s = widget.size;
+    if (s == null || s <= 0) return p;
+    final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 3;
+    return ResizeImage.resizeIfNeeded((s * dpr).round(), null, p);
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<ImageProvider?>(
       future: _f,
       builder: (context, snap) {
-        final p = snap.data;
+        final p = snap.data != null ? _sized(snap.data!) : _last;
         if (p == null) return widget.placeholder;
+        if (snap.data != null) _last = p;
         return Image(
           image: p,
           width: double.infinity,
@@ -172,31 +189,117 @@ class _CoverImageState extends State<_CoverImage> {
 /// (vacía o un fotograma de YouTube); si no, la que trae.
 class SongArtwork {
   SongArtwork._();
-  static final Map<String, String> _cache = {};
+  // Caché en disco (sobrevive al cierre): clave → [url, ms]. «''» = sin
+  // resultado (se reintenta a los 7 días).
+  static final Map<String, List<dynamic>> _cache = {};
   static final Map<String, Future<String>> _pending = {};
+  static bool _loaded = false;
+  static Future<void>? _loading;
+  static Timer? _saveT;
+  static int _running = 0;
+  static final List<Completer<void>> _wait = [];
+  static const String _prefKey = 'art_cache_v1';
 
   static bool _weak(String url) =>
       url.isEmpty || url.contains('ytimg.com') || url.contains('youtube.com');
 
   static String _key(Song s) => '${s.artist}|${s.title}'.toLowerCase();
 
-  /// La mejor conocida ya, sin esperar.
-  static String peek(Song s) => _cache[_key(s)] ?? s.image;
+  /// Carga la caché al arrancar (así el mini player ya tiene su carátula).
+  static Future<void> warm() => _load();
 
-  static Future<String> of(Song s) {
-    if (s.isRadio || !_weak(s.image)) return Future.value(s.image);
+  static Future<void> _load() => _loading ??= () async {
+        try {
+          final sp = await SharedPreferences.getInstance();
+          final raw = sp.getString(_prefKey);
+          if (raw != null) {
+            (jsonDecode(raw) as Map).forEach((k, v) {
+              if (v is List && v.length == 2) _cache['$k'] = v;
+            });
+          }
+        } catch (_) {}
+        _loaded = true;
+      }();
+
+  static void _save() {
+    _saveT?.cancel();
+    _saveT = Timer(const Duration(seconds: 3), () async {
+      try {
+        // Las 1.500 más recientes.
+        if (_cache.length > 1500) {
+          final ks = _cache.keys.toList()
+            ..sort((a, b) =>
+                (_cache[a]![1] as num).compareTo(_cache[b]![1] as num));
+          for (final k in ks.take(_cache.length - 1500)) {
+            _cache.remove(k);
+          }
+        }
+        final sp = await SharedPreferences.getInstance();
+        await sp.setString(_prefKey, jsonEncode(_cache));
+      } catch (_) {}
+    });
+  }
+
+  static String _fallback(Song s) => s.image.isNotEmpty
+      ? s.image
+      : (s.videoId.isNotEmpty
+          ? 'https://i.ytimg.com/vi/${s.videoId}/mqdefault.jpg'
+          : '');
+
+  static String? _hit(Song s) {
+    final e = _cache[_key(s)];
+    if (e == null) return null;
+    final url = '${e[0]}';
+    if (url.isEmpty &&
+        DateTime.now().millisecondsSinceEpoch - (e[1] as num) >
+            const Duration(days: 7).inMilliseconds) {
+      return null; // «sin resultado» vencido: reintentar
+    }
+    return url.isEmpty ? _fallback(s) : url;
+  }
+
+  /// La mejor conocida ya, sin esperar.
+  static String peek(Song s) {
+    if (s.isRadio || !_weak(s.image)) return s.image;
+    return (_loaded ? _hit(s) : null) ?? _fallback(s);
+  }
+
+  /// Máximo 2 búsquedas a la vez (iTunes limita las peticiones).
+  static Future<T> _limited<T>(Future<T> Function() f) async {
+    while (_running >= 2) {
+      final c = Completer<void>();
+      _wait.add(c);
+      await c.future;
+    }
+    _running++;
+    try {
+      return await f();
+    } finally {
+      _running--;
+      if (_wait.isNotEmpty) _wait.removeAt(0).complete();
+    }
+  }
+
+  static Future<String> of(Song s) async {
+    if (s.isRadio || !_weak(s.image)) return s.image;
+    await _load();
+    final hit = _hit(s);
+    if (hit != null) return hit;
     final k = _key(s);
-    final hit = _cache[k];
-    if (hit != null) return Future.value(hit);
-    return _pending[k] ??= TrackInfoService.instance
-        .fetch(s.artist, s.title)
-        .then((i) {
-          final u = (i?.artwork ?? '').isNotEmpty ? i!.artwork : s.image;
-          _cache[k] = u;
-          return u;
-        })
-        .catchError((_) => s.image)
-        .whenComplete(() => _pending.remove(k));
+    return _pending[k] ??= _limited(() async {
+      var u = '';
+      try {
+        // La misma fuente que el reproductor (iTunes) y, si no hay, Deezer.
+        final i = await TrackInfoService.instance.fetch(s.artist, s.title);
+        u = i?.artwork ?? '';
+        if (u.isEmpty) {
+          u = await DeezerService().coverFor('${s.artist} ${s.title}');
+        }
+      } catch (_) {}
+      _cache[k] = [u, DateTime.now().millisecondsSinceEpoch];
+      _save();
+      return u.isEmpty ? _fallback(s) : u;
+    }).whenComplete(() => _pending.remove(k));
   }
 }
 

@@ -92,7 +92,7 @@ class _SearchHubState extends State<SearchHub> {
               ),
               child: Dense(child: Row(children: [
                 _seg('Canciones', 0),
-                _seg('Artista', 1),
+                _seg('Mezclar', 1),
                 _seg('Radio', 2),
               ])),
             ),
