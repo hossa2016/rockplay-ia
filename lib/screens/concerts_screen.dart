@@ -4,6 +4,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/concert_service.dart';
 import '../services/music_mode.dart';
 import '../theme/app_theme.dart';
+import '../services/radar_service.dart';
+import 'prep_screen.dart';
 
 /// Cuadrito con mes y día.
 class ConcertDateBox extends StatelessWidget {
@@ -94,7 +96,9 @@ class ConcertsScreen extends StatefulWidget {
 }
 
 class _ConcertsScreenState extends State<ConcertsScreen> {
+  static const String _mine = 'Tus bandas';
   static const List<String> _cities = [
+    _mine,
     'Todas',
     'Bogotá',
     'Medellín',
@@ -161,6 +165,27 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
         : words.any((x) => x == w || (w.length >= 5 && x.startsWith(w))));
   }
   final ConcertService _svc = ConcertService.instance;
+  List<String> _myBands = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    RadarService.instance.bands().then((b) {
+      if (mounted) setState(() => _myBands = b);
+    });
+  }
+
+  String? _mineOf(Concert c) => RadarService.matchBand(c, _myBands);
+
+  static String _daysTo(DateTime? d) {
+    if (d == null) return '';
+    final now = DateTime.now();
+    final n = DateTime(d.year, d.month, d.day)
+        .difference(DateTime(now.year, now.month, now.day))
+        .inDays;
+    if (n < 0) return '';
+    return n == 0 ? 'Hoy' : (n == 1 ? 'Mañana' : 'En $n días');
+  }
 
   bool _isMain(String city) {
     final c = city.toLowerCase();
@@ -171,6 +196,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     if (MusicModeService.general && _genre != 'Todos') {
       all = all.where((c) => _inGenre(c, _genre)).toList();
     }
+    if (_city == _mine) return all.where((c) => _mineOf(c) != null).toList();
     if (_city == 'Todas') return all;
     if (_city == 'Bares') return all.where(_svc.isBar).toList();
     if (_city == 'Otras') return all.where((c) => !_isMain(c.city)).toList();
@@ -234,6 +260,49 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
             ),
           ]),
           const SizedBox(height: 12),
+          // Radar: una de tus bandas → cuenta regresiva, calendario y previa.
+          if (_mineOf(c) != null) ...[
+            const SizedBox(height: 10),
+            Row(children: [
+              Icon(Icons.radar_rounded, size: 18, color: AppColors.amber),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                    [byMode('Una de tus bandas', 'Uno de tus artistas'), _daysTo(c.date)]
+                        .where((e) => e.isNotEmpty)
+                        .join(' · '),
+                    style: TextStyle(
+                        color: AppColors.amber,
+                        fontWeight: FontWeight.w800,
+                        fontSize: AppType.label)),
+              ),
+            ]),
+          ],
+          const SizedBox(height: 8),
+          if (!c.lineupUnknown)
+            Row(children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                  icon: const Icon(Icons.event_rounded, size: 18),
+                  label: const Text('Calendario'),
+                  onPressed: () => openConcertLink(
+                      context, RadarService.calendarUri(c).toString()),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                  icon: const Icon(Icons.queue_music_rounded, size: 18),
+                  label: const Text('Prepárate'),
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => PrepScreen(
+                          band: _mineOf(c) ?? _bandQuery(c.band), concert: c))),
+                ),
+              ),
+            ]),
+          const SizedBox(height: 8),
           Row(children: [
             Expanded(
               child: FilledButton(
@@ -363,7 +432,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: ChoiceChip(
-                label: Text(c),
+                label: Text(c == _mine ? byMode('Tus bandas', 'Tus artistas') : c),
                 selected: _city == c,
                 showCheckmark: false,
                 selectedColor: AppColors.redBtn,
@@ -446,6 +515,10 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                           child: Text(
                             s.loading
                                 ? 'Esto puede tardar hasta un minuto.'
+                                : _city == _mine
+                                    ? (_myBands.isEmpty
+                                        ? 'Escucha música para que sepa cuáles son tus bandas, o sigue a un artista desde su página.'
+                                        : 'Ninguna de tus bandas tiene conciertos anunciados en Colombia por ahora. Te aviso cuando aparezca uno.')
                                 : _city == 'Bares'
                                     ? 'Todavía no hay toques en tus bares.\n\nPara leer sus flyers de Instagram, toca la copa de arriba y escribe el @usuario de cada bar.'
                                     : 'No hay conciertos encontrados${_city == 'Todas' ? '' : ' en esta ciudad'}.',

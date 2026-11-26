@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -7,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'ai_settings.dart';
 import 'stats_service.dart';
 import 'music_mode.dart';
+import 'radar_service.dart';
 
 /// Un concierto encontrado en internet.
 class Concert {
@@ -288,6 +290,8 @@ class ConcertService {
       final now = DateTime.now();
       state.value = ConcertState(items: list, updatedAt: now);
       _writeCache(list, now);
+      // Radar: avisa si apareció un concierto de tus bandas.
+      unawaited(RadarService.instance.notifyNew());
     } catch (e) {
       if (gen != MusicModeService.generation) return;
       state.value = ConcertState(

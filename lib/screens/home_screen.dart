@@ -43,6 +43,7 @@ import '../services/radio_service.dart';
 import 'radio_screen.dart';
 import '../widgets/nav_signals.dart';
 import '../services/backup_service.dart';
+import '../services/local_scene.dart';
 
 /// Contenedor principal: pestañas + mini-reproductor sobre la navegación.
 class HomeScreen extends StatefulWidget {
@@ -700,6 +701,7 @@ class _HomeTabState extends State<_HomeTab> {
                   _recentSection(),
                   const SizedBox(height: 24),
                   ConcertsCard(onListen: _listenBand),
+                  _localScene(),
                   const SectionTitle('Descubrir'),
                   _discoverChips(),
                   const SizedBox(height: 14),
@@ -753,6 +755,56 @@ class _HomeTabState extends State<_HomeTab> {
         },
       ),
     ));
+  }
+
+  String _sceneFilter = 'Todo';
+
+  /// «Hecho en Colombia»: la escena local, con filtros de ciudad (rock) o
+  /// de género (Pulso).
+  Widget _localScene() {
+    final mixes = LocalScene.mixes(_sceneFilter);
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      const SectionTitle('Hecho en Colombia'),
+      Dense(
+        child: SizedBox(
+          height: 44,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            children: [
+              for (final f in LocalScene.filters)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    label: Text(f),
+                    selected: _sceneFilter == f,
+                    onSelected: (_) => setState(() => _sceneFilter = f),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 10),
+      SizedBox(
+        height: 176,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: mixes.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (context, i) {
+            final m = mixes[i];
+            return _MixCard(
+              def: m,
+              onTap: () => _openMix(m.title, m.subtitle, m.colors,
+                  MixService.buildMix(m.artists, pick: 50, perArtist: 5)),
+            );
+          },
+        ),
+      ),
+      const SizedBox(height: 8),
+    ]);
   }
 
   Widget _discoverBody() {

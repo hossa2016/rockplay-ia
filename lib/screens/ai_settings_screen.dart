@@ -19,6 +19,8 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
   final TextEditingController _groq = TextEditingController();
   final TextEditingController _gemini = TextEditingController();
   final TextEditingController _tavily = TextEditingController();
+  final TextEditingController _setlist = TextEditingController();
+  bool _hideSetlist = true;
   final TextEditingController _apify = TextEditingController();
   final TextEditingController _groqModel = TextEditingController();
   final TextEditingController _geminiModel = TextEditingController();
@@ -39,6 +41,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _groq.text = _s.groqKey;
     _gemini.text = _s.geminiKey;
     _tavily.text = _s.tavilyKey;
+    _setlist.text = _s.setlistKey;
     _apify.text = _s.apifyKey;
     _groqModel.text = _s.groqModel;
     _geminiModel.text = _s.geminiModel;
@@ -50,6 +53,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _groq.dispose();
     _gemini.dispose();
     _tavily.dispose();
+    _setlist.dispose();
     _apify.dispose();
     _groqModel.dispose();
     _geminiModel.dispose();
@@ -60,6 +64,7 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
     _s.groqKey = _groq.text;
     _s.geminiKey = _gemini.text;
     _s.tavilyKey = _tavily.text;
+    _s.setlistKey = _setlist.text;
     _s.apifyKey = _apify.text;
     _s.groqModel = _groqModel.text;
     _s.geminiModel = _geminiModel.text;
@@ -236,6 +241,19 @@ class _AiSettingsScreenState extends State<AiSettingsScreen> {
                   hide: _hideTavily,
                   toggle: () => setState(() => _hideTavily = !_hideTavily),
                   hint: 'tvly-…',
+                ),
+                _keyCard(
+                  name: 'setlist.fm (previa del concierto)',
+                  subtitle: 'Opcional. Arma el setlist probable de tus bandas. Gratis para uso personal.',
+                  url: 'https://www.setlist.fm/settings/api',
+                  steps:
+                      '1. Toca «Abrir la página» y crea tu cuenta gratis (Sign up).\n'
+                      '2. En «API» toca «Apply for an API key»: en el uso escribe «Personal app, non-commercial».\n'
+                      '3. Copia la clave que te dan, vuelve aquí y toca «Pegar».',
+                  c: _setlist,
+                  hide: _hideSetlist,
+                  toggle: () => setState(() => _hideSetlist = !_hideSetlist),
+                  hint: 'xxxxxxxx-xxxx-…',
                 ),
                 _keyCard(
                   name: 'Apify (Instagram de tus bares)',

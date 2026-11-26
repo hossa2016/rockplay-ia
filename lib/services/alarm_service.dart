@@ -149,6 +149,27 @@ class AlarmService {
   static int _mainId(int a) => a * 10 + 1;
   static int _backupId(int a) => a * 10 + 2;
 
+  /// Aviso simple (Radar de conciertos, novedades). Abre la app al tocarlo.
+  Future<void> notify(int id, String title, String body) async {
+    await init();
+    try {
+      await _n.show(
+        id,
+        title,
+        body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'rp_info',
+            'Avisos de tus artistas',
+            channelDescription: 'Conciertos y lanzamientos de lo que escuchas',
+            importance: Importance.defaultImportance,
+            priority: Priority.defaultPriority,
+          ),
+        ),
+      );
+    } catch (_) {}
+  }
+
   Future<void> init() async {
     if (_ready) return;
     _ready = true;
