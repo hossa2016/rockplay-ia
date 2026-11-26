@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -121,6 +122,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   void initState() {
     super.initState();
     _ticker = createTicker((_) => _measure())..start();
+    // El ticker se detiene cuando otra pantalla tapa el reproductor; este
+    // temporizador no, y así el video se esconde también en ese caso.
+    _measureTimer = Timer.periodic(
+        const Duration(milliseconds: 150), (_) { if (mounted) _measure(); });
     _spin = AnimationController(
         vsync: this, duration: const Duration(seconds: 14));
     _eq = AnimationController(
@@ -210,6 +215,8 @@ class _PlayerScreenState extends State<PlayerScreen>
     }
   }
 
+  Timer? _measureTimer;
+
   void _measure() {
     // El video solo se ve con el reproductor arriba (sin Letra, hojas ni
     // menús encima); si no, vuelve fuera de pantalla.
@@ -226,11 +233,14 @@ class _PlayerScreenState extends State<PlayerScreen>
       if (EmbedBridge.instance.slot.value != r) {
         EmbedBridge.instance.slot.value = r;
       }
+    } else if (EmbedBridge.instance.slot.value != null) {
+      EmbedBridge.instance.slot.value = null; // sin hueco: fuera de pantalla
     }
   }
 
   @override
   void dispose() {
+    _measureTimer?.cancel();
     pb.playing.removeListener(_syncAnim);
     _spin.dispose();
     _eq.dispose();
@@ -572,11 +582,11 @@ class _PlayerScreenState extends State<PlayerScreen>
             ],
           ),
           // «¿Qué está sonando?»: lo que envía la emisora.
-          ValueListenableBuilder<String>(
-            valueListenable: RadioNow.now,
-            builder: (context, now, _) {
+          ValueListenableBuilder<(String, String)?>(
+            valueListenable: RadioNow.song,
+            builder: (context, p, _) {
               final station = pb.song.value?.title ?? '';
-              final p = RadioNow.parse(now, station: station);
+              final now = p == null ? '' : '${p.$1} - ${p.$2}';
               return Column(children: [
                 if (p != null) ...[
                   const SizedBox(height: 10),
@@ -592,7 +602,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   const SizedBox(height: 6),
                   Wrap(spacing: 8, alignment: WrapAlignment.center, children: [
                     OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                       icon: const Icon(Icons.favorite_border_rounded, size: 18),
                       label: const Text('Guardar'),
                       onPressed: () async {
@@ -605,7 +615,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       },
                     ),
                     OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                      style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                       icon: const Icon(Icons.play_circle_outline_rounded, size: 18),
                       label: const Text('Escuchar completa'),
                       onPressed: () {
@@ -618,7 +628,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   ]),
                 ],
                 TextButton.icon(
-                  style: TextButton.styleFrom(minimumSize: const Size(0, 44)),
+                  style: TextButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.history_rounded, size: 18),
                   label: const Text('Lo que sonó'),
                   onPressed: () => _showHeard(station),
@@ -684,7 +694,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        info?.artist ?? song.artist,
+                        // Radio: lo que suena va en «AHORA SUENA», no aquí.
+                        song.isRadio ? 'Radio en vivo' : (info?.artist ?? song.artist),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

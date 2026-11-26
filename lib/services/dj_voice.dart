@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/song.dart';
 import '../widgets/playback_ui.dart';
 import 'ai_json.dart';
+import 'artist_info_service.dart';
 import 'music_mode.dart';
 import 'playback_service.dart';
 
@@ -39,10 +40,13 @@ class DjVoice {
     _count = 2; // que hable en la próxima canción
   }
 
+  bool _ok = false;
+
   Future<void> _prepare() async {
     if (_ready) return;
     _ready = true;
     try {
+      _tts.setErrorHandler((_) => PlaybackService.instance.duck(false));
       final langs = (await _tts.getLanguages as List?)?.map((e) => '$e').toList() ?? [];
       final lang = ['es-CO', 'es-US', 'es-MX', 'es-ES']
           .firstWhere(langs.contains, orElse: () => 'es-US');
@@ -50,7 +54,10 @@ class DjVoice {
       await _tts.setSpeechRate(0.5);
       await _tts.setPitch(MusicModeService.general ? 1.05 : 0.92);
       await _tts.awaitSpeakCompletion(true);
-    } catch (_) {}
+      _ok = true;
+    } catch (_) {
+      _ok = false; // sin motor de voz: no se baja la música
+    }
   }
 
   void _onSong() {
@@ -68,12 +75,20 @@ class DjVoice {
   }
 
   Future<String> _line(Song prev, Song next) async {
+    // Datos reales: la biografía de Wikipedia del artista que viene.
+    var bio = '';
+    try {
+      bio = (await ArtistInfoService.instance.bio(next.artist)) ?? '';
+      if (bio.length > 600) bio = bio.substring(0, 600);
+    } catch (_) {}
     try {
       final j = await AiJson.ask(
         'Eres locutor de una emisora ${MusicModeService.general ? 'de música variada' : 'de rock'} '
             'en Colombia. Hablas en español neutro, cálido y breve. Respondes SOLO JSON.',
-        'Presenta la transición en máximo 25 palabras, con un dato real y '
-            'verificable si lo sabes (no inventes fechas ni discos).\n'
+        'Presenta la transición en máximo 25 palabras. Usa SOLO datos de la '
+            'biografía dada; si no hay biografía, no des datos (nada de fechas '
+            'ni discos inventados).\n'
+            'Biografía de ${next.artist}: ${bio.isEmpty ? '(no hay)' : bio}\n'
             'Acaba de sonar: "${prev.title}" de ${prev.artist}.\n'
             'Ahora suena: "${next.title}" de ${next.artist}.\n'
             'Formato: {"texto":"..."}',
@@ -90,6 +105,9 @@ class DjVoice {
     _speaking = true;
     try {
       await _prepare();
+      if (!_ok) return;
+      // El tono sigue al modo actual.
+      await _tts.setPitch(MusicModeService.general ? 1.05 : 0.92);
       final text = await _line(prev, next);
       // Que la canción arranque un momento antes de hablar.
       await Future<void>.delayed(const Duration(seconds: 4));

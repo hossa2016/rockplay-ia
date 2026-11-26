@@ -119,13 +119,6 @@ class RadioStation {
     }
     n = n
         .replaceAll(RegExp(r'\b\d{2,3}[.,]\d\s*(fm|am)?\b', caseSensitive: false), '')
-        // Indicativo colombiano (HJJK), nunca si es la primera palabra
-        // («HJCK» es la marca) y solo si quedan al menos 2 palabras.
-        .replaceAllMapped(RegExp(r'(?<=\S.*)\bH[JK][A-Z]{2}\b'), (m) {
-          final rest = n.replaceFirst(m[0]!, '').trim().split(RegExp(r'\s+'))
-            ..removeWhere((w) => w.isEmpty || RegExp(r'^[-–|,]+$').hasMatch(w));
-          return rest.length >= 2 ? '' : m[0]!;
-        })
         .replaceAll(RegExp(r'\b(prisa|caracol|rcn|todelar|olímpica|olimpica)\s*radio\b', caseSensitive: false), '')
         .replaceAll(RegExp(r'\s*[-–|]\s*([-–|]\s*)*'), ' - ')
         .replaceAll(RegExp(r'\s+'), ' ')
@@ -133,6 +126,22 @@ class RadioStation {
         // «HJCK El Mundo en» (tras quitar Bogotá): sin conector colgando.
         .replaceAll(RegExp(r'\s+(en|de|desde|para|y)$', caseSensitive: false), '')
         .trim();
+    // Indicativo colombiano (HJJK) al final, sobre el nombre ya limpio:
+    // nunca si es la primera palabra («HJCK» es la marca) y solo si quedan
+    // al menos 2 palabras de verdad.
+    final cs = RegExp(r'(?<=\S.*)\bH[JK][A-Z]{2}\b').firstMatch(n);
+    if (cs != null) {
+      final rest = n.replaceFirst(cs[0]!, ' ').split(RegExp(r'[\s\-–|,]+'))
+        ..removeWhere((w) => w.isEmpty);
+      if (rest.length >= 2) {
+        n = n
+            .replaceFirst(cs[0]!, ' ')
+            .replaceAll(RegExp(r'\s*[-–|]\s*([-–|]\s*)*'), ' - ')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .replaceAll(RegExp(r'^[\s\-–|,]+|[\s\-–|,]+$'), '')
+            .trim();
+      }
+    }
     return n.length < 2 ? name : n;
   }
 
@@ -248,10 +257,13 @@ class RadioService {
   }
 
   /// Última emisora escuchada en este modo («Seguir con…» en Inicio).
+  final ValueNotifier<int> lastChanged = ValueNotifier<int>(0);
+
   Future<void> setLast(RadioStation s) async {
     try {
       final sp = await SharedPreferences.getInstance();
       await sp.setString(modeKey('radio_last'), jsonEncode(s.toJson()));
+      lastChanged.value++;
     } catch (_) {}
   }
 

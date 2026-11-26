@@ -62,7 +62,11 @@ class StatsService {
 
   Future<List<PlayEntry>> _load() async {
     final pend = _pending[_key];
-    if (pend != null) return pend; // escuchas aún sin guardar de este modo
+    if (pend != null) {
+      // Escuchas aún sin guardar de este modo: son la lista vigente.
+      _cacheMode = MusicModeService.mode.value;
+      return _cache = pend;
+    }
     if (_cache != null && _cacheMode == MusicModeService.mode.value) {
       return _cache!;
     }
@@ -108,6 +112,14 @@ class StatsService {
         _flushT = Timer(const Duration(seconds: 30), flush);
       }
     } catch (_) {}
+  }
+
+  /// Descarta lo pendiente sin guardarlo (antes de restaurar una copia).
+  void discardPending() {
+    _flushT?.cancel();
+    _pending.clear();
+    _unsaved = 0;
+    _cache = null;
   }
 
   /// Guarda las escuchas pendientes.

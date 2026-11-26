@@ -217,7 +217,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             ConcertDateBox(date: c.date),
             const SizedBox(width: 12),
             Expanded(
@@ -238,6 +238,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w800,
                             color: AppColors.amber)),
+                  if (concertPlace(c).isNotEmpty)
                   Text(concertPlace(c),
                       style: concertPlaceStyle(
                           concertPlace(c),
@@ -258,6 +259,30 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                 ],
               ),
             ),
+            // Para conciertos que no son de tus bandas, Calendario y
+            // Prepárate van en un ⋮ (tarjeta más liviana).
+            if (!c.lineupUnknown && _mineOf(c) == null)
+              PopupMenuButton<String>(
+                tooltip: 'Más opciones',
+                icon: Icon(Icons.more_vert_rounded, color: AppColors.textDim),
+                onSelected: (v) {
+                  if (v == 'cal') {
+                    RadarService.addToCalendar(c).then((ok) {
+                      if (!ok && context.mounted) {
+                        openConcertLink(context, RadarService.calendarUri(c).toString());
+                      }
+                    });
+                  } else {
+                    Navigator.of(context).push(MaterialPageRoute<void>(
+                        builder: (_) => PrepScreen(band: _bandQuery(c.band), concert: c)));
+                  }
+                },
+                itemBuilder: (_) => [
+                  if (c.date != null)
+                    const PopupMenuItem(value: 'cal', child: Text('Añadir al calendario')),
+                  const PopupMenuItem(value: 'prep', child: Text('Prepárate (setlist)')),
+                ],
+              ),
           ]),
           const SizedBox(height: 12),
           // Radar: una de tus bandas → cuenta regresiva, calendario y previa.
@@ -279,7 +304,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
             ]),
           ],
           const SizedBox(height: 8),
-          if (!c.lineupUnknown)
+          if (!c.lineupUnknown && _mineOf(c) != null)
             Row(children: [
               Expanded(
                 child: OutlinedButton.icon(
@@ -289,8 +314,12 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                   // Sin fecha exacta no se crea un evento «hoy».
                   onPressed: c.date == null
                       ? null
-                      : () => openConcertLink(
-                          context, RadarService.calendarUri(c).toString()),
+                      : () async {
+                          if (!await RadarService.addToCalendar(c) && context.mounted) {
+                            await openConcertLink(
+                                context, RadarService.calendarUri(c).toString());
+                          }
+                        },
                 ),
               ),
               const SizedBox(width: 8),
@@ -310,7 +339,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
             Expanded(
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                    minimumSize: const Size(0, 44),
+                    minimumSize: const Size(0, 48),
                     backgroundColor: AppColors.redBtn),
                 onPressed: () => openConcertLink(
                     context, hasTickets ? c.tickets : c.ticketSearchUrl),
@@ -320,7 +349,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
             const SizedBox(width: 8),
             if (!c.lineupUnknown) Expanded(
               child: OutlinedButton(
-                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                 onPressed: () => Navigator.of(context).pop(_bandQuery(c.band)),
                 child: Text(byMode('Escuchar banda', 'Escuchar artista')),
               ),
@@ -331,7 +360,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
             TextButton(
               style: TextButton.styleFrom(
                   padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 36),
+                  minimumSize: const Size(0, 48),
                   foregroundColor: AppColors.textFaint),
               onPressed: () => openConcertLink(context, c.source),
               child: Text('Fuente: ${Uri.tryParse(c.source)?.host ?? c.source}',
@@ -389,7 +418,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
       ),
     );
     final text = ctrl.text;
-    ctrl.dispose();
+    WidgetsBinding.instance.addPostFrameCallback((_) => ctrl.dispose());
     if (ok != true) return;
     await _svc.saveBars(text.split('\n'));
     if (mounted) setState(() => _city = 'Bares');

@@ -97,6 +97,12 @@ class _LyricsViewState extends State<LyricsView> {
     final s = widget.song;
     final t = await LyricsTranslate.get(s.artist, s.title, _lines(l));
     if (!mounted) return null;
+    // Cambió la canción mientras traducía: esa traducción ya no sirve.
+    if (s.title != widget.song.title || s.artist != widget.song.artist ||
+        !identical(l, _l)) {
+      setState(() => _translating = false);
+      return null;
+    }
     setState(() {
       _tr = t;
       _translating = false;

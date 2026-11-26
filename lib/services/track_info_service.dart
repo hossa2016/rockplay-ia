@@ -47,7 +47,8 @@ class TrackInfoService {
   static String _norm(String s) =>
       s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9áéíóúñü ]'), '').trim();
 
-  Future<TrackInfo?> fetch(String artist, String title) async {
+  Future<TrackInfo?> fetch(String artist, String title,
+      {bool throwOnError = false}) async {
     var a = _clean(artist);
     var t = title;
     final i = t.indexOf(' - ');
@@ -63,7 +64,8 @@ class TrackInfoService {
     TrackInfo? res;
     try {
       res = await _search(a, t);
-    } catch (_) {
+    } catch (e) {
+      if (throwOnError) rethrow; // quien llama distingue error de «no hay»
       return null; // error de red: se reintenta la próxima vez
     }
     _cache[key] = res;

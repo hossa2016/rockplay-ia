@@ -346,7 +346,11 @@ class _HomeTabState extends State<_HomeTab> {
   Future<List<MixDef>>? _dailyFuture;
 
   /// 3 o 4 mixes diarios que se renuevan solos cada mañana (5 a. m.).
+  MonthSummary? _monthData;
+
   Future<List<MixDef>> _loadDaily() async {
+    // Días 1–10: «Tu mes» como tarjeta dentro de los mixes diarios.
+    _monthData = DateTime.now().day <= 10 ? await MonthSummary.previous() : null;
     var arts = <String>[];
     try {
       arts = await MixService.personalArtists();
@@ -392,7 +396,15 @@ class _HomeTabState extends State<_HomeTab> {
       ? (a.isEmpty ? '' : a.first)
       : '${a.take(2).join(', ')}${a.length > 2 ? ' y más' : ''}';
 
+  int _dailyDay = -1;
+
   Widget _dailyRow() {
+    // Se renuevan solos al cambiar el día (a las 5 a. m.).
+    final day = DateTime.now().subtract(const Duration(hours: 5)).day;
+    if (day != _dailyDay) {
+      _dailyDay = day;
+      _dailyFuture = null;
+    }
     _dailyFuture ??= _loadDaily();
     return FutureBuilder<List<MixDef>>(
       future: _dailyFuture,
@@ -414,9 +426,20 @@ class _HomeTabState extends State<_HomeTab> {
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             // Primera tarjeta: el mix de la hora (antes una fila aparte).
-            itemCount: l.length + 1,
+            itemCount: l.length + 1 + (_monthData != null ? 1 : 0),
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, i) {
+              if (i == 1 && _monthData != null) {
+                final m = _monthData!;
+                return _MixCard(
+                  def: MixDef(byMode('Tu ${m.month} en rock', 'Tu ${m.month}'),
+                      '${m.plays} escuchas', Icons.insights_rounded,
+                      AppPalettes.cards[3], const []),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                      builder: (_) => MonthCardScreen(summary: m))),
+                );
+              }
+              if (i > 1 && _monthData != null) i--;
               if (i == 0) {
                 final h = _hourMixes().first;
                 final m = MixDef(h.title, _hourTitle(), h.icon, h.colors, h.artists);
@@ -689,7 +712,6 @@ class _HomeTabState extends State<_HomeTab> {
                   _personalMix(),
                   const SizedBox(height: 12),
                   _nudgeCard(),
-                  _monthCard(),
                   _dailyRow(),
                   _quickAccess(),
                   const SizedBox(height: 4),
@@ -704,7 +726,6 @@ class _HomeTabState extends State<_HomeTab> {
                   _recentSection(),
                   const SizedBox(height: 24),
                   ConcertsCard(onListen: _listenBand),
-                  _localScene(),
                   const SectionTitle('Descubrir'),
                   _discoverChips(),
                   const SizedBox(height: 14),
@@ -721,7 +742,12 @@ class _HomeTabState extends State<_HomeTab> {
   int _disc = 0;
 
   Widget _discoverChips() {
-    final labels = [byMode('Bandas nuevas', 'Artistas nuevos'), 'Lanzamientos', 'Mixes'];
+    final labels = [
+      byMode('Bandas nuevas', 'Artistas nuevos'),
+      'Lanzamientos',
+      'Mixes',
+      'Hecho en Colombia',
+    ];
     return Dense(child: SizedBox(
       height: 48,
       child: ListView.separated(
@@ -737,6 +763,7 @@ class _HomeTabState extends State<_HomeTab> {
             child: GestureDetector(
             onTap: () {
               if (!on) HapticFeedback.selectionClick();
+              if (_disc == 1 && i != 1) _leaveReleases();
               setState(() => _disc = i);
             },
             child: AnimatedContainer(
@@ -760,13 +787,17 @@ class _HomeTabState extends State<_HomeTab> {
                     valueListenable: ReleaseWatch.fresh,
                     builder: (_, n, __) => n == 0
                         ? const SizedBox.shrink()
-                        : Container(
+                        : Semantics(
+                            label: n == 1
+                                ? 'Hay un lanzamiento nuevo'
+                                : 'Hay $n lanzamientos nuevos',
+                            child: Container(
                             margin: const EdgeInsets.only(left: 6),
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
                                 color: AppColors.amber, shape: BoxShape.circle),
-                          ),
+                          )),
                   ),
               ]),
             ),
@@ -776,44 +807,6 @@ class _HomeTabState extends State<_HomeTab> {
     ));
   }
 
-  Future<MonthSummary?>? _month;
-
-  /// Días 1–10 del mes: «Tu octubre en rock» para ver y compartir.
-  Widget _monthCard() {
-    if (DateTime.now().day > 10) return const SizedBox.shrink();
-    _month ??= MonthSummary.previous();
-    return FutureBuilder<MonthSummary?>(
-      future: _month,
-      builder: (context, snap) {
-        final m = snap.data;
-        if (m == null) return const SizedBox.shrink();
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Material(
-            color: AppColors.surface,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppRadius.lg),
-              side: BorderSide(color: AppColors.outline),
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: ListTile(
-              minVerticalPadding: 12,
-              leading: Icon(Icons.insights_rounded, color: AppColors.amber),
-              title: Text(byMode('Tu ${m.month} en rock', 'Tu ${m.month} en Pulso'),
-                  style: const TextStyle(fontWeight: FontWeight.w800)),
-              subtitle: Text(
-                  '${m.plays} escuchas · ${m.artists.isEmpty ? '' : '${m.artists.first.name} n.º 1'}',
-                  style: TextStyle(color: AppColors.textDim)),
-              trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textDim),
-              onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                  builder: (_) => MonthCardScreen(summary: m))),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   String _sceneFilter = 'Todo';
 
   /// «Hecho en Colombia»: la escena local, con filtros de ciudad (rock) o
@@ -821,7 +814,6 @@ class _HomeTabState extends State<_HomeTab> {
   Widget _localScene() {
     final mixes = LocalScene.mixes(_sceneFilter);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      const SectionTitle('Hecho en Colombia'),
       Dense(
         child: SizedBox(
           height: 44,
@@ -870,6 +862,8 @@ class _HomeTabState extends State<_HomeTab> {
         return _emergingRow();
       case 1:
         return _releasesRow();
+      case 3:
+        return _localScene();
       default:
         // En Pulso, tus géneros favoritos van primero.
         final gs = List<MixDef>.of(MixService.genre);
@@ -889,7 +883,20 @@ class _HomeTabState extends State<_HomeTab> {
 
   /// Recordatorio de la copia de seguridad (cada 30 días).
   Widget _backupNotice() {
-    _backupDue ??= BackupService.shouldRemind();
+    // Se recalcula al hacer una copia (BackupService.done).
+    return ValueListenableBuilder<int>(
+      valueListenable: BackupService.done,
+      builder: (context, _, __) => _backupNoticeInner(),
+    );
+  }
+
+  int _backupSeen = -1;
+
+  Widget _backupNoticeInner() {
+    if (_backupSeen != BackupService.done.value) {
+      _backupSeen = BackupService.done.value;
+      _backupDue = BackupService.shouldRemind();
+    }
     return FutureBuilder<bool>(
       future: _backupDue,
       builder: (context, snap) {
@@ -916,9 +923,8 @@ class _HomeTabState extends State<_HomeTab> {
                   try {
                     await BackupService.export();
                   } catch (_) {}
-                  setState(() => _backupDue = Future.value(false));
                 },
-                child: const Text('Hacerla'),
+                child: const Text('Hacer copia'),
               ),
               IconButton(
                 tooltip: 'Más tarde',
@@ -990,7 +996,22 @@ class _HomeTabState extends State<_HomeTab> {
   /// «Seguir con <última emisora>»; si nunca has oído radio, no se muestra
   /// (la radio sigue en Buscar › Radio).
   Widget _quickAccess() {
-    _lastRadio ??= RadioService.instance.last();
+    // Se recalcula cuando cambia la última emisora.
+    return ValueListenableBuilder<int>(
+      valueListenable: RadioService.instance.lastChanged,
+      builder: (context, v, _) {
+        if (_lastRadioSeen != v) {
+          _lastRadioSeen = v;
+          _lastRadio = RadioService.instance.last();
+        }
+        return _quickInner();
+      },
+    );
+  }
+
+  int _lastRadioSeen = -1;
+
+  Widget _quickInner() {
     return FutureBuilder<RadioStation?>(
       future: _lastRadio,
       builder: (context, snap) {
@@ -1038,13 +1059,19 @@ class _HomeTabState extends State<_HomeTab> {
       names = await MixService.personalArtists();
     } catch (_) {}
     names = names.toSet().take(12).toList();
+    await ReleaseWatch.ensureLoaded();
     final l = await ArtistInfoService.instance.recentReleases(names);
-    // Lo nuevo primero; al verlo se marca como visto.
+    // Lo nuevo primero; se marca como visto al salir de Lanzamientos.
     l.sort((a, b) => (ReleaseWatch.isNew(b.album.id) ? 1 : 0) -
         (ReleaseWatch.isNew(a.album.id) ? 1 : 0));
-    Future<void>.delayed(const Duration(seconds: 4),
-        () => ReleaseWatch.markSeen([for (final r in l) r.album.id]));
+    _relIds = [for (final r in l) r.album.id];
     return l;
+  }
+
+  List<String> _relIds = const [];
+
+  void _leaveReleases() {
+    if (_relIds.isNotEmpty) ReleaseWatch.markSeen(_relIds);
   }
 
   Widget _releasesRow() {

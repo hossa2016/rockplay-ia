@@ -207,9 +207,13 @@ class _RadioScreenState extends State<RadioScreen> {
         final playing = current && PlaybackUi.instance.playing.value;
         final failed = current &&
             (PlaybackUi.instance.error.value ?? '').contains('emisora');
+        // TalkBack: la tarjeta es un botón «reproducir» con nombre limpio; el
+        // botón de guardar sigue accesible por separado.
         return Semantics(
-          label: '${s.shortName}, ${s.subtitle}. Toca para reproducir',
-          excludeSemantics: true,
+          container: true,
+          button: true,
+          label: '${s.shortName}, ${s.subtitle}${playing ? ', sonando' : ''}',
+          onTapHint: 'reproducir',
           child: Container(
             margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
             decoration: BoxDecoration(
@@ -231,7 +235,7 @@ class _RadioScreenState extends State<RadioScreen> {
                 child: Row(
                   children: [
                     const SizedBox(width: 12),
-                    Stack(
+                    ExcludeSemantics(child: Stack(
                       alignment: Alignment.center,
                       children: [
                         StationLogo(station: s),
@@ -247,10 +251,10 @@ class _RadioScreenState extends State<RadioScreen> {
                                 color: AppColors.amber),
                           ),
                       ],
-                    ),
+                    )),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Column(
+                      child: ExcludeSemantics(child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -276,7 +280,7 @@ class _RadioScreenState extends State<RadioScreen> {
                                       ? AppColors.amber
                                       : AppColors.textDim)),
                         ],
-                      ),
+                      )),
                     ),
                     IconButton(
                       tooltip: saved

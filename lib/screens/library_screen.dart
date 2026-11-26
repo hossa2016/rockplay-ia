@@ -21,6 +21,7 @@ import '../widgets/nav_signals.dart';
 import 'search_hub.dart';
 import '../services/import_service.dart';
 import '../services/energy_sort.dart';
+import '../widgets/progress_dialog.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
@@ -360,12 +361,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ),
     );
     final text = ctrl.text;
-    ctrl.dispose();
+    // Se libera después de la animación de cierre del diálogo.
+    WidgetsBinding.instance.addPostFrameCallback((_) => ctrl.dispose());
     if (ok != true || text.trim().isEmpty || !mounted) return;
     final m = ScaffoldMessenger.of(context);
-    m.showSnackBar(const SnackBar(content: Text('Importando…')));
+    final (_, close) = showProgress(context,
+        ImportService.isYoutube(text) ? 'Leyendo la lista de YouTube…' : 'Importando…');
     try {
       final (name, songs) = await ImportService.parse(text);
+      close();
       if (songs.isEmpty) {
         m.showSnackBar(const SnackBar(
             content: Text('No encontré canciones en eso. Revisa el formato.')));
@@ -376,6 +380,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       PlaybackUi.instance.bumpLibrary();
       m.showSnackBar(SnackBar(content: Text('Lista «$name» con $n canciones.')));
     } catch (_) {
+      close();
       m.showSnackBar(const SnackBar(
           content: Text('No se pudo importar (¿la lista es pública?).')));
     }
@@ -480,9 +485,16 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   await PlaylistService.instance.rename(p.id, n);
                 } else if (v == 'energy') {
                   final m = ScaffoldMessenger.of(context);
-                  m.showSnackBar(const SnackBar(
-                      content: Text('Midiendo la energía de cada canción…')));
-                  final sorted = await EnergySort.sort(p.songs);
+                  final (set, close) = showProgress(
+                      context, 'Midiendo la energía de cada canción…');
+                  final sorted = await EnergySort.sort(p.songs,
+                      progress: (d, t) => set('Midiendo la energía… $d de $t'));
+                  close();
+                  if (sorted == null) {
+                    m.showSnackBar(const SnackBar(
+                        content: Text('No encontré el ritmo de suficientes canciones para ordenarla.')));
+                    return;
+                  }
                   await PlaylistService.instance.setOrder(p.id, sorted);
                   m.showSnackBar(const SnackBar(
                       content: Text('Lista ordenada: sube la energía y luego baja.')));

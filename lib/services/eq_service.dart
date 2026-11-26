@@ -183,11 +183,12 @@ class EqService extends ChangeNotifier {
       Future<void> check() async {
         final ds = await session.getDevices(includeInputs: false);
         AudioDevice? best;
+        // Por nombre del tipo: cubre Bluetooth clásico, LE Audio/BLE,
+        // cable y USB-C (los nombres exactos cambian entre versiones).
+        final wanted = RegExp(r'bluetooth|ble|headset|headphones|usb|hearing',
+            caseSensitive: false);
         for (final d in ds) {
-          if (d.type == AudioDeviceType.bluetoothA2dp ||
-              d.type == AudioDeviceType.wiredHeadphones ||
-              d.type == AudioDeviceType.wiredHeadset ||
-              d.type == AudioDeviceType.usbAudio) {
+          if (wanted.hasMatch(d.type.name)) {
             best = d;
             break;
           }
@@ -206,7 +207,11 @@ class EqService extends ChangeNotifier {
       }
 
       await check();
-      session.devicesChangedEventStream.listen((_) => check());
+      session.devicesChangedEventStream.listen((_) async {
+        try {
+          await check();
+        } catch (_) {}
+      });
     } catch (_) {}
   }
 

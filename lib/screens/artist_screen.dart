@@ -170,7 +170,9 @@ class _ArtistScreenState extends State<ArtistScreen> {
                         final cs = ConcertService.instance.state.value.items
                             .where((c) =>
                                 RadarService.matchBand(c, [a.name]) != null &&
-                                (c.date == null || !c.date!.isBefore(DateTime.now())))
+                                (c.date == null ||
+                                    !c.date!.isBefore(DateTime(DateTime.now().year,
+                                        DateTime.now().month, DateTime.now().day))))
                             .toList();
                         if (cs.isEmpty) return const SizedBox.shrink();
                         final c = cs.first;
@@ -199,7 +201,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                         padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
                         child: OutlinedButton.icon(
                           onPressed: () async {
-                            final v = await RadarService.instance.toggleFollow(a.name);
+                            final v = await RadarService.instance.toggleFollow(widget.name);
                             if (!mounted) return;
                             setState(() => _following = v);
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -210,7 +212,7 @@ class _ArtistScreenState extends State<ArtistScreen> {
                           icon: Icon(_following
                               ? Icons.notifications_active_rounded
                               : Icons.notifications_none_rounded),
-                          label: Text(_following ? 'Siguiendo' : 'Seguir (avísame de conciertos)'),
+                          label: Text(_following ? 'Siguiendo' : 'Seguir'),
                         ),
                       ),
                       Padding(

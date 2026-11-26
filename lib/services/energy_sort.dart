@@ -6,7 +6,8 @@ import 'deezer_service.dart';
 class EnergySort {
   EnergySort._();
 
-  static Future<List<Song>> sort(List<Song> songs,
+  /// Null si menos de 3 canciones tienen BPM (no se puede ordenar).
+  static Future<List<Song>?> sort(List<Song> songs,
       {void Function(int done, int total)? progress}) async {
     final d = DeezerService();
     final take = songs.length > 150 ? 150 : songs.length;
@@ -22,7 +23,7 @@ class EnergySort {
       progress?.call(done, take);
     }
     final slots = [for (var i = 0; i < songs.length; i++) if (bpm[i] > 0) i];
-    if (slots.length < 3) return songs;
+    if (slots.length < 3) return null;
     final sorted = List<int>.of(slots)..sort((a, b) => bpm[a].compareTo(bpm[b]));
     // Curva: los pares suben, los impares bajan.
     final wave = [

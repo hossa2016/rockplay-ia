@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io' show HttpClient;
 
+import 'ai_json.dart';
+import 'deezer_service.dart';
+
 class LyricLine {
   final Duration at;
   final String text;
@@ -150,6 +153,26 @@ class LyricsService {
     } finally {
       c.close(force: true);
     }
+    if (out.isNotEmpty) return out;
+    // Respaldo con IA: candidatas confirmadas con Deezer (nada inventado).
+    try {
+      final j = await AiJson.ask(
+          'Identificas canciones por fragmentos de su letra. Respondes SOLO JSON.',
+          'Fragmento (puede estar mal recordado): "$text".\n'
+              'Dame hasta 5 canciones reales que lo contengan, la más probable primero.\n'
+              'Formato: {"c":[{"artista":"","cancion":"","linea":"la línea parecida"}]}');
+      if (j is Map) {
+        final d = DeezerService();
+        for (final e in (j['c'] as List?) ?? const []) {
+          if (e is! Map) continue;
+          final a = '${e['artista'] ?? ''}'.trim(), t = '${e['cancion'] ?? ''}'.trim();
+          if (a.isEmpty || t.isEmpty) continue;
+          if (!await d.trackExists(a, t)) continue;
+          out.add((a, t, '${e['linea'] ?? ''}'.trim()));
+          if (out.length >= 5) break;
+        }
+      }
+    } catch (_) {}
     return out;
   }
 

@@ -261,6 +261,9 @@ class ConcertService {
     if (!_cacheRead) {
       _cacheRead = true;
       await _readCache();
+      // Radar: revisa al abrir la app (una vez al día) si hay conciertos
+      // de tus bandas que aún no te avisé.
+      unawaited(RadarService.instance.notifyNew());
     }
     final s = state.value;
     if (s.loading) return;
@@ -483,11 +486,12 @@ class ConcertService {
     final mes = kMonthsLong[now.month - 1].toLowerCase();
     var favs = <String>[];
     try {
-      final plays = await StatsService.instance.plays(days: 120);
-      favs = [
-        for (final a in StatsService.topArtists(plays, n: 8))
-          StatsService.cleanArtist(a.name)
-      ].where((e) => e.trim().isNotEmpty).toList();
+      // Radar: las 10 primeras de tus bandas (seguidas, más escuchadas y
+      // favoritas) se buscan una por una en cada actualización (cada 3 días).
+      favs = (await RadarService.instance.bands())
+          .where((e) => e.trim().isNotEmpty)
+          .take(10)
+          .toList();
     } catch (_) {}
 
     Map<String, dynamic> q(String text, [int n = 6]) =>

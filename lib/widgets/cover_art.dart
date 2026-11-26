@@ -250,9 +250,12 @@ class SongArtwork {
     final e = _cache[_key(s)];
     if (e == null) return null;
     final url = '${e[0]}';
-    if (url.isEmpty &&
-        DateTime.now().millisecondsSinceEpoch - (e[1] as num) >
-            const Duration(days: 7).inMilliseconds) {
+    final age = DateTime.now().millisecondsSinceEpoch - (e[1] as num);
+    // Error de red o límite de iTunes: se reintenta en 1 hora.
+    if (url == 'ERR') {
+      return age > const Duration(hours: 1).inMilliseconds ? null : _fallback(s);
+    }
+    if (url.isEmpty && age > const Duration(days: 7).inMilliseconds) {
       return null; // «sin resultado» vencido: reintentar
     }
     return url.isEmpty ? _fallback(s) : url;
@@ -288,15 +291,28 @@ class SongArtwork {
     final k = _key(s);
     return _pending[k] ??= _limited(() async {
       var u = '';
+      var failed = false;
+      // Deezer primero (límite más alto) y, si no lo tiene, iTunes.
       try {
-        // La misma fuente que el reproductor (iTunes) y, si no hay, Deezer.
-        final i = await TrackInfoService.instance.fetch(s.artist, s.title);
-        u = i?.artwork ?? '';
-        if (u.isEmpty) {
-          u = await DeezerService().coverFor('${s.artist} ${s.title}');
+        u = (await DeezerService().coverFor('${s.artist} ${s.title}'))
+            .replaceAll('250x250', '500x500');
+      } catch (_) {
+        failed = true;
+      }
+      if (u.isEmpty) {
+        try {
+          final i = await TrackInfoService.instance
+              .fetch(s.artist, s.title, throwOnError: true);
+          u = i?.artwork ?? '';
+        } catch (_) {
+          failed = true;
         }
-      } catch (_) {}
-      _cache[k] = [u, DateTime.now().millisecondsSinceEpoch];
+      }
+      _cache[k] = [u.isEmpty && failed ? 'ERR' : u, DateTime.now().millisecondsSinceEpoch];
+      if (u.isEmpty && failed) {
+        _save();
+        return _fallback(s);
+      }
       _save();
       return u.isEmpty ? _fallback(s) : u;
     }).whenComplete(() => _pending.remove(k));

@@ -1,3 +1,4 @@
+import 'package:android_intent_plus/android_intent.dart';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,12 +76,22 @@ class RadarService {
     return out;
   }
 
+  /// Nombres demasiado genéricos para cruzarlos con un cartel.
+  static const Set<String> _generic = {
+    'rock', 'love', 'metal', 'punk', 'live', 'band', 'banda', 'grupo',
+    'various artists', 'varios artistas', 'música', 'musica', 'tributo',
+  };
+
   /// La banda de [c] (o del cartel del festival) que es tuya, si hay.
+  /// Los tributos («Tributo a…», «Tribute») no cuentan como la banda real.
   static String? matchBand(Concert c, List<String> bands) {
-    final t = ' ${fold(c.band)} ';
+    final full = fold(c.band);
+    if (RegExp(r'\btribut').hasMatch(full)) return null;
+    final t = ' $full ';
     for (final b in bands) {
       final k = fold(b);
-      if (k.length < 3) continue;
+      if (k.length < 4 && !RegExp(r'\d').hasMatch(k)) continue;
+      if (_generic.contains(k)) continue;
       if (t.contains(' $k ')) return b;
     }
     return null;
@@ -137,6 +148,30 @@ class RadarService {
     'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio',
     'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
   ];
+
+  /// Abre la app de calendario con el evento listo (ACTION_INSERT); si no
+  /// hay app de calendario, abre Google Calendar en la web. False si falló.
+  static Future<bool> addToCalendar(Concert c) async {
+    final d = c.date;
+    if (d == null) return false;
+    try {
+      await AndroidIntent(
+        action: 'android.intent.action.INSERT',
+        data: 'content://com.android.calendar/events',
+        arguments: <String, dynamic>{
+          'title': 'Concierto: ${c.band}',
+          'eventLocation': [c.venue, c.city].where((e) => e.isNotEmpty).join(', '),
+          'description': c.tickets.isNotEmpty ? 'Boletas: ${c.tickets}' : 'Desde RockPlay IA',
+          'beginTime': DateTime(d.year, d.month, d.day).millisecondsSinceEpoch,
+          'endTime': DateTime(d.year, d.month, d.day + 1).millisecondsSinceEpoch,
+          'allDay': true,
+        },
+      ).launch();
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   /// Enlace para añadir el concierto a Google Calendar (abre la app).
   static Uri calendarUri(Concert c) {
