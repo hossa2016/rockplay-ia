@@ -326,7 +326,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.event_rounded, size: 18),
-                  label: const Text('Calendario'),
+                  label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Calendario', maxLines: 1)),
                   // Sin fecha exacta no se crea un evento «hoy».
                   onPressed: c.date == null
                       ? null
@@ -343,7 +343,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.queue_music_rounded, size: 18),
-                  label: const Text('Prepárate'),
+                  label: const FittedBox(fit: BoxFit.scaleDown, child: Text('Prepárate', maxLines: 1)),
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
                       builder: (_) => PrepScreen(
                           band: _mineOf(c) ?? _bandQuery(c.band), concert: c))),
@@ -359,7 +359,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                     backgroundColor: AppColors.redBtn),
                 onPressed: () => openConcertLink(
                     context, hasTickets ? c.tickets : c.ticketSearchUrl),
-                child: Text(hasTickets ? 'Boletas' : 'Buscar boletas'),
+                child: FittedBox(fit: BoxFit.scaleDown, child: Text(hasTickets ? 'Boletas' : 'Buscar boletas', maxLines: 1)),
               ),
             ),
             const SizedBox(width: 8),
@@ -367,7 +367,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
               child: OutlinedButton(
                 style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                 onPressed: () => Navigator.of(context).pop(_bandQuery(c.band)),
-                child: Text(byMode('Escuchar banda', 'Escuchar artista')),
+                child: FittedBox(fit: BoxFit.scaleDown, child: Text(byMode('Escuchar banda', 'Escuchar artista'), maxLines: 1)),
               ),
             ),
           ]),
@@ -503,7 +503,7 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
       backgroundColor: AppColors.bg,
       appBar: AppBar(
         backgroundColor: AppColors.bg,
-        title: const Text('Conciertos en Colombia',
+        title: const Text('Conciertos',
             style: TextStyle(fontWeight: FontWeight.w900)),
         actions: [
           IconButton(

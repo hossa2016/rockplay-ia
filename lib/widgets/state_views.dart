@@ -65,11 +65,21 @@ class StateMessage extends StatelessWidget {
                             height: 1.3,
                             color: AppColors.textDim)),
                   ],
+                  // La acción va debajo: al lado apretaba el texto en
+                  // columnas de una palabra con letra grande.
+                  if (actionLabel != null && onAction != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: TextButton(
+                          style: TextButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              alignment: Alignment.centerLeft),
+                          onPressed: onAction,
+                          child: Text(actionLabel!)),
+                    ),
                 ],
               ),
             ),
-            if (actionLabel != null && onAction != null)
-              TextButton(onPressed: onAction, child: Text(actionLabel!)),
           ]),
         ),
       );

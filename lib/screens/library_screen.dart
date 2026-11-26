@@ -440,9 +440,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             child: StateMessage(
               icon: Icons.queue_music_rounded,
               title: 'Aún no tienes listas',
-              message: 'Crea una o guarda la que arme el asistente.',
-              actionLabel: 'Nueva lista',
-              onAction: _newList,
+              message: 'Crea una arriba o guarda la que arme el asistente.',
               compact: true,
             ),
           ),

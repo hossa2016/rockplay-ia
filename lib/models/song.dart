@@ -127,7 +127,7 @@ class SongMeta {
       caseSensitive: false);
   /// «Artista - Canción», «Artista | Canción», «Artista . Canción»,
   /// «Artista ♫ Canción», «Artista // Canción».
-  static final RegExp _sep = RegExp(r'\s+[-–—|.·•~]\s+|\s*(?:[♫♪]|\u{1F3B5})\s*|\s+//\s+', unicode: true);
+  static final RegExp _sep = RegExp(r'\s+[-–—|.·•~]\s+|(?<=[^\s\-–—])[-–—]\s+(?=\S)|\s*(?:[♫♪]|\u{1F3B5})\s*|\s+//\s+', unicode: true);
 
   /// Colas de canales de letras sin guion: «Sonnet♫Lyrics», «… Letra»,
   /// «… Subtitulado al Español», «… (Traducida)».
@@ -137,7 +137,7 @@ class SongMeta {
 
   /// «Rammstein Official», «PearlJamVEVO», «Korn - Topic» → nombre del artista.
   static final RegExp _uploader = RegExp(
-      r'(uploader|vault|records\b|recordings|music\s*(channel|tv)?$|heartbeats|lyrics|letras|hits|classics|mix(es)?$|channel$|^\w+chef$|\btv$|archive|collection)',
+      r'(\bshow$|podcast|productions?\b|\bstudios?$|\bent(ertainment)?$|\bradio$|\bfm$|uploader|vault|records\b|recordings|music\s*(channel|tv)?$|heartbeats|lyrics|letras|hits|classics|mix(es)?$|channel$|^\w+chef$|\btv$|archive|collection)',
       caseSensitive: false);
 
   /// ¿El «artista» parece un canal que sube música de otros?
@@ -214,6 +214,14 @@ class SongMeta {
       final a = by.group(2)!.trim();
       if (a.isNotEmpty && a.length <= 40) {
         return (artist: a, title: by.group(1)!.trim());
+      }
+    }
+    // «Counting Crows "Round Here"» (subido por un programa de TV o radio).
+    final q = RegExp(r'^([^"“”]{2,40}?)\s*[:\-–]?\s*["“]([^"”]+)["”]\s*(.*)$').firstMatch(t);
+    if (q != null && _sep.firstMatch(q.group(1)!) == null) {
+      final a = q.group(1)!.trim(), ti = q.group(2)!.trim();
+      if (isPlausibleArtist(a) && ti.isNotEmpty) {
+        return (artist: a, title: ti);
       }
     }
     final m = _sep.firstMatch(t);

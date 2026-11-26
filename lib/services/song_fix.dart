@@ -17,6 +17,7 @@ class SongFix {
   static bool doubtful(Song s) =>
       _num.hasMatch(s.title.trim()) ||
       !SongMeta.isPlausibleArtist(s.artist) ||
+      s.artist.trim().length <= 3 ||
       RegExp(r'[♫♪]|\blyrics?\b|subtitulad', caseSensitive: false).hasMatch(s.title);
 
   static Future<Song> verify(Song s) async {
@@ -38,6 +39,20 @@ class SongFix {
     }
     try {
       final d = DeezerService();
+      // «Shakira · No» guardada al revés («No» de Shakira): se voltea si
+      // Deezer la conoce así y no al derecho.
+      if (s.artist.trim().length <= 3) {
+        // «U2 · One» está bien: se deja como está.
+        if (await d.trackExists(s.artist, s.title)) {
+          _cache[key] = s;
+          return s;
+        }
+        if (await d.trackExists(s.title, s.artist)) {
+          out = s.withMeta(title: s.artist, artist: s.title);
+          _cache[key] = out;
+          return out;
+        }
+      }
       if (_num.hasMatch(s.title.trim())) {
         if (!await d.trackExists(s.artist, s.title)) {
           final a = await d.artistForTitle(s.artist);
