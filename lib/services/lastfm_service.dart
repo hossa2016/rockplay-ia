@@ -78,6 +78,7 @@ class LastFmService {
       if (s == null) return '${j['message'] ?? 'No se pudo conectar'}';
       session = s;
       user = username.trim();
+      lastError.value = '';
       await _sec.write(key: 'lfm_key', value: apiKey);
       await _sec.write(key: 'lfm_secret', value: secret);
       await _sec.write(key: 'lfm_session', value: session);

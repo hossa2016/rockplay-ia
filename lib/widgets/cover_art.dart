@@ -294,7 +294,8 @@ class SongArtwork {
       var failed = false;
       // Deezer primero (límite más alto) y, si no lo tiene, iTunes.
       try {
-        u = (await DeezerService().coverFor('${s.artist} ${s.title}'))
+        u = (await DeezerService()
+                .coverFor('artist:"${s.artist}" track:"${s.title}"'))
             .replaceAll('250x250', '500x500');
       } catch (_) {
         failed = true;

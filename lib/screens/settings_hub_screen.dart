@@ -193,7 +193,17 @@ class _SettingsHubScreenState extends State<SettingsHubScreen> {
         ]),
       ),
     );
-    await BackupService.restore(j, merge: merge);
+    try {
+      await BackupService.restore(j, merge: merge);
+    } catch (_) {
+      // Copia dañada: se cierra el aviso y se explica; la app no se cierra.
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('No se pudo restaurar: el archivo está dañado o incompleto.')));
+      }
+      return;
+    }
     exit(0);
   }
 

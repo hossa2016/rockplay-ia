@@ -241,6 +241,7 @@ class _HomeTabState extends State<_HomeTab> {
   void dispose() {
     PlaybackUi.instance.libraryRevision.removeListener(_load);
     homeWantAction.removeListener(_wantAction);
+    if (_disc == 1) _leaveReleases(); // NUEVO visto al salir de Inicio
     super.dispose();
   }
 
@@ -814,9 +815,8 @@ class _HomeTabState extends State<_HomeTab> {
   Widget _localScene() {
     final mixes = LocalScene.mixes(_sceneFilter);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Dense(
-        child: SizedBox(
-          height: 44,
+      SizedBox(
+          height: 52,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -832,7 +832,6 @@ class _HomeTabState extends State<_HomeTab> {
                 ),
             ],
           ),
-        ),
       ),
       const SizedBox(height: 10),
       SizedBox(

@@ -54,7 +54,9 @@ class DjVoice {
       await _tts.setSpeechRate(0.5);
       await _tts.setPitch(MusicModeService.general ? 1.05 : 0.92);
       await _tts.awaitSpeakCompletion(true);
-      _ok = true;
+      // Sin motor de voz instalado no se baja la música.
+      final engines = await _tts.getEngines;
+      _ok = engines is List && engines.isNotEmpty;
     } catch (_) {
       _ok = false; // sin motor de voz: no se baja la música
     }

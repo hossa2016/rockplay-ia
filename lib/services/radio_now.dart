@@ -27,7 +27,8 @@ class RadioNow {
     final v = _valid[k];
     if (v != null) return v;
     final ok = await DeezerService().trackExists(a, t);
-    _valid[k] = ok;
+    // Solo se recuerda el «sí»: un «no» puede ser un error de red.
+    if (ok) _valid[k] = true;
     return ok;
   }
   static const String _prefKey = 'radio_heard_v1';
@@ -41,16 +42,21 @@ class RadioNow {
     if (m == null) return null;
     final a = m.group(1)!.trim(), s = m.group(2)!.trim();
     if (a.length < 2 || s.length < 2) return null;
+    // Solo lo que claramente no es canción (anuncios, enlaces, frecuencias).
+    // «Radio Ga Ga», «Am I Evil?» o versiones en vivo sí pasan; Deezer
+    // confirma después.
     final bad = RegExp(
-        r'(publicidad|comercial|anuncio|en vivo|\bradio\b|\bfm\b|\bam\b|www\.|http|\.com)',
+        r'(publicidad|comercial|anuncio|www\.|http|\.com\b|\b\d{2,3}[.,]\d\s*(fm|am)\b)',
         caseSensitive: false);
     if (bad.hasMatch(a) || bad.hasMatch(s)) return null;
-    // Una parte es el nombre de la emisora: no es una canción.
+    // Una parte ES el nombre de la emisora (no solo comparte una palabra).
     if (station.isNotEmpty) {
-      final st = station.toLowerCase();
-      final words = st.split(RegExp(r'\s+')).where((w) => w.length >= 4);
-      for (final part in [a.toLowerCase(), s.toLowerCase()]) {
-        if (st.contains(part) || words.any(part.contains)) return null;
+      String f(String x) => x.toLowerCase().replaceAll(RegExp(r'[^a-z0-9áéíóúñ]'), '');
+      final st = f(station);
+      for (final part in [f(a), f(s)]) {
+        if (part.length >= 4 && (st == part || st.startsWith(part) || part.startsWith(st))) {
+          return null;
+        }
       }
     }
     return (a, s);
