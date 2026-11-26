@@ -199,7 +199,6 @@ class MixService {
 
   static String _cleanArtist(String a) => SongMeta.cleanChannel(a);
 
-  /// Artistas más presentes en favoritos (peso 2) e historial (peso 1).
   /// Artistas de arranque de cada modo (cuando aún hay pocos datos).
   static List<String> get modeSeeds => MusicModeService.general
       ? const ['Shakira', 'Karol G', 'Carlos Vives', 'Grupo Niche',
@@ -211,6 +210,8 @@ class MixService {
   static String _paMode = '';
   static DateTime _paAt = DateTime(2000);
 
+  /// Artistas más presentes en favoritos (peso 2), historial (peso 1) y
+  /// escuchas de los últimos 30 días (1 por escucha).
   static Future<List<String>> personalArtists() async {
     final mk = modeKey('pa');
     if (_paCache != null &&

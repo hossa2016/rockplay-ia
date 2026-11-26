@@ -323,7 +323,7 @@ class _DjScreenState extends State<DjScreen> {
               Icon(Icons.person_search_rounded, color: AppColors.amber, size: 34),
               SizedBox(height: 14),
               Text(
-                byMode('ELIGE UN ARTISTA', 'Elige un artista'),
+                byMode('MEZCLA POR ARTISTA', 'Mezcla por artista'),
                 style: TextStyle(
                   fontFamily: AppType.head,
                   fontSize: AppType.title,

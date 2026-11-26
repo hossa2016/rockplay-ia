@@ -40,47 +40,6 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
     return '${(b / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 
-  Widget _option(CacheMode m, String title, String sub) {
-    final on = _ds.mode == m;
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.lg),
-        side: BorderSide(color: on ? AppColors.red : AppColors.outline),
-      ),
-      child: InkWell(
-        customBorder:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.lg)),
-        onTap: () {
-          setState(() => _ds.mode = m);
-          _apply();
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(children: [
-            Icon(on ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: on ? AppColors.redText : AppColors.textDim),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w800, fontSize: AppType.body)),
-                  const SizedBox(height: 2),
-                  Text(sub,
-                      style: TextStyle(
-                          color: AppColors.textDim, fontSize: AppType.caption)),
-                ],
-              ),
-            ),
-          ]),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -115,12 +74,6 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
               ),
             ]),
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
-            child: Text(_ds.debugInfo(),
-                style: TextStyle(
-                    color: AppColors.textFaint, fontSize: AppType.caption)),
-          ),
           const SizedBox(height: 14),
           Text(
             'El caché guarda portadas y datos de artistas en tu teléfono para no '
@@ -128,36 +81,50 @@ class _DataSettingsScreenState extends State<DataSettingsScreen> {
             style: TextStyle(color: AppColors.textDim, height: 1.4),
           ),
           const SizedBox(height: 16),
-          _option(CacheMode.unlimited, 'Sin límite',
-              'Guarda todo lo que se baje.'),
-          const SizedBox(height: 10),
-          _option(CacheMode.limit, 'Hasta una cantidad de espacio',
-              'Cuando se llena, borra lo más viejo.'),
-          if (_ds.mode == CacheMode.limit)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 10, 4, 0),
-              child: Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final mb in DataSaver.limitsMb)
-                    ChoiceChip(
-                      label: Text(mb >= 1000 ? '1 GB' : '$mb MB'),
-                      selected: _ds.limitMb == mb,
-                      onSelected: (_) {
-                        setState(() => _ds.limitMb = mb);
-                        _apply();
-                      },
-                    ),
-                ],
+          // Un solo control: cuánto espacio puede usar (antes eran 4 modos).
+          Text('Espacio para guardar',
+              style: const TextStyle(
+                  fontWeight: FontWeight.w800, fontSize: AppType.body)),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ChoiceChip(
+                label: const Text('Nada'),
+                selected: _ds.mode == CacheMode.off,
+                onSelected: (_) {
+                  setState(() => _ds.mode = CacheMode.off);
+                  _apply();
+                },
               ),
-            ),
-          const SizedBox(height: 10),
-          _option(CacheMode.favorites, 'Solo favoritas y más escuchadas',
-              'Guarda solo las portadas de tus favoritos y de tus 100 más oídas.'),
-          const SizedBox(height: 10),
-          _option(CacheMode.off, 'No guardar nada',
-              'Siempre baja todo de nuevo. Gasta más datos.'),
+              for (final mb in DataSaver.limitsMb)
+                ChoiceChip(
+                  label: Text(mb >= 1000 ? '1 GB' : '$mb MB'),
+                  selected: (_ds.mode == CacheMode.limit ||
+                          _ds.mode == CacheMode.favorites) &&
+                      _ds.limitMb == mb,
+                  onSelected: (_) {
+                    setState(() {
+                      _ds.mode = CacheMode.limit;
+                      _ds.limitMb = mb;
+                    });
+                    _apply();
+                  },
+                ),
+              ChoiceChip(
+                label: const Text('Sin límite'),
+                selected: _ds.mode == CacheMode.unlimited,
+                onSelected: (_) {
+                  setState(() => _ds.mode = CacheMode.unlimited);
+                  _apply();
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text('Cuando se llena, borra lo más viejo.',
+              style: TextStyle(color: AppColors.textDim, fontSize: AppType.caption)),
           const SizedBox(height: 18),
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 4),

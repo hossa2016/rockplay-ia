@@ -50,6 +50,14 @@ class ConcertDateBox extends StatelessWidget {
   }
 }
 
+const String concertTbd = 'Lugar por confirmar';
+
+/// Estilo del lugar: atenuado y en cursiva si está por confirmar.
+TextStyle concertPlaceStyle(String place, TextStyle base) =>
+    place == concertTbd
+        ? base.copyWith(color: AppColors.textFaint, fontStyle: FontStyle.italic)
+        : base;
+
 String concertPlace(Concert c) {
   String f(String s) => s
       .toLowerCase()
@@ -59,7 +67,9 @@ String concertPlace(Concert c) {
       .replaceAll(RegExp('[óò]'), 'o')
       .replaceAll(RegExp('[úù]'), 'u');
   final v = c.venue.trim(), city = c.city.trim();
-  if (v.isEmpty && city.isEmpty) return 'Lugar por confirmar';
+  if (v.isEmpty && city.isEmpty) return concertTbd;
+  // Toque sin cartel: el título ya es el lugar; solo la ciudad.
+  if (v.isNotEmpty && f(v) == f(c.band.trim())) return city.isEmpty ? '' : city;
   // La ciudad no se repite si ya va en el nombre del lugar.
   if (v.isNotEmpty && city.isNotEmpty && f(v).contains(f(city))) return v;
   return [v, city].where((e) => e.isNotEmpty).join(' · ');
@@ -202,12 +212,13 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
                             letterSpacing: 1.2,
                             fontWeight: FontWeight.w800,
                             color: AppColors.amber)),
-                  if (concertPlace(c).isNotEmpty)
-                    Text(concertPlace(c),
-                        style: TextStyle(
-                            fontSize: AppType.bodySm,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textDim)),
+                  Text(concertPlace(c),
+                      style: concertPlaceStyle(
+                          concertPlace(c),
+                          TextStyle(
+                              fontSize: AppType.bodySm,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textDim))),
                   if (c.date == null)
                     Text('Fecha: ${c.when}',
                         style: TextStyle(

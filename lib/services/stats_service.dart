@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -35,7 +36,14 @@ class StatsService {
 
   static String cleanArtist(String a) => SongMeta.cleanChannel(a);
 
+  /// Listas con escuchas aún sin guardar (se guardan en lote).
+  final Map<String, List<PlayEntry>> _pending = {};
+  int _unsaved = 0;
+  Timer? _flushT;
+
   Future<List<PlayEntry>> _loadKey(String key) async {
+    final p = _pending[key];
+    if (p != null) return p;
     if (key == _key) return _load();
     final out = <PlayEntry>[];
     try {
@@ -88,17 +96,40 @@ class StatsService {
         s.image,
       ));
       if (list.length > _cap) list.removeRange(0, list.length - _cap);
+      // En lote: cada 5 escuchas, a los 30 s o al salir de la app (antes
+      // se reescribían hasta 3.000 escuchas en cada canción).
+      _pending[key] = list;
+      if (++_unsaved >= 5) {
+        await flush();
+      } else {
+        _flushT?.cancel();
+        _flushT = Timer(const Duration(seconds: 30), flush);
+      }
+    } catch (_) {}
+  }
+
+  /// Guarda las escuchas pendientes.
+  Future<void> flush() async {
+    _flushT?.cancel();
+    _unsaved = 0;
+    if (_pending.isEmpty) return;
+    final todo = Map<String, List<PlayEntry>>.of(_pending);
+    _pending.clear();
+    try {
       final sp = await SharedPreferences.getInstance();
-      await sp.setString(
-        key,
-        jsonEncode([
-          for (final p in list) [p.ts, p.artist, p.title, p.videoId, p.image]
-        ]),
-      );
+      for (final e in todo.entries) {
+        await sp.setString(
+          e.key,
+          jsonEncode([
+            for (final p in e.value) [p.ts, p.artist, p.title, p.videoId, p.image]
+          ]),
+        );
+      }
     } catch (_) {}
   }
 
   Future<void> clear() async {
+    _pending.remove(_key);
     _cache = <PlayEntry>[];
     try {
       final sp = await SharedPreferences.getInstance();

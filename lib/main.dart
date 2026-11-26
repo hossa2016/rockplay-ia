@@ -14,11 +14,13 @@ import 'services/mode_cleanup.dart';
 import 'services/music_mode.dart';
 import 'services/playback_service.dart';
 import 'widgets/playback_ui.dart';
+import 'widgets/cover_art.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Primero el modo de música: define colores, textos y géneros.
   await MusicModeService.load();
+  unawaited(SongArtwork.warm());
   await ModeCleanup.run();
   unawaited(ModeCleanup.fixTitles());
   SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(

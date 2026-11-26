@@ -39,22 +39,26 @@ class EqService extends ChangeNotifier {
     'Acústico': [2, 2, 1, 1, 0, 1, 2, 3, 3, 2],
     'En vivo': [2, 2, 1, 0, -1, 0, 1, 2, 3, 3],
     'Voces': [-2, -1, 0, 1, 3, 4, 4, 3, 1, 0],
-    'Más graves': [7, 6, 4, 2, 0, 0, 0, 0, 0, 0],
+    'Graves': [7, 6, 4, 2, 0, 0, 0, 0, 0, 0],
     'Plano': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
     // Modo «Todos los géneros».
     'Pop': [-1, 0, 2, 3, 3, 2, 1, 1, 2, 2],
     'Urbano': [7, 6, 4, 1, -1, 0, 1, 1, 2, 2],
     'Salsa': [3, 3, 1, 0, 1, 2, 3, 4, 3, 2],
-    'Voz': [-2, -1, 0, 1, 3, 4, 4, 3, 1, 0],
-    'Graves': [7, 6, 4, 2, 0, 0, 0, 0, 0, 0],
+  };
+
+  /// Nombres viejos (antes había dos por curva) → el único actual.
+  static const Map<String, String> _renamed = {
+    'Voz': 'Voces',
+    'Más graves': 'Graves',
   };
 
   static const List<String> _rockNames = [
     'Rock', 'Metal', 'Grunge', 'Punk', 'Clásico', 'Acústico', 'En vivo',
-    'Voces', 'Más graves', 'Plano',
+    'Voces', 'Graves', 'Plano',
   ];
   static const List<String> _generalNames = [
-    'Pop', 'Urbano', 'Salsa', 'Acústico', 'Voz', 'Graves', 'En vivo', 'Plano',
+    'Pop', 'Urbano', 'Salsa', 'Acústico', 'Voces', 'Graves', 'En vivo', 'Plano',
   ];
 
   /// Preajustes que se muestran en el modo actual.
@@ -133,6 +137,7 @@ class EqService extends ChangeNotifier {
       enabled = p.getBool('eq_on') ?? true;
       auto = p.getBool('eq_auto') ?? false;
       preset = p.getString('eq_preset') ?? defaultPreset;
+      preset = _renamed[preset] ?? preset;
       final c = p.getString('eq_cache');
       if (c != null) {
         final m = jsonDecode(c) as Map<String, dynamic>;
@@ -187,6 +192,7 @@ class EqService extends ChangeNotifier {
   }
 
   void applyPreset(String name) {
+    name = _renamed[name] ?? name;
     final p = presets[name];
     if (p == null) return;
     preset = name;
@@ -412,7 +418,7 @@ class EqService extends ChangeNotifier {
       'gran combo', 'frankie ruiz', 'eddie santiago', 'jerry rivera', 'la india', 'tito nieves'],
     'Acústico': ['norah jones', 'jorge drexler', 'natalia lafourcade', 'ed sheeran',
       'jack johnson', 'john mayer', 'bon iver', 'ludovico einaudi', 'chopin', 'debussy'],
-    'Voz': ['adele', 'luis miguel', 'whitney houston', 'ella fitzgerald', 'laura pausini',
+    'Voces': ['adele', 'luis miguel', 'whitney houston', 'ella fitzgerald', 'laura pausini',
       'marco antonio solís', 'ricardo arjona', 'alejandro sanz', 'rocío dúrcal', 'juan gabriel',
       'diomedes díaz', 'silvestre dangond', 'jorge celedón', 'binomio de oro'],
     'Graves': ['calvin harris', 'david guetta', 'avicii', 'daft punk', 'martin garrix', 'tiësto',
@@ -440,7 +446,7 @@ class EqService extends ChangeNotifier {
           'Urbano': 'Bajos profundos y voz clara para el sonido urbano.',
           'Salsa': 'Metales y percusión al frente, con bajo firme.',
           'Acústico': 'Cuerdas, piano y voz con más detalle.',
-          'Voz': 'La voz al frente, con medios claros.',
+          'Voces': 'La voz al frente, con medios claros.',
           'Graves': 'Más bajo y bombo para la electrónica.',
         }[e.key]!;
         return EqSuggestion(e.key, why, 'Reglas');

@@ -39,6 +39,10 @@ import 'settings_hub_screen.dart';
 import '../services/track_info_service.dart';
 import '../services/data_saver.dart';
 import '../widgets/app_button.dart';
+import '../services/radio_service.dart';
+import 'radio_screen.dart';
+import '../widgets/nav_signals.dart';
+import '../services/backup_service.dart';
 
 /// Contenedor principal: pestañas + mini-reproductor sobre la navegación.
 class HomeScreen extends StatefulWidget {
@@ -72,6 +76,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) _checkAlarm();
+    // Guarda las escuchas pendientes al salir de la app.
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      StatsService.instance.flush();
+    }
   }
 
   @override
@@ -344,24 +353,30 @@ class _HomeTabState extends State<_HomeTab> {
     for (final a in arts) {
       if (seen.add(a.toLowerCase())) uniq.add(a);
     }
-    // Pocos datos: se completa con artistas de arranque del modo.
-    if (uniq.length < 4) {
+    // Pocos datos: se completa con artistas de arranque del modo hasta 6.
+    final mine = uniq.length;
+    if (uniq.length < 6) {
       for (final a in MixService.modeSeeds) {
-        if (uniq.length >= 4) break;
+        if (uniq.length >= 6) break;
         if (seen.add(a.toLowerCase())) uniq.add(a);
       }
     }
+    // Si dominan los de arranque, se dice con honestidad.
+    final starter = mine * 2 < uniq.length;
     final d = DateTime.now().subtract(const Duration(hours: 5));
     final seed = d.year * 400 + d.month * 32 + d.day;
     uniq.shuffle(math.Random(seed));
     final n = uniq.length >= 12 ? 4 : (uniq.length >= 8 ? 3 : 2);
-    final per = (uniq.length / n).ceil().clamp(3, 10).toInt();
+    // Reparto parejo (sin mínimo de 3: con 6 artistas, 3 y 3).
+    final per = (uniq.length / n).ceil().clamp(1, 10).toInt();
     return [
       for (var i = 0; i < n; i++)
         if (uniq.skip(i * per).isNotEmpty)
           MixDef(
             'Mix diario ${i + 1}',
-            _names(uniq.skip(i * per).take(per).toList()),
+            starter
+                ? 'Para empezar · se ajusta a lo que escuches'
+                : _names(uniq.skip(i * per).take(per).toList()),
             const [Icons.today_rounded, Icons.bolt_rounded, Icons.album_rounded, Icons.graphic_eq_rounded][i % 4],
             AppPalettes.cards[i % AppPalettes.cards.length],
             uniq.skip(i * per).take(per).toList(),
@@ -395,10 +410,21 @@ class _HomeTabState extends State<_HomeTab> {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: l.length,
+            // Primera tarjeta: el mix de la hora (antes una fila aparte).
+            itemCount: l.length + 1,
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, i) {
-              final m = l[i];
+              if (i == 0) {
+                final h = _hourMixes().first;
+                final m = MixDef(h.title, _hourTitle(), h.icon, h.colors, h.artists);
+                return _MixCard(
+                  def: m,
+                  onTap: () => _openMix(h.title, h.subtitle, h.colors,
+                      MixService.buildMix(MixService.pool(h),
+                          pick: 70, perArtist: 4, keepOrder: true)),
+                );
+              }
+              final m = l[i - 1];
               return _MixCard(
                 def: m,
                 photos: true,
@@ -656,6 +682,7 @@ class _HomeTabState extends State<_HomeTab> {
               sliver: SliverList(
                 delegate: SliverChildListDelegate([
                   _stopNotice(),
+                  _backupNotice(),
                   _personalMix(),
                   const SizedBox(height: 12),
                   _nudgeCard(),
@@ -671,8 +698,6 @@ class _HomeTabState extends State<_HomeTab> {
                     },
                   ),
                   _recentSection(),
-                  SectionTitle(_hourTitle()),
-                  _mixRow(_hourMixes()),
                   const SizedBox(height: 24),
                   ConcertsCard(onListen: _listenBand),
                   const SectionTitle('Descubrir'),
@@ -751,6 +776,56 @@ class _HomeTabState extends State<_HomeTab> {
     }
   }
 
+  Future<bool>? _backupDue;
+
+  /// Recordatorio de la copia de seguridad (cada 30 días).
+  Widget _backupNotice() {
+    _backupDue ??= BackupService.shouldRemind();
+    return FutureBuilder<bool>(
+      future: _backupDue,
+      builder: (context, snap) {
+        if (snap.data != true) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(14, 10, 4, 10),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.lg),
+              border: Border.all(color: AppColors.outline),
+            ),
+            child: Row(children: [
+              Icon(Icons.backup_rounded, color: AppColors.amber),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                    'Haz una copia de seguridad para no perder tus favoritas y listas.',
+                    style: TextStyle(fontSize: AppType.label, height: 1.3)),
+              ),
+              TextButton(
+                onPressed: () async {
+                  try {
+                    await BackupService.export();
+                  } catch (_) {}
+                  setState(() => _backupDue = Future.value(false));
+                },
+                child: const Text('Hacerla'),
+              ),
+              IconButton(
+                tooltip: 'Más tarde',
+                icon: const Icon(Icons.close_rounded),
+                onPressed: () {
+                  BackupService.snooze();
+                  setState(() => _backupDue = Future.value(false));
+                },
+              ),
+            ]),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _stopNotice() {
     return ValueListenableBuilder<String?>(
       valueListenable: StopLog.last,
@@ -801,19 +876,27 @@ class _HomeTabState extends State<_HomeTab> {
     );
   }
 
+  Future<RadioStation?>? _lastRadio;
+
+  /// «Seguir con <última emisora>»; si nunca has oído radio, no se muestra
+  /// (la radio sigue en Buscar › Radio).
   Widget _quickAccess() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      child: _QuickTile(
-        icon: Icons.sensors_rounded,
-        label: 'Radio en vivo',
-        subtitle: byMode('Radioacktiva, La Ochentera y más',
-            'Emisoras de Colombia y del mundo'),
-        onTap: () {
-          widget.onNavigate(1);
-          searchHubWantMode.value = 2;
-        },
-      ),
+    _lastRadio ??= RadioService.instance.last();
+    return FutureBuilder<RadioStation?>(
+      future: _lastRadio,
+      builder: (context, snap) {
+        final st = snap.data;
+        if (st == null) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+          child: _QuickTile(
+            icon: Icons.sensors_rounded,
+            label: 'Seguir con ${st.shortName}',
+            subtitle: 'Radio en vivo · toca para escuchar',
+            onTap: () => playStation(context, st),
+          ),
+        );
+      },
     );
   }
 

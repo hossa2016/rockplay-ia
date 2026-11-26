@@ -1,6 +1,8 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Claves y opciones del asistente. Se guardan solo en este teléfono.
+/// Claves y opciones del asistente. Se guardan solo en este teléfono; las
+/// claves, cifradas (almacenamiento seguro de Android).
 class AiSettings {
   AiSettings._();
   static final AiSettings instance = AiSettings._();
@@ -21,14 +23,68 @@ class AiSettings {
   int maxSongs = 100;
   bool _loaded = false;
 
+  static const FlutterSecureStorage _sec = FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true));
+  static const List<String> keyNames = [
+    'ai_groq_key',
+    'ai_gemini_key',
+    'ai_tavily_key',
+    'ai_apify_key',
+  ];
+
+  /// Lee una clave cifrada; si aún estaba en texto plano, la mueve.
+  static Future<String> _readKey(SharedPreferences sp, String k) async {
+    try {
+      final v = await _sec.read(key: k);
+      if (v != null) return v;
+      final old = sp.getString(k);
+      if (old != null) {
+        await _sec.write(key: k, value: old);
+        await sp.remove(k);
+        return old;
+      }
+    } catch (_) {
+      return sp.getString(k) ?? '';
+    }
+    return '';
+  }
+
+  static Future<void> _writeKey(SharedPreferences sp, String k, String v) async {
+    try {
+      await _sec.write(key: k, value: v);
+      await sp.remove(k);
+    } catch (_) {
+      await sp.setString(k, v);
+    }
+  }
+
+  /// Claves actuales (para la copia de seguridad, si el usuario lo pide).
+  Map<String, String> keysMap() => {
+        'ai_groq_key': groqKey,
+        'ai_gemini_key': geminiKey,
+        'ai_tavily_key': tavilyKey,
+        'ai_apify_key': apifyKey,
+      };
+
+  /// Restaura claves desde una copia.
+  Future<void> restoreKeys(Map<String, dynamic> m) async {
+    String g(String k, String cur) =>
+        (m[k] is String && (m[k] as String).isNotEmpty) ? m[k] as String : cur;
+    groqKey = g('ai_groq_key', groqKey);
+    geminiKey = g('ai_gemini_key', geminiKey);
+    tavilyKey = g('ai_tavily_key', tavilyKey);
+    apifyKey = g('ai_apify_key', apifyKey);
+    await save();
+  }
+
   Future<void> load() async {
     if (_loaded) return;
     try {
       final sp = await SharedPreferences.getInstance();
-      groqKey = sp.getString('ai_groq_key') ?? '';
-      geminiKey = sp.getString('ai_gemini_key') ?? '';
-      tavilyKey = sp.getString('ai_tavily_key') ?? '';
-      apifyKey = sp.getString('ai_apify_key') ?? '';
+      groqKey = await _readKey(sp, 'ai_groq_key');
+      geminiKey = await _readKey(sp, 'ai_gemini_key');
+      tavilyKey = await _readKey(sp, 'ai_tavily_key');
+      apifyKey = await _readKey(sp, 'ai_apify_key');
       groqModel = sp.getString('ai_groq_model') ?? defaultGroqModel;
       // Modelos que Groq ya retiró: usa el actual.
       if (groqModel == 'llama-3.3-70b-versatile' ||
@@ -45,10 +101,10 @@ class AiSettings {
   Future<void> save() async {
     try {
       final sp = await SharedPreferences.getInstance();
-      await sp.setString('ai_groq_key', groqKey.trim());
-      await sp.setString('ai_gemini_key', geminiKey.trim());
-      await sp.setString('ai_tavily_key', tavilyKey.trim());
-      await sp.setString('ai_apify_key', apifyKey.trim());
+      await _writeKey(sp, 'ai_groq_key', groqKey.trim());
+      await _writeKey(sp, 'ai_gemini_key', geminiKey.trim());
+      await _writeKey(sp, 'ai_tavily_key', tavilyKey.trim());
+      await _writeKey(sp, 'ai_apify_key', apifyKey.trim());
       await sp.setString('ai_groq_model',
           groqModel.trim().isEmpty ? defaultGroqModel : groqModel.trim());
       await sp.setString('ai_gemini_model',
