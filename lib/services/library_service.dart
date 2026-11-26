@@ -64,7 +64,7 @@ class LibraryService {
   Future<Song> _withCover(Song s) async {
     if (s.image.isNotEmpty) return s;
     try {
-      final c = await DeezerService().coverFor('${s.artist} ${s.title}');
+      final c = await DeezerService().coverForTrack(s.artist, s.title);
       if (c.isEmpty) return s;
       return Song(
         title: s.title,

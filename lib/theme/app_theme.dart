@@ -410,5 +410,5 @@ class Dense extends StatelessWidget {
 /// la letra grande del sistema, para que el texto no se corte.
 double rowHeight(BuildContext context, double base, {double text = 44}) {
   final k = MediaQuery.textScalerOf(context).scale(100) / 100;
-  return base + (k - 1).clamp(0.0, 0.5) * text * 2;
+  return base + (k - 1).clamp(0.0, 0.5) * text;
 }

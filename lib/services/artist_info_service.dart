@@ -290,7 +290,8 @@ class ArtistInfoService {
   }
 
   /// Artistas parecidos a [seeds] con pocos seguidores en Deezer.
-  Future<List<ArtistInfo>> emerging(List<String> seeds) async {
+  Future<List<ArtistInfo>> emerging(List<String> seeds,
+      {Map<String, String> groupOf = const {}}) async {
     await BlockService.instance.ensureLoaded();
     final known = <String>{for (final s in seeds) _norm(s)};
     final found = <String, ArtistInfo>{};
@@ -317,7 +318,7 @@ class ArtistInfoService {
                 continue;
               }
               if (BlockService.instance.isBlockedAuthor(name)) continue;
-              final mine = perSeed.putIfAbsent(seed, () => []);
+              final mine = perSeed.putIfAbsent(groupOf[seed] ?? seed, () => []);
               if (mine.length >= 2 || found.containsKey(nn)) continue;
               final info = ArtistInfo(
                   e['id'].toString(),

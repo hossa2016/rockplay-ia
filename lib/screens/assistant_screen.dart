@@ -144,7 +144,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
         final s = r.songs[i];
         if (s.image.isNotEmpty) continue;
         try {
-          final c = await dz.coverFor('${s.artist} ${s.title}');
+          final c = await dz.coverForTrack(s.artist, s.title);
           if (c.isNotEmpty) {
             r.songs[i] = Song(
               title: s.title,
@@ -833,7 +833,7 @@ class _AssistantScreenState extends State<AssistantScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 8)),
                     icon: Icon(on ? Icons.record_voice_over_rounded
                         : Icons.voice_over_off_rounded, size: 20),
-                    label: Text('Locutor',
+                    label: Text(on ? 'Locutor: sí' : 'Locutor: no',
                         style: TextStyle(
                             fontSize: AppType.caption, fontWeight: FontWeight.w700)),
                     onPressed: () {

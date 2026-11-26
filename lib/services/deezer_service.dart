@@ -104,14 +104,18 @@ class DeezerService {
       // («Sonnet» ↔ «Sonnet (Remastered 2016)»).
       final j2 = await _get('/search', {'q': t, 'limit': '5'},
           ttl: const Duration(days: 30));
+      // Solo si todos los resultados que coinciden son del mismo artista:
+      // «Creep» (Radiohead, TLC, STP) es ambiguo y no se adivina.
+      final names = <String, String>{};
       for (final e in (j2['data'] as List?) ?? <dynamic>[]) {
         if (e is! Map) continue;
         final dt = n((e['title'] ?? '').toString());
         if (!(dt == t || dt.startsWith('$t ') || t.startsWith('$dt '))) continue;
         final a = e['artist'];
         final name = a is Map ? (a['name'] ?? '').toString() : '';
-        if (name.isNotEmpty) return name;
+        if (name.isNotEmpty) names[n(name)] = name;
       }
+      if (names.length == 1) return names.values.first;
     } catch (_) {}
     return null;
   }

@@ -127,13 +127,13 @@ class SongMeta {
       caseSensitive: false);
   /// «Artista - Canción», «Artista | Canción», «Artista . Canción»,
   /// «Artista ♫ Canción», «Artista // Canción».
-  static final RegExp _sep = RegExp(r'\s+[-–—|.]\s+|\s*[♫♪🎵]\s*|\s+//\s+');
+  static final RegExp _sep = RegExp(r'\s+[-–—|.·•~]\s+|\s*(?:[♫♪]|\u{1F3B5})\s*|\s+//\s+', unicode: true);
 
   /// Colas de canales de letras sin guion: «Sonnet♫Lyrics», «… Letra»,
   /// «… Subtitulado al Español», «… (Traducida)».
   static final RegExp _lyricTail = RegExp(
-      r'\s*[♫♪🎵|/]*\s*(lyrics?( video)?|letra( y traducción| en español)?|sub(titulad[oa]|s)?( al| en)? español|traducid[oa]( al español)?|traducción)\s*$',
-      caseSensitive: false);
+      r'\s*(?:[-–—♫♪|/]|\u{1F3B5})*\s*(lyrics?( video)?|letra( y traducción| en español)?|sub(titulad[oa]|s)?( al| en)? español|traducid[oa]( al español)?|traducción)\s*$',
+      caseSensitive: false, unicode: true);
 
   /// «Rammstein Official», «PearlJamVEVO», «Korn - Topic» → nombre del artista.
   static final RegExp _uploader = RegExp(

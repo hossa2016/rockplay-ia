@@ -579,21 +579,6 @@ class RockPlayAudioHandler extends BaseAudioHandler
   Future<void> _startRadio(int index) async {
     final gen = ++_gen;
     _setIndex(index);
-    // Título o artista dudoso (canal de letras, «♫Lyrics»): se corrige al
-    // empezar a sonar, no solo al guardar en el historial.
-    final cur = _songs[index];
-    if (SongFix.doubtful(cur)) {
-      SongFix.verify(cur).then((f) {
-        if (index >= _songs.length) return;
-        final now = _songs[index];
-        // Misma canción (aunque ya tenga su video): solo cambia el texto.
-        if (now.title == cur.title &&
-            now.artist == cur.artist &&
-            (f.title != cur.title || f.artist != cur.artist)) {
-          _replaceSong(index, now.withMeta(title: f.title, artist: f.artist));
-        }
-      });
-    }
     _s.error.add(null);
     _embedPlaying = false;
     unawaited(EmbedBridge.instance.pause());
@@ -652,6 +637,21 @@ class RockPlayAudioHandler extends BaseAudioHandler
     }
     final gen = ++_gen;
     _setIndex(index);
+    // Título o artista dudoso (canal de letras, «♫Lyrics»): se corrige al
+    // empezar a sonar, no solo al guardar en el historial.
+    final cur = _songs[index];
+    if (SongFix.doubtful(cur)) {
+      SongFix.verify(cur).then((f) {
+        if (index >= _songs.length) return;
+        final now = _songs[index];
+        // Misma canción (aunque ya tenga su video): solo cambia el texto.
+        if (now.title == cur.title &&
+            now.artist == cur.artist &&
+            (f.title != cur.title || f.artist != cur.artist)) {
+          _replaceSong(index, now.withMeta(title: f.title, artist: f.artist));
+        }
+      });
+    }
     _s.error.add(null);
     _altTries.remove(index);
     _handledErrFor = '';

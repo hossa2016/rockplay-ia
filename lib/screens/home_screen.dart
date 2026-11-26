@@ -480,7 +480,7 @@ class _HomeTabState extends State<_HomeTab> {
       for (final a in top) {
         final k = a.name.toLowerCase();
         for (final c in concerts) {
-          if (c.band.toLowerCase().contains(k)) {
+          if (!isTribute(c) && c.band.toLowerCase().contains(k)) {
             final city = concertCity(c);
             return _Nudge(
               '${a.name} en ${city.isEmpty ? 'Colombia' : city}',
@@ -1216,7 +1216,13 @@ class _HomeTabState extends State<_HomeTab> {
       }
       seeds = (seeds.toSet().toList()..shuffle()).take(6).toList();
     }
-    return ArtistInfoService.instance.emerging(seeds);
+    // Tope de 2 artistas nuevos por género: las semillas del mismo género
+    // comparten cupo.
+    final groupOf = <String, String>{
+      for (final e in _genreSeeds.entries)
+        for (final a in e.value) a: e.key,
+    };
+    return ArtistInfoService.instance.emerging(seeds, groupOf: groupOf);
   }
 
   Widget _emergingRow() {

@@ -766,7 +766,7 @@ class _PlayerScreenState extends State<PlayerScreen>
               constraints: const BoxConstraints(minHeight: 56),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
-                child: Column(
+                child: ExcludeSemantics(child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(icon, size: 24, color: c),
@@ -781,7 +781,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                               color: c)),
                     ),
                   ],
-                ),
+                )),
               ),
             ),
           ),

@@ -56,7 +56,7 @@ const String concertTbd = 'Lugar por confirmar';
 
 /// Estilo del lugar: atenuado y en cursiva si está por confirmar.
 TextStyle concertPlaceStyle(String place, TextStyle base) =>
-    place == concertTbd
+    place == concertTbd || place.endsWith('lugar por confirmar')
         ? base.copyWith(color: AppColors.textFaint, fontStyle: FontStyle.italic)
         : base;
 
@@ -204,7 +204,9 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
   List<Concert> _filter(List<Concert> all) {
     final f = _focus?.toLowerCase();
     if (f != null && f.isNotEmpty) {
-      final only = all.where((c) => c.band.toLowerCase().contains(f)).toList();
+      final only = all
+          .where((c) => !isTribute(c) && c.band.toLowerCase().contains(f))
+          .toList();
       if (only.isNotEmpty) return only;
     }
     if (MusicModeService.general && _genre != 'Todos') {
@@ -213,9 +215,9 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
     if (_city == _mine) return all.where((c) => _mineOf(c) != null).toList();
     if (_city == 'Todas') return all;
     if (_city == 'Bares') return all.where(_svc.isBar).toList();
-    if (_city == 'Otras') return all.where((c) => !_isMain(c.city)).toList();
+    if (_city == 'Otras') return all.where((c) => !_isMain(concertCity(c))).toList();
     final k = _city.toLowerCase().substring(0, 4);
-    return all.where((c) => c.city.toLowerCase().contains(k)).toList();
+    return all.where((c) => concertCity(c).toLowerCase().contains(k)).toList();
   }
 
   Widget _card(Concert c) {
