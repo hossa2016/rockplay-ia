@@ -103,7 +103,7 @@ class ModeCleanup {
   static Future<void> fixTitles() async {
     try {
       final sp = await SharedPreferences.getInstance();
-      if (sp.getBool('fix_titles_v3') == true) return;
+      if (sp.getBool('fix_titles_v4') == true) return;
       var pending = 0;
       final fixes = <String, Song>{};
 
@@ -166,9 +166,9 @@ class ModeCleanup {
       }
       // Quedaron dudosas sin respuesta (sin internet): se reintenta luego,
       // como mucho 5 veces.
-      final tries = (sp.getInt('fix_titles_tries3') ?? 0) + 1;
-      await sp.setInt('fix_titles_tries3', tries);
-      if (pending == 0 || tries >= 5) await sp.setBool('fix_titles_v3', true);
+      final tries = (sp.getInt('fix_titles_tries4') ?? 0) + 1;
+      await sp.setInt('fix_titles_tries4', tries);
+      if (pending == 0 || tries >= 5) await sp.setBool('fix_titles_v4', true);
     } catch (_) {}
   }
 }

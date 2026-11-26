@@ -855,9 +855,11 @@ class _PlayerScreenState extends State<PlayerScreen>
       final w = math.min(box.maxWidth - 56, box.maxHeight - 90);
       final h = w;
       final fallback = song.image;
+      // Sin portada real: la misma imagen que el mini reproductor (la del
+      // resultado), y solo si no hay, la miniatura grande del video.
       final thumb = square
           ? art
-          : (song.videoId.isEmpty
+          : (fallback.isNotEmpty || song.videoId.isEmpty
               ? fallback
               : 'https://i.ytimg.com/vi/${song.videoId}/hqdefault.jpg');
       if (_showVideo && !song.isRadio) {

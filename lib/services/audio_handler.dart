@@ -1340,7 +1340,26 @@ class RockPlayAudioHandler extends BaseAudioHandler
       final d = (j['d'] as num?)?.toInt();
       if (d != null && d > 0) _s.duration.add(Duration(seconds: d));
       _broadcast();
+      unawaited(_fixQueueTitles());
     } catch (_) {}
+  }
+
+  /// Corrige en segundo plano los títulos dudosos de la cola restaurada
+  /// («Shakira · No», canales de productoras), sin esperar a que suenen.
+  Future<void> _fixQueueTitles() async {
+    var n = 0;
+    for (var i = 0; i < _songs.length && n < 30; i++) {
+      final cur = _songs[i];
+      if (cur.isRadio || !SongFix.doubtful(cur)) continue;
+      n++;
+      final f = await SongFix.verify(cur);
+      if (i < _songs.length &&
+          identical(_songs[i], cur) &&
+          (f.title != cur.title || f.artist != cur.artist)) {
+        _replaceSong(i, cur.withMeta(title: f.title, artist: f.artist));
+        _scheduleSave();
+      }
+    }
   }
 
   @override
