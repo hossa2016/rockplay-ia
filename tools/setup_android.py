@@ -44,6 +44,15 @@ for p in PERMS:
 if block:
     m = re.sub(r"(<manifest\b[^>]*>\s*\n)", lambda x: x.group(1) + block, m, count=1)
 
+# --- Locutor (flutter_tts): Android 11+ pide declarar el servicio de voz ---
+if "android.intent.action.TTS_SERVICE" not in m:
+    q = ('    <queries>\n'
+         '        <intent>\n'
+         '            <action android:name="android.intent.action.TTS_SERVICE"/>\n'
+         '        </intent>\n'
+         '    </queries>\n')
+    m = re.sub(r"(<manifest\b[^>]*>\s*\n)", lambda x: x.group(1) + q, m, count=1)
+
 # --- <application>: nombre y cleartext ---
 def patch_application(match):
     tag = match.group(0)

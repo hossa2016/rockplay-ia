@@ -211,7 +211,10 @@ class _PlayerScreenState extends State<PlayerScreen>
   }
 
   void _measure() {
-    if (!_showVideo) {
+    // El video solo se ve con el reproductor arriba (sin Letra, hojas ni
+    // menús encima); si no, vuelve fuera de pantalla.
+    final top = ModalRoute.of(context)?.isCurrent ?? true;
+    if (!_showVideo || _lyrics || !top || (pb.song.value?.isRadio ?? false)) {
       if (EmbedBridge.instance.slot.value != null) {
         EmbedBridge.instance.slot.value = null;
       }
@@ -572,8 +575,8 @@ class _PlayerScreenState extends State<PlayerScreen>
           ValueListenableBuilder<String>(
             valueListenable: RadioNow.now,
             builder: (context, now, _) {
-              final p = RadioNow.parse(now);
               final station = pb.song.value?.title ?? '';
+              final p = RadioNow.parse(now, station: station);
               return Column(children: [
                 if (p != null) ...[
                   const SizedBox(height: 10),

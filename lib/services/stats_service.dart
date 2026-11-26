@@ -61,6 +61,8 @@ class StatsService {
   }
 
   Future<List<PlayEntry>> _load() async {
+    final pend = _pending[_key];
+    if (pend != null) return pend; // escuchas aún sin guardar de este modo
     if (_cache != null && _cacheMode == MusicModeService.mode.value) {
       return _cache!;
     }

@@ -44,7 +44,15 @@ class LocalScene {
             const ['Totó la Momposina', 'Lucho Bermúdez', 'Pastor López', 'Bomba Estéreo', 'Los Corraleros de Majagual']),
       ];
       if (filter == 'Todo') return all;
-      return all.where((m) => m.title.toLowerCase().contains(filter.toLowerCase().substring(0, 4))).toList();
+      // Filtro → mix (antes un substring(0, 4) fallaba con «Pop»).
+      const map = {
+        'Salsa': 'Salsa caleña',
+        'Vallenato': 'Vallenato',
+        'Urbano': 'Urbano paisa',
+        'Pop': 'Pop colombiano',
+        'Tropical': 'Cumbia y tropical',
+      };
+      return all.where((m) => m.title == map[filter]).toList();
     }
     final out = <MixDef>[];
     if (filter == 'Todo') {

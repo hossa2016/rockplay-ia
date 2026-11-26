@@ -283,17 +283,20 @@ class _ConcertsScreenState extends State<ConcertsScreen> {
             Row(children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.event_rounded, size: 18),
                   label: const Text('Calendario'),
-                  onPressed: () => openConcertLink(
-                      context, RadarService.calendarUri(c).toString()),
+                  // Sin fecha exacta no se crea un evento «hoy».
+                  onPressed: c.date == null
+                      ? null
+                      : () => openConcertLink(
+                          context, RadarService.calendarUri(c).toString()),
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 44)),
+                  style: OutlinedButton.styleFrom(minimumSize: const Size(0, 48)),
                   icon: const Icon(Icons.queue_music_rounded, size: 18),
                   label: const Text('Prepárate'),
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
